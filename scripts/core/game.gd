@@ -1,5 +1,8 @@
 extends Node
 
+const MAIN_MENU = preload("res://scenes/ui/main_menu.tscn")
+var menu_intro_seen := false
+
 const PLAYER = preload("res://scenes/player/player.tscn")
 const ENEMY = preload("res://scenes/enemies/enemy.tscn")
 const CHAMBER = preload("res://scenes/rooms/chamber.tscn")
@@ -48,6 +51,7 @@ var effect_layer: Node2D
 var options_return := "menu"
 
 func _ready() -> void:
+ get_tree().quit_on_go_back = false
  backdrop = MenuBackdrop.new()
  add_child(backdrop)
  var canvas := CanvasLayer.new()
@@ -132,6 +136,7 @@ func button(text: String, action: Callable) -> Button:
 
 func clear_panel() -> void:
  if is_instance_valid(panel):
+  if panel is AnimatedMainMenu: panel.deactivate()
   ui.remove_child(panel)
   panel.queue_free()
  panel = null
@@ -177,16 +182,32 @@ func show_main_menu() -> void:
  controls.set_enabled(false)
  hud.hide()
  dispose_world()
- var box := menu("ABYSS OF TEARS", "La cámara de las mareas • 0.3.0 · Reliquias del faro")
- box.add_child(button("Nueva partida", start_game))
- box.add_child(button("Prueba de reliquias",start_relic_room))
+ clear_panel()
+ var main_menu: AnimatedMainMenu = MAIN_MENU.instantiate()
+ main_menu.stage = backdrop
+ main_menu.play_intro = not menu_intro_seen
+ menu_intro_seen = true
+ panel = main_menu
+ ui.add_child(main_menu)
+ main_menu.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+ main_menu.action_requested.connect(on_menu_action)
+
+func on_menu_action(action: String) -> void:
+ if state != "menu": return
+ match action:
+  "new_game": start_game()
+  "options": show_options("menu")
+  "credits": show_credits()
+  "modes": show_modes()
+  "exit": get_tree().quit()
+
+func show_modes() -> void:
+ state = "modes"
+ var box := menu("Otros caminos", "Los modos de juego actuales siguen disponibles")
  box.add_child(button("Mazmorra · 3 pisos",start_dungeon))
- box.add_child(button("Incursión 0.2", func(): expedition = true; wave = 0; start_game()))
- box.add_child(button("Opciones", func(): show_options("menu")))
- box.add_child(button("Créditos", show_credits))
- var hint := label("Izquierda: moverse · Derecha: disparar\nPurifica la cámara para abrir el sello.",16)
- hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
- box.add_child(hint)
+ box.add_child(button("Incursión de enemigos",func(): expedition=true; wave=0; start_game()))
+ box.add_child(button("Prueba de reliquias",start_relic_room))
+ box.add_child(button("Volver",show_main_menu))
 
 func dispose_world() -> void:
  if is_instance_valid(world):
@@ -459,6 +480,7 @@ func show_options(previous: String) -> void:
  fps_toggle.button_pressed = Settings.values.get("diagnostics",false)
  fps_toggle.toggled.connect(func(value: bool): Settings.values.diagnostics = value)
  box.add_child(fps_toggle)
+ box.add_child(label("Audio: aún no disponible en esta versión",14))
  var status := label("",14)
  box.add_child(status)
  box.add_child(button("Guardar y volver", func():
@@ -488,7 +510,9 @@ func _notification(what: int) -> void:
   if is_instance_valid(controls): controls.release_all()
   pause_game()
  if what == NOTIFICATION_WM_GO_BACK_REQUEST:
-  if state == "playing": pause_game()
+  if state == "menu" and panel is AnimatedMainMenu: panel.skip_intro()
+  elif state in ["modes","credits"]: show_main_menu()
+  elif state == "playing": pause_game()
   elif state == "paused": resume_game()
 
 func _unhandled_key_input(event: InputEvent) -> void:
