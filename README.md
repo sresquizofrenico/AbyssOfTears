@@ -1,3 +1,8 @@
+## Corrección de objetos y tiendas · 0.4.2
+
+Compra junto al producto con COMPRAR, entrega inmediata y cofres con interacción
+táctil. [Causas, correcciones y pruebas](docs/pickups-and-shop-0.4.2.md).
+
 ## Nueva partida · 0.4.1
 
 Menú simplificado y selección animada de Neris antes de entrar en la mazmorra.
