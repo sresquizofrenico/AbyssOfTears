@@ -1,6 +1,8 @@
 class_name AbyssProjectile
 extends Node2D
 
+const TEAR = preload("res://assets/illustrated/tear.svg")
+
 var direction := Vector2.RIGHT
 var speed := 410.0
 var damage := 1.0
@@ -34,5 +36,6 @@ func _draw() -> void:
  if "electric" in elements: color = Color("d5c2ff")
  if elements.size()>1: draw_arc(Vector2.ZERO,9,clock*8,clock*8+PI,10,Color("ffd7a0"),2)
  draw_line(-direction * 12, Vector2.ZERO, Color(color, 0.25), 7)
- draw_circle(Vector2.ZERO, 5 + sin(clock * 18) * 0.6, color)
- draw_circle(-direction * 1.5, 2, Color("f4fff4"))
+ draw_set_transform(Vector2.ZERO,direction.angle()+PI*0.5,Vector2.ONE)
+ draw_texture_rect(TEAR,Rect2(-6,-10,12,18),false,color)
+ draw_set_transform(Vector2.ZERO)

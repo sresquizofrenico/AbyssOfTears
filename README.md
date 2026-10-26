@@ -1,3 +1,9 @@
+## Muestra ilustrada · 0.5.0
+
+Neris por capas, Sombra Errante, cristal y habitación originales de estilo 2D
+ilustrado. Acceso: Opciones → Modos y pruebas → Muestra ilustrada.
+[Dirección artística, capturas y mediciones](docs/art-direction-0.5.md).
+
 ## Corrección de objetos y tiendas · 0.4.2
 
 Compra junto al producto con COMPRAR, entrega inmediata y cofres con interacción

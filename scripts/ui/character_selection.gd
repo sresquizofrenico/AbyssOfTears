@@ -58,7 +58,7 @@ func _ready() -> void:
  status = make_label("",17)
  canvas.add_child(status)
  character = MenuCharacter.new()
- character.body_texture = preload("res://assets/characters/neris_portrait.svg")
+ character.body_texture = IllustratedNeris.BODY
  canvas.add_child(character)
  begin_button = make_button("COMENZAR",start)
  back_button = make_button("VOLVER",func():
@@ -190,7 +190,7 @@ func _notification(what: int) -> void:
 
 func _draw() -> void:
  # Shared original dungeon textures, one draw per surface, no light nodes.
- draw_texture_rect(MenuBackdrop.FLOOR,Rect2(Vector2.ZERO,size),true,Color(0.4,0.48,0.58))
+ draw_texture_rect(MenuBackdrop.FLOOR,Rect2(Vector2.ZERO,size),false,Color(0.4,0.48,0.58))
  var center := Vector2(size.x*0.32,size.y*0.51+74)
  draw_set_transform(center,0,Vector2(1,0.3))
  draw_circle(Vector2.ZERO,130,Color(0.1,0.18,0.25,0.8))

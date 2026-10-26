@@ -17,7 +17,7 @@ const PLAYER = preload("res://scenes/player/player.tscn")
 const ENEMY = preload("res://scenes/enemies/enemy.tscn")
 const CHAMBER = preload("res://scenes/rooms/chamber.tscn")
 const BULLET = preload("res://scripts/combat/projectile.gd")
-const DOOR_ART = preload("res://assets/environment/door.svg")
+const DOOR_ART = preload("res://assets/illustrated/door.svg")
 const MAX_BULLETS := 96
 const MAX_ENEMIES := 16
 const MAX_HAZARDS := 10
@@ -255,7 +255,22 @@ func show_modes() -> void:
  box.add_child(button("Elegir semilla",show_seed_menu))
  box.add_child(button("Incursión de enemigos",func(): expedition=true; wave=0; start_game()))
  box.add_child(button("Prueba de reliquias",start_relic_room))
+ box.add_child(button("Muestra ilustrada",start_art_sample))
  box.add_child(button("Volver",show_main_menu))
+
+func start_art_sample() -> void:
+ dungeon_mode=false
+ expedition=false
+ start_game()
+ for enemy: AbyssEnemy in enemies:
+  enemy.set_physics_process(false)
+  enemy.queue_free()
+ enemies.clear()
+ spawn_enemy(0,Vector2(720,170))
+ spawn_pickup({"id":"shield","position":Vector2(600,290),"collected":false,"chest":true})
+ floor_label.text="Muestra ilustrada · Recoge el cristal y prueba el combate"
+ floor_label.show()
+ update_counts()
 
 func dispose_world() -> void:
  if is_instance_valid(pickup_interaction):
@@ -296,6 +311,7 @@ func start_game(keep_progress: bool = false) -> void:
  resize_world()
  chamber = CHAMBER.instantiate()
  chamber.quality = Settings.values.quality
+ chamber.biome = layout.floor_index if dungeon_mode else 0
  world.add_child(chamber)
  player = PLAYER.instantiate()
  if carried != null: player.stats = carried
@@ -324,7 +340,7 @@ func start_game(keep_progress: bool = false) -> void:
  update_health(player.stats.health, player.stats.max_health)
  update_counts()
  if dungeon_mode:
-  chamber.modulate = [Color(1,1,1),Color(0.7,1,0.82),Color(0.9,0.75,1)][layout.floor_index]
+  chamber.modulate = Color.WHITE
   dungeon_map.layout = layout
   dungeon_map.show()
   dungeon_map.queue_redraw()
@@ -1104,8 +1120,9 @@ func purchase_pickup(pickup: RelicPickup) -> bool:
 
 func position_pickup_interaction() -> void:
  var viewport_size:=get_viewport().get_visible_rect().size
- pickup_interaction.position=Vector2(viewport_size.x*0.5-215,viewport_size.y-160)
- pickup_interaction.size=Vector2(430,145)
+ var panel_height:=145.0 if pickup_interaction.action.visible else 92.0
+ pickup_interaction.position=Vector2(viewport_size.x*0.5-215,viewport_size.y-panel_height-15)
+ pickup_interaction.size=Vector2(430,panel_height)
 
 func update_pickup_interaction() -> void:
  var nearest: RelicPickup
