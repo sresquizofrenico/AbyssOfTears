@@ -1,5 +1,8 @@
 # Abyss of Tears
 
+**0.2 — Entrega A:** veinte enemigos y una incursión de cinco oleadas.
+Consulta [contenido, límites y pruebas](docs/update-0.2-A.md).
+
 Prototipo original de acción 2D para Android: **la cámara de las mareas**.
 Eres Neris, guardián de un faro hundido. Purifica las seis sombras del sello
 sin perder toda tu vida. No requiere Internet para jugar.

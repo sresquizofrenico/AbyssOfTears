@@ -5,6 +5,10 @@ const ENEMY = preload("res://scenes/enemies/enemy.tscn")
 const CHAMBER = preload("res://scenes/rooms/chamber.tscn")
 const BULLET = preload("res://scripts/combat/projectile.gd")
 const MAX_BULLETS := 96
+const MAX_ENEMIES := 16
+const MAX_HAZARDS := 10
+var expedition := false
+var wave := 0
 var state := "menu"
 var world: Node2D
 var chamber: Node2D
@@ -20,6 +24,7 @@ var health_bar: ProgressBar
 var coins_label: Label
 var enemies_label: Label
 var coins := 0
+var hazards: Array[EnemyHazard] = []
 var effects: Array[Dictionary] = []
 var effect_layer: Node2D
 var options_return := "menu"
@@ -120,11 +125,13 @@ func menu(title: String, subtitle: String) -> VBoxContainer:
 
 func show_main_menu() -> void:
  state = "menu"
+ expedition = false
  controls.set_enabled(false)
  hud.hide()
  dispose_world()
- var box := menu("ABYSS OF TEARS", "La cámara de las mareas • Prototipo 0.1")
+ var box := menu("ABYSS OF TEARS", "La cámara de las mareas • 0.2 · Entrega A")
  box.add_child(button("Nueva partida", start_game))
+ box.add_child(button("Incursión 0.2", func(): expedition = true; wave = 0; start_game()))
  box.add_child(button("Opciones", func(): show_options("menu")))
  box.add_child(button("Créditos", show_credits))
  var hint := label("Izquierda: moverse · Derecha: disparar\nPurifica la cámara para abrir el sello.\nEl faro aún recuerda tu nombre.",16)
@@ -139,12 +146,14 @@ func dispose_world() -> void:
  enemies.clear()
  bullets.clear()
  effects.clear()
+ hazards.clear()
 
 func start_game() -> void:
  clear_panel()
  dispose_world()
  state = "playing"
  coins = 0
+ wave = 0
  world = Node2D.new()
  add_child(world)
  resize_world()
@@ -158,15 +167,11 @@ func start_game() -> void:
  player.health_changed.connect(update_health)
  player.died.connect(func(): finish(false))
  world.add_child(player)
- for entry in [[0, Vector2(150,140)], [0, Vector2(800,140)], [1, Vector2(480,120)], [1, Vector2(820,300)], [2, Vector2(140,330)], [2, Vector2(480,250)]]:
-  var enemy: AbyssEnemy = ENEMY.instantiate()
-  enemy.kind = entry[0]
-  enemy.position = entry[1]
-  enemy.target = player
-  enemy.shot.connect(spawn_enemy_bullet)
-  enemy.defeated.connect(func(point: Vector2, reward: int): on_enemy_defeated(enemy, point, reward))
-  world.add_child(enemy)
-  enemies.append(enemy)
+ if expedition:
+  spawn_wave()
+ else:
+  for entry in [[0, Vector2(150,140)], [0, Vector2(800,140)], [1, Vector2(480,120)], [1, Vector2(820,300)], [2, Vector2(140,330)], [2, Vector2(480,250)]]:
+   spawn_enemy(entry[0],entry[1])
  effect_layer = Node2D.new()
  world.add_child(effect_layer)
  effect_layer.draw.connect(draw_effects)
@@ -188,7 +193,7 @@ func update_health(current: float, maximum: float) -> void:
 
 func update_counts() -> void:
  coins_label.text = "Óbolos %d" % coins
- enemies_label.text = "Sombras %d" % enemies.size()
+ enemies_label.text = ("O%d/5 · " % (wave+1) if expedition else "") + "Sombras %d" % enemies.size()
 
 func spawn_player_bullet(origin: Vector2, direction: Vector2, stats: ActorStats) -> void:
  spawn_bullet(origin, direction, stats.projectile_speed, stats.damage, stats.attack_range, false)
@@ -210,6 +215,8 @@ func spawn_bullet(origin: Vector2, direction: Vector2, speed: float, damage: flo
 
 func _physics_process(delta: float) -> void:
  if state != "playing": return
+ for i in range(hazards.size()-1,-1,-1):
+  if not is_instance_valid(hazards[i]): hazards.remove_at(i)
  for i in range(bullets.size()-1, -1, -1):
   var bullet := bullets[i]
   if not is_instance_valid(bullet) or bullet.expired:
@@ -221,7 +228,7 @@ func _physics_process(delta: float) -> void:
   var steps := maxi(1, ceili(old.distance_to(bullet.position) / 5.0))
   for step in range(1, steps + 1):
    var point := old.lerp(bullet.position, float(step) / steps)
-   if chamber.blocks(point):
+   if projectile_blocked(point):
     bullet.expire()
     break
    if bullet.hostile:
@@ -232,7 +239,7 @@ func _physics_process(delta: float) -> void:
    else:
     for enemy in enemies.duplicate():
      if is_instance_valid(enemy) and not enemy.dead and point.distance_to(enemy.position) < 20:
-      enemy.take_damage(bullet.damage)
+      enemy.take_damage(bullet.damage, bullet.direction)
       bullet.expire()
       break
    if bullet.expired or state != "playing": break
@@ -243,6 +250,7 @@ func _physics_process(delta: float) -> void:
   effects[i].life -= delta
   if effects[i].life <= 0: effects.remove_at(i)
  if is_instance_valid(effect_layer): effect_layer.queue_redraw()
+ if enemies.is_empty(): clear_wave()
 
 func on_enemy_defeated(enemy: AbyssEnemy, point: Vector2, reward: int) -> void:
  enemies.erase(enemy)
@@ -252,7 +260,7 @@ func on_enemy_defeated(enemy: AbyssEnemy, point: Vector2, reward: int) -> void:
  update_counts()
  if enemies.is_empty() and state == "playing":
   # Defer so damage and projectile cleanup can finish safely.
-  finish.call_deferred(true)
+  clear_wave.call_deferred()
 
 func draw_effects() -> void:
  for effect in effects:
@@ -355,3 +363,71 @@ func show_credits() -> void:
  text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
  scroll.add_child(text)
  box.add_child(button("Volver", show_main_menu))
+
+func spawn_enemy(kind_id: int, point: Vector2, weak: bool = false) -> void:
+ if state != "playing" or enemies.size() >= MAX_ENEMIES: return
+ var enemy: AbyssEnemy = ENEMY.instantiate()
+ enemy.kind = clampi(kind_id,0,19)
+ enemy.weak = weak
+ enemy.once = weak
+ enemy.position = safe_point(point)
+ enemy.target = player
+ enemy.shot.connect(spawn_enemy_bullet)
+ enemy.summon.connect(func(id: int, location: Vector2, small: bool): spawn_enemy(id, location, small))
+ enemy.hazard.connect(spawn_hazard)
+ enemy.defeated.connect(func(location: Vector2, reward: int): on_enemy_defeated(enemy, location, reward))
+ world.add_child(enemy)
+ enemies.append(enemy)
+ update_counts()
+
+func safe_point(point: Vector2) -> Vector2:
+ point = point.clamp(Vector2(70,100),Vector2(890,450))
+ for pillar: Vector2 in chamber.PILLARS:
+  if point.distance_to(pillar) < 55: point = pillar + Vector2(0,60)
+ return point
+
+func spawn_hazard(point: Vector2, type: String) -> void:
+ var count := 0
+ for node in world.get_children():
+  if node is EnemyHazard:
+   count += 1
+   # Only one timed stat modifier at a time; restoration remains deterministic.
+   if type == "curse" and node.kind == "curse": return
+ if count >= MAX_HAZARDS: return
+ point = safe_point(point)
+ if type == "wall" and point.distance_to(player.position) < 65: return
+ var hazard := EnemyHazard.new()
+ hazard.kind = type
+ hazard.player = player
+ hazard.position = point
+ world.add_child(hazard)
+ hazards.append(hazard)
+
+func spawn_wave() -> void:
+ var points := [Vector2(150,140),Vector2(800,140),Vector2(480,120),Vector2(820,300)]
+ for i in range(4): spawn_enemy(wave * 4 + i,points[i])
+ enemies_label.text = "Oleada %d/5" % (wave+1)
+
+func clear_wave() -> void:
+ if state != "playing" or not enemies.is_empty(): return
+ # Resolve announced death explosions before allowing victory or the next wave.
+ for node in world.get_children():
+  if node is EnemyHazard and node.kind == "explosion":
+   return
+ if expedition and wave < 4:
+  wave += 1
+  for node in world.get_children():
+   if node is EnemyHazard: node.queue_free()
+  for bullet in bullets:
+   if is_instance_valid(bullet): bullet.expire()
+  bullets.clear()
+  player.stats.health = minf(player.stats.max_health,player.stats.health + 1)
+  update_health(player.stats.health,player.stats.max_health)
+  spawn_wave()
+ else: finish(true)
+
+func projectile_blocked(point: Vector2) -> bool:
+ if chamber.blocks(point): return true
+ for node in hazards:
+  if is_instance_valid(node) and node.kind == "wall" and point.distance_to(node.position) < 27: return true
+ return false
