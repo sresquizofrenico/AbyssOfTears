@@ -7,6 +7,13 @@ const BULLET = preload("res://scripts/combat/projectile.gd")
 const MAX_BULLETS := 96
 const MAX_ENEMIES := 16
 const MAX_HAZARDS := 10
+var dungeon_mode := false
+var layout := FloorLayout.new()
+var dungeon_seed := 0
+var transitioning := false
+var dungeon_map: DungeonMap
+var floor_label: Label
+var navigation: Button
 var expedition := false
 var wave := 0
 var state := "menu"
@@ -41,9 +48,22 @@ func _ready() -> void:
  ui.add_child(controls)
  get_viewport().size_changed.connect(resize_world)
  build_hud()
+ dungeon_map = DungeonMap.new()
+ dungeon_map.size = Vector2(150,110)
+ dungeon_map.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+ dungeon_map.position = Vector2(ui.size.x-160,6)
+ ui.add_child(dungeon_map)
+ floor_label = label("",15)
+ floor_label.position = Vector2(24,52)
+ ui.add_child(floor_label)
+ navigation = button("Puertas / Piso",show_doors)
+ navigation.custom_minimum_size = Vector2(160,40)
+ navigation.position = Vector2(520,12)
+ ui.add_child(navigation)
  show_main_menu()
 
 func resize_world() -> void:
+ if is_instance_valid(dungeon_map): dungeon_map.position.x = get_viewport().get_visible_rect().size.x-160
  if is_instance_valid(world):
   world.position = (get_viewport().get_visible_rect().size - Vector2(960,540)) * 0.5
 
@@ -126,11 +146,16 @@ func menu(title: String, subtitle: String) -> VBoxContainer:
 func show_main_menu() -> void:
  state = "menu"
  expedition = false
+ dungeon_mode = false
+ dungeon_map.hide()
+ floor_label.hide()
+ navigation.hide()
  controls.set_enabled(false)
  hud.hide()
  dispose_world()
- var box := menu("ABYSS OF TEARS", "La cámara de las mareas • 0.2 · Entrega A")
+ var box := menu("ABYSS OF TEARS", "La cámara de las mareas • 0.2.1 · Tres pisos")
  box.add_child(button("Nueva partida", start_game))
+ box.add_child(button("Mazmorra · 3 pisos",start_dungeon))
  box.add_child(button("Incursión 0.2", func(): expedition = true; wave = 0; start_game()))
  box.add_child(button("Opciones", func(): show_options("menu")))
  box.add_child(button("Créditos", show_credits))
@@ -148,11 +173,13 @@ func dispose_world() -> void:
  effects.clear()
  hazards.clear()
 
-func start_game() -> void:
+func start_game(keep_progress: bool = false) -> void:
+ var carried: ActorStats = player.stats if keep_progress and is_instance_valid(player) else null
+ var carried_coins := coins if keep_progress else 0
  clear_panel()
  dispose_world()
  state = "playing"
- coins = 0
+ coins = carried_coins
  wave = 0
  world = Node2D.new()
  add_child(world)
@@ -161,13 +188,16 @@ func start_game() -> void:
  chamber.quality = Settings.values.quality
  world.add_child(chamber)
  player = PLAYER.instantiate()
+ if carried != null: player.stats = carried
  player.position = Vector2(480, 390)
  player.controls = controls
  player.shot.connect(spawn_player_bullet)
  player.health_changed.connect(update_health)
  player.died.connect(func(): finish(false))
  world.add_child(player)
- if expedition:
+ if dungeon_mode:
+  populate_room()
+ elif expedition:
   spawn_wave()
  else:
   for entry in [[0, Vector2(150,140)], [0, Vector2(800,140)], [1, Vector2(480,120)], [1, Vector2(820,300)], [2, Vector2(140,330)], [2, Vector2(480,250)]]:
@@ -180,6 +210,16 @@ func start_game() -> void:
  hud.show()
  update_health(player.stats.health, player.stats.max_health)
  update_counts()
+ if dungeon_mode:
+  chamber.modulate = [Color(1,1,1),Color(0.7,1,0.82),Color(0.9,0.75,1)][layout.floor_index]
+  dungeon_map.layout = layout
+  dungeon_map.show()
+  dungeon_map.queue_redraw()
+  floor_label.text = "Piso %d/3 · %s" % [layout.floor_index+1,FloorLayout.BIOMES[layout.floor_index]]
+  floor_label.show()
+  navigation.show()
+  reward_room()
+ transitioning = false
 
 func apply_controls() -> void:
  controls.scale_factor = Settings.values.control_scale
@@ -251,6 +291,8 @@ func _physics_process(delta: float) -> void:
   if effects[i].life <= 0: effects.remove_at(i)
  if is_instance_valid(effect_layer): effect_layer.queue_redraw()
  if enemies.is_empty(): clear_wave()
+ if dungeon_mode and not transitioning and layout.rooms[layout.current].cleared:
+  check_doors()
 
 func on_enemy_defeated(enemy: AbyssEnemy, point: Vector2, reward: int) -> void:
  enemies.erase(enemy)
@@ -263,6 +305,19 @@ func on_enemy_defeated(enemy: AbyssEnemy, point: Vector2, reward: int) -> void:
   clear_wave.call_deferred()
 
 func draw_effects() -> void:
+ if dungeon_mode:
+  var room: Dictionary = layout.rooms[layout.current]
+  if room.kind in ["treasure","descent"]:
+   var color := Color("f2d39a") if room.kind == "treasure" else Color("bca9e6")
+   effect_layer.draw_arc(Vector2(480,274),32,0,TAU,32,color,3)
+   if room.kind == "descent":
+    for i in range(3): effect_layer.draw_line(Vector2(460,260+i*12),Vector2(500,260+i*12),color,3)
+   else: effect_layer.draw_colored_polygon(PackedVector2Array([Vector2(480,250),Vector2(498,274),Vector2(480,298),Vector2(462,274)]),Color(color,0.4))
+  for neighbor: int in layout.rooms[layout.current].links:
+   var point := door_point(neighbor)
+   var open: bool = layout.rooms[layout.current].cleared
+   effect_layer.draw_rect(Rect2(point-Vector2(16,16),Vector2(32,32)),Color("83dbbc") if open else Color("865473"))
+   effect_layer.draw_circle(point,7,Color("183040"))
  for effect in effects:
   var t: float = 1.0 - effect.life / 0.45
   var count := 6 if Settings.values.quality == 1 else 12
@@ -295,7 +350,7 @@ func finish(won: bool) -> void:
  player.active = false
  set_world_active(false)
  var box := menu("SELLO PURIFICADO" if won else "EL ABISMO TE RECLAMA", "Óbolos recuperados: %d" % coins)
- box.add_child(button("Jugar otra vez", start_game))
+ box.add_child(button("Jugar otra vez", restart_game))
  box.add_child(button("Menú principal", show_main_menu))
 
 func show_options(previous: String) -> void:
@@ -414,6 +469,12 @@ func clear_wave() -> void:
  for node in world.get_children():
   if node is EnemyHazard and node.kind == "explosion":
    return
+ if dungeon_mode:
+  if not layout.rooms[layout.current].cleared:
+   layout.rooms[layout.current].cleared = true
+   reward_room()
+   dungeon_map.queue_redraw()
+  return
  if expedition and wave < 4:
   wave += 1
   for node in world.get_children():
@@ -431,3 +492,84 @@ func projectile_blocked(point: Vector2) -> bool:
  for node in hazards:
   if is_instance_valid(node) and node.kind == "wall" and point.distance_to(node.position) < 27: return true
  return false
+
+func start_dungeon() -> void:
+ dungeon_mode = true
+ expedition = false
+ dungeon_seed = randi()
+ layout.generate(dungeon_seed,0)
+ start_game()
+
+func populate_room() -> void:
+ var room: Dictionary = layout.rooms[layout.current]
+ if room.cleared: return
+ var rng := RandomNumberGenerator.new()
+ rng.seed = dungeon_seed + layout.floor_index * 1000 + layout.current * 71
+ var count := 3 + layout.floor_index
+ if room.kind == "descent": count += 1
+ var points := [Vector2(150,140),Vector2(800,140),Vector2(480,120),Vector2(820,300),Vector2(140,330),Vector2(480,250)]
+ for i in range(count):
+  var kind := rng.randi_range(0,[7,13,19][layout.floor_index])
+  spawn_enemy(kind,points[i])
+  enemies.back().health *= 1 + layout.floor_index * 0.3
+  enemies.back().max_health = enemies.back().health
+
+func reward_room() -> void:
+ var room: Dictionary = layout.rooms[layout.current]
+ if not room.cleared or room.rewarded or room.kind == "start": return
+ room.rewarded = true
+ var rng := RandomNumberGenerator.new()
+ rng.seed = dungeon_seed + layout.floor_index * 101 + layout.current
+ coins += rng.randi_range(2,5) + layout.floor_index
+ if room.kind == "descent": floor_label.text += " · Salida abierta: Puertas / Piso"
+ if room.kind == "treasure":
+  floor_label.text += " · Tesoro: +daño y vida"
+  player.stats.modify({"damage":0.25,"max_health":1})
+  player.stats.health = minf(player.stats.max_health,player.stats.health+1)
+  update_health(player.stats.health,player.stats.max_health)
+ update_counts()
+
+func door_point(neighbor: int) -> Vector2:
+ var direction: Vector2i = layout.rooms[neighbor].cell-layout.rooms[layout.current].cell
+ return Vector2(480,274)+Vector2(direction)*Vector2(410,185)
+
+func check_doors() -> void:
+ for neighbor: int in layout.rooms[layout.current].links:
+  if player.position.distance_to(door_point(neighbor)) < 35:
+   transitioning = true
+   travel_to.call_deferred(neighbor)
+   return
+
+func travel_to(neighbor: int) -> void:
+ if not dungeon_mode or state not in ["playing","doors"] or not layout.enter(neighbor):
+  transitioning = false
+  return
+ start_game(true)
+
+func show_doors() -> void:
+ if not dungeon_mode or state != "playing": return
+ state = "doors"
+ set_world_active(false)
+ var room: Dictionary = layout.rooms[layout.current]
+ var box := menu("Piso %d · %s" % [layout.floor_index+1,FloorLayout.BIOMES[layout.floor_index]],"Limpia la habitación para abrir las puertas" if not room.cleared else "Elige una puerta o acércate a ella")
+ if room.cleared:
+  for neighbor: int in room.links:
+   var difference: Vector2i = layout.rooms[neighbor].cell-room.cell
+   var direction := "Norte" if difference.y < 0 else "Sur" if difference.y > 0 else "Este" if difference.x > 0 else "Oeste"
+   box.add_child(button("Puerta " + direction,func(): travel_to(neighbor)))
+  if room.kind == "descent":
+   box.add_child(button("Descender" if layout.floor_index < 2 else "Salir del abismo",descend))
+ box.add_child(button("Volver",resume_game))
+
+func descend() -> void:
+ if not dungeon_mode or state != "doors" or not layout.rooms[layout.current].cleared or layout.rooms[layout.current].kind != "descent": return
+ if layout.floor_index == 2:
+  state = "playing"
+  finish(true)
+  return
+ layout.generate(dungeon_seed,layout.floor_index+1)
+ start_game(true)
+
+func restart_game() -> void:
+ if dungeon_mode: start_dungeon()
+ else: start_game()

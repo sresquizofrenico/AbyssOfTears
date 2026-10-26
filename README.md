@@ -1,5 +1,8 @@
 # Abyss of Tears
 
+**0.2.1:** mazmorra de tres pisos, ocho habitaciones por piso y minimapa.
+[Cómo recorrerla y qué sigue pendiente](docs/update-0.2.1-floors.md).
+
 **0.2 — Entrega A:** veinte enemigos y una incursión de cinco oleadas.
 Consulta [contenido, límites y pruebas](docs/update-0.2-A.md).
 
