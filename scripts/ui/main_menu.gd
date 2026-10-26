@@ -16,7 +16,7 @@ var pending_time := 0.0
 var guard_time := 0.0
 var transition_elapsed := 0.0
 var suspended := false
-var disabled_actions := ["continue","characters","collection"]
+var disabled_actions: Array[String] = []
 
 func _ready() -> void:
  add_theme_stylebox_override("panel",StyleBoxEmpty.new())
@@ -50,17 +50,12 @@ func _ready() -> void:
  button_panel.add_child(box)
  box.add_child(make_label("ELIGE TU CAMINO",16))
  add_button(box,"NUEVA PARTIDA","new_game")
- add_button(box,"CONTINUAR · SIN PARTIDA","continue")
- add_button(box,"PERSONAJES · PRÓXIMAMENTE","characters")
- add_button(box,"COLECCIÓN · PRÓXIMAMENTE","collection")
  add_button(box,"OPCIONES","options")
- add_button(box,"CRÉDITOS","credits")
- add_button(box,"OTROS MODOS","modes")
  add_button(box,"SALIR","exit")
  if OS.has_feature("web"):
   disabled_actions.append("exit")
   buttons.exit.text = "SALIR · NO DISPONIBLE EN WEB"
- box.add_child(make_label("0.4.0 · AVENTURA SIN CONEXIÓN",12))
+ box.add_child(make_label("0.4.1 · AVENTURA SIN CONEXIÓN",12))
  darkness = ColorRect.new()
  darkness.color = Color.BLACK
  darkness.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -125,8 +120,8 @@ func layout_menu() -> void:
  subtitle.position=Vector2(24+insets.x,155+insets.y)
  subtitle.size=Vector2(left_width-48,28)
  hint.position=Vector2(24+insets.x,size.y-32-insets.w)
- button_panel.position=Vector2(size.x-340-insets.z,24+insets.y)
- button_panel.size=Vector2(316,size.y-48-insets.y-insets.w)
+ button_panel.position=Vector2(size.x-340-insets.z,maxf(24,(size.y-270)*0.5)+insets.y)
+ button_panel.size=Vector2(316,270)
 
 func refresh_visuals() -> void:
  title.modulate.a=intro.title_alpha()

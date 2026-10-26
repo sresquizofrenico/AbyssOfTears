@@ -37,10 +37,11 @@ func run() -> void:
  menu.guard_time=0
  menu.refresh_visuals()
  check(not menu.buttons.new_game.disabled,"New game enabled after intro")
- for action in ["continue","characters","collection"]:
-  check(menu.buttons[action].disabled,"Unimplemented action disabled: "+action)
+ check(menu.buttons.size()==3,"Main menu has only new game, options and exit without a run save")
+ for action in ["continue","characters","collection","credits","modes"]:
+  check(not menu.buttons.has(action),"Extra or unsupported main button removed: "+action)
   menu.request_action(action)
-  check(menu.pending=="","Disabled action has no callback")
+  check(menu.pending=="","Hidden action has no callback")
  for dimensions in [Vector2i(960,540),Vector2i(1280,540),Vector2i(960,600)]:
   root.size=dimensions
   await process_frame
@@ -91,10 +92,8 @@ func run() -> void:
  check(root.get_node("Settings").values.size()==old_stats.size(),"Menu creates no save or inventory state")
  root.get_node("Settings").values=old_stats
  check(game.world==null and game.enemies.is_empty() and game.coins==0,"Ambient actions create no combat world or rewards")
- menu.request_action("credits")
- check(game.backdrop.reaction=="credits","Credits changes gaze")
- menu._process(0.2)
- check(game.state=="credits","Credits opens")
+ game.show_credits()
+ check(game.state=="credits","Credits remain available internally")
  game.show_main_menu()
  menu=game.panel
  menu.request_action("new_game")
@@ -102,7 +101,11 @@ func run() -> void:
  check(menu.pending=="new_game","Repeated input cannot replace pending action")
  check(game.backdrop.reaction=="new_game","New game starts door reaction")
  menu._process(0.46)
- check(game.state=="playing" and game.enemies.size()==6,"New game starts after the animation")
+ check(game.state=="character_selection" and game.world==null,"New game opens selection without starting combat")
+ var selection: CharacterSelection = game.panel
+ selection.start()
+ selection._process(0.43)
+ check(game.state=="playing" and game.dungeon_mode and game.layout.floor_index==0,"Begin starts the first dungeon floor")
  check(not game.backdrop.visible,"Menu animations hidden during play")
  game.show_main_menu()
  game.show_modes()
