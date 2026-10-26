@@ -10,6 +10,8 @@ var boss_bar: ProgressBar
 
 const MAIN_MENU = preload("res://scenes/ui/main_menu.tscn")
 var menu_intro_seen := false
+var selected_character := "neris"
+const CHARACTER_SELECTION = preload("res://scenes/ui/character_selection.tscn")
 
 const PLAYER = preload("res://scenes/player/player.tscn")
 const ENEMY = preload("res://scenes/enemies/enemy.tscn")
@@ -218,11 +220,28 @@ func show_main_menu() -> void:
 func on_menu_action(action: String) -> void:
  if state != "menu": return
  match action:
-  "new_game": start_game()
+  "new_game": show_character_selection()
   "options": show_options("menu")
   "credits": show_credits()
   "modes": show_modes()
   "exit": get_tree().quit()
+
+func show_character_selection() -> void:
+ state = "character_selection"
+ clear_panel()
+ backdrop.hide()
+ var selection: CharacterSelection = CHARACTER_SELECTION.instantiate()
+ panel = selection
+ ui.add_child(selection)
+ selection.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+ selection.back_requested.connect(show_main_menu)
+ selection.begin_requested.connect(begin_character_run)
+
+func begin_character_run(id: String) -> bool:
+ if state != "character_selection" or not CharacterCatalog.playable(id): return false
+ selected_character = id
+ start_dungeon()
+ return true
 
 func show_modes() -> void:
  state = "modes"
@@ -272,6 +291,7 @@ func start_game(keep_progress: bool = false) -> void:
  world.add_child(chamber)
  player = PLAYER.instantiate()
  if carried != null: player.stats = carried
+ else: player.stats = CharacterCatalog.initial_stats(selected_character)
  if carried_relics != null: player.relics = carried_relics
  player.position = Vector2(480, 390)
  player.controls = controls
@@ -529,6 +549,16 @@ func show_options(previous: String) -> void:
  fps_toggle.toggled.connect(func(value: bool): Settings.values.diagnostics = value)
  box.add_child(fps_toggle)
  box.add_child(label("Audio: aún no disponible en esta versión",14))
+ if previous == "menu":
+  var extras := HBoxContainer.new()
+  extras.add_theme_constant_override("separation",12)
+  box.add_child(extras)
+  var modes_button := button("Modos y pruebas",func(): Settings.save_settings(); show_modes())
+  var credits_button := button("Créditos",func(): Settings.save_settings(); show_credits())
+  modes_button.custom_minimum_size.x = 190
+  credits_button.custom_minimum_size.x = 150
+  extras.add_child(modes_button)
+  extras.add_child(credits_button)
  var status := label("",14)
  box.add_child(status)
  box.add_child(button("Guardar y volver", func():
@@ -559,7 +589,7 @@ func _notification(what: int) -> void:
   pause_game()
  if what == NOTIFICATION_WM_GO_BACK_REQUEST:
   if state == "menu" and panel is AnimatedMainMenu: panel.skip_intro()
-  elif state in ["modes","credits"]: show_main_menu()
+  elif state in ["modes","credits","character_selection"]: show_main_menu()
   elif state=="seed": show_modes()
   elif state == "playing": pause_game()
   elif state == "paused": resume_game()
@@ -568,6 +598,7 @@ func _unhandled_key_input(event: InputEvent) -> void:
  if event is InputEventKey and event.pressed and not event.echo and event.physical_keycode == KEY_ESCAPE:
   if state == "playing": pause_game()
   elif state == "paused": resume_game()
+  elif state == "character_selection": show_main_menu()
 
 func show_credits() -> void:
  state = "credits"

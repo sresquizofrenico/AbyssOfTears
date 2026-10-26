@@ -1,3 +1,8 @@
+## Nueva partida · 0.4.1
+
+Menú simplificado y selección animada de Neris antes de entrar en la mazmorra.
+[Detalles y pruebas](docs/character-selection.md).
+
 # Abyss of Tears
 
 **0.4.0 — Fases 0 y 1:** referencia estable protegida, doce habitaciones por piso,

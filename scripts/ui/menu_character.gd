@@ -2,6 +2,7 @@ class_name MenuCharacter
 extends Node2D
 
 const BODY = preload("res://assets/characters/neris_body.svg")
+var body_texture: Texture2D = BODY
 var clock := 0.0
 var moving := false
 var look := Vector2.RIGHT
@@ -35,7 +36,7 @@ func _draw() -> void:
   if side == 1:
    draw_rect(Rect2(hand+Vector2(-3,4),Vector2(7,10)),Color("c4ae7b"))
    draw_rect(Rect2(hand+Vector2(-1,6),Vector2(3,6)),Color("91e8ce"))
- draw_texture_rect(BODY,Rect2(-24,-40,48,64),false)
+ draw_texture_rect(body_texture,Rect2(-24,-40,48,64),false)
  draw_circle(Vector2(-5,-23)+look,1,Color("e2f6d6"))
  draw_circle(Vector2(6,-23)+look,1,Color("e2f6d6"))
  draw_set_transform(Vector2.ZERO)
