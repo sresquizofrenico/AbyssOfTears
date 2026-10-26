@@ -1,0 +1,56 @@
+#!/usr/bin/env python3
+"""Configure Godot user settings and export a signed ARM64 debug APK."""
+import os
+from pathlib import Path
+import re
+import subprocess
+import sys
+import zipfile
+
+ROOT = Path(__file__).resolve().parents[1]
+sdk = Path(os.environ['ANDROID_HOME']).resolve()
+java = Path(os.environ['JAVA_HOME']).resolve()
+key = Path(os.environ['GODOT_ANDROID_KEYSTORE_DEBUG_PATH']).resolve()
+for required in (sdk / 'platform-tools/adb', sdk / 'build-tools/36.0.0/apksigner', java / 'bin/java', key):
+    if not required.is_file():
+        raise SystemExit(f'Missing Android build prerequisite: {required}')
+config = Path(os.environ.get('XDG_CONFIG_HOME', str(Path.home() / '.config'))) / 'godot'
+config.mkdir(parents=True, exist_ok=True)
+# Dedicated build settings; no editor or user action required.
+def gd_string(value):
+    return '"' + str(value).replace('\\', '/').replace('"', '\\"') + '"'
+(config / 'editor_settings-4.6.tres').write_text(
+    '[gd_resource type="EditorSettings" format=3]\n\n[resource]\n'
+    f'export/android/android_sdk_path = {gd_string(sdk)}\n'
+    f'export/android/java_sdk_path = {gd_string(java)}\n')
+output = ROOT / 'build/AbyssOfTears-debug.apk'
+output.parent.mkdir(exist_ok=True)
+output.unlink(missing_ok=True)
+env = dict(os.environ, GODOT_ANDROID_KEYSTORE_DEBUG_USER='androiddebugkey',
+           GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD='android')
+result = subprocess.run([os.environ.get('GODOT', 'godot'), '--headless', '--path', str(ROOT),
+                         '--export-debug', 'Android', str(output)], env=env, text=True,
+                        stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=600)
+print(result.stdout, flush=True)
+if result.returncode or re.search(r'SCRIPT ERROR:|(?:^|\n)ERROR:|Export failed', result.stdout):
+    raise SystemExit('Android export failed; inspect the Godot output above.')
+if not output.exists() or output.stat().st_size < 1_000_000:
+    raise SystemExit('Export did not produce a valid-size APK')
+with zipfile.ZipFile(output) as apk:
+    if apk.testzip():
+        raise SystemExit('Corrupt APK ZIP entries')
+    if 'AndroidManifest.xml' not in apk.namelist() or 'lib/arm64-v8a/libgodot_android.so' not in apk.namelist():
+        raise SystemExit('Missing Android manifest or ARM64 engine')
+    if any(n.startswith(('lib/armeabi-v7a/', 'lib/x86/', 'lib/x86_64/')) for n in apk.namelist()):
+        raise SystemExit('Unexpected non-ARM64 native libraries')
+subprocess.run([str(sdk / 'build-tools/36.0.0/apksigner'), 'verify', '--verbose', str(output)], check=True)
+badging = subprocess.check_output([str(sdk / 'build-tools/36.0.0/aapt'), 'dump', 'badging', str(output)], text=True)
+print(badging)
+if "name='org.abyssoftears.game'" not in badging or "native-code: 'arm64-v8a'" not in badging:
+    raise SystemExit('Unexpected package identity or ABI')
+if "android.permission.INTERNET" in badging:
+    raise SystemExit('Offline game unexpectedly requests Internet permission')
+match = re.search(r"sdkVersion:'(\d+)'", badging)
+if not match or int(match[1]) > 33:
+    raise SystemExit('Minimum Android version would exclude Android 13')
+print(f'Android APK verified: {output} ({output.stat().st_size:,} bytes)')
