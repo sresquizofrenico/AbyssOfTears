@@ -107,7 +107,7 @@ func add_button(box: VBoxContainer, text: String, action: String) -> void:
 
 func animate_button(button: Button, color: Color) -> void:
  if button.disabled: return
- var previous = button.get_meta("visual_tween",null)
+ var previous = button.get_meta("visual_tween") if button.has_meta("visual_tween") else null
  if previous is Tween and previous.is_valid(): previous.kill()
  var tween := create_tween()
  button.set_meta("visual_tween",tween)
