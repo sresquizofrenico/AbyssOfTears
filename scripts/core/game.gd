@@ -301,6 +301,7 @@ func start_game(keep_progress: bool = false) -> void:
  chamber = CHAMBER.instantiate()
  chamber.quality = Settings.values.quality
  chamber.biome = layout.floor_index if dungeon_mode else 0
+ if dungeon_mode: chamber.blueprint=RoomBlueprint.create(dungeon_seed,layout.floor_index,layout.current,layout.rooms[layout.current].kind)
  world.add_child(chamber)
  player = PLAYER.instantiate()
  if carried != null: player.stats = carried
@@ -650,6 +651,7 @@ func spawn_enemy(kind_id: int, point: Vector2, weak: bool = false) -> void:
  update_counts()
 
 func safe_point(point: Vector2) -> Vector2:
+ if not chamber.blueprint.is_empty(): return RoomBlueprint.safe_point(chamber.blueprint,point)
  point = point.clamp(Vector2(70,100),Vector2(890,450))
  for pillar: Vector2 in chamber.PILLARS:
   if point.distance_to(pillar) < 55: point = pillar + Vector2(0,60)

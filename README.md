@@ -1,3 +1,9 @@
+## Habitaciones y presentación · 0.6.0
+
+Doce distribuciones interiores reproducibles, inicio despejado, rocas, estatuas
+y muros de cobertura. Selección con atributos a la izquierda y bitácora original
+en el menú. [Capturas y pruebas](docs/reference-and-rooms-0.6.md).
+
 ## HUD y estadísticas reales · 0.5.1
 
 Iconos compactos para vida, óbolos, llaves y enemigos. El botón de barras amplía

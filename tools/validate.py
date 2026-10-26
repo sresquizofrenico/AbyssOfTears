@@ -43,4 +43,5 @@ with tempfile.TemporaryDirectory(prefix='abyss-tests-') as user_dir:
     run(['--script', 'res://tests/pickup_interaction_tests.gd'], env)
     run(['--script', 'res://tests/illustrated_art_tests.gd'], env)
     run(['--script', 'res://tests/hud_tests.gd'], env)
+    run(['--script', 'res://tests/room_structure_tests.gd'], env)
 print('All project validations passed.')

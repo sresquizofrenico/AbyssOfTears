@@ -34,28 +34,25 @@ func _ready() -> void:
  hint = make_label("Toca para omitir la introducción",15)
  content.add_child(hint)
  button_panel = PanelContainer.new()
- var panel_style := StyleBoxFlat.new()
- panel_style.bg_color = Color(0.05,0.1,0.17,0.94)
- panel_style.border_color = Color("4b747f")
- panel_style.set_border_width_all(1)
- panel_style.set_corner_radius_all(15)
- panel_style.content_margin_left = 16
- panel_style.content_margin_right = 16
- panel_style.content_margin_top = 15
- panel_style.content_margin_bottom = 15
+ var panel_style := StyleBoxTexture.new()
+ panel_style.texture=preload("res://assets/illustrated/journal.svg")
+ panel_style.content_margin_left=26
+ panel_style.content_margin_right=24
+ panel_style.content_margin_top=24
+ panel_style.content_margin_bottom=20
  button_panel.add_theme_stylebox_override("panel",panel_style)
  content.add_child(button_panel)
  var box := VBoxContainer.new()
  box.add_theme_constant_override("separation",5)
  button_panel.add_child(box)
- box.add_child(make_label("ELIGE TU CAMINO",16))
+ box.add_child(make_label("BITÁCORA DEL FARO",16))
  add_button(box,"NUEVA PARTIDA","new_game")
  add_button(box,"OPCIONES","options")
  add_button(box,"SALIR","exit")
  if OS.has_feature("web"):
   disabled_actions.append("exit")
   buttons.exit.text = "SALIR · NO DISPONIBLE EN WEB"
- box.add_child(make_label("0.5.1 · AVENTURA SIN CONEXIÓN",12))
+ box.add_child(make_label("0.6.0 · AVENTURA SIN CONEXIÓN",12))
  darkness = ColorRect.new()
  darkness.color = Color.BLACK
  darkness.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -80,14 +77,14 @@ func make_label(text: String, font_size: int) -> Label:
 func add_button(box: VBoxContainer, text: String, action: String) -> void:
  var button := Button.new()
  button.text = text
- button.custom_minimum_size = Vector2(280,44)
+ button.custom_minimum_size = Vector2(260,44)
  button.add_theme_font_size_override("font_size",16)
  for variation in ["normal","hover","pressed","disabled","focus"]:
   var style := StyleBoxFlat.new()
-  style.bg_color = Color("243e50") if variation in ["hover","focus"] else Color("345363") if variation=="pressed" else Color("142735")
+  style.bg_color = Color("243e50") if variation in ["hover","focus"] else Color("345363") if variation=="pressed" else Color(0.07,0.14,0.19,0.4)
   style.border_color = Color("b2d6c7") if variation in ["pressed","focus"] else Color("365968")
-  style.set_border_width_all(1)
-  style.set_corner_radius_all(6)
+  style.set_border_width_all(0)
+  style.set_corner_radius_all(3)
   button.add_theme_stylebox_override(variation,style)
  button.add_theme_color_override("font_disabled_color",Color("7c8e9e"))
  button.pressed.connect(func(): request_action(action))
