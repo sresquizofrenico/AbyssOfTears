@@ -5,8 +5,7 @@ signal shot(origin: Vector2, direction: Vector2, stats: ActorStats)
 signal health_changed(current: float, maximum: float)
 signal died
 
-const BODY = preload("res://assets/characters/neris_body.svg")
-const ART = preload("res://assets/characters/neris.svg")
+const BODY = IllustratedNeris.BODY
 var relics := RelicInventory.new()
 var pickup_pose := 0.0
 var expression := "idle"
@@ -86,21 +85,10 @@ func _draw() -> void:
  if expression == "defeat": tilt = minf(0.9,terminal_age*1.5)
  var jump := -sin(pickup_pose*PI)*9 if pickup_pose>0 else 0.0
  if expression == "victory": jump -= sin(minf(1,terminal_age/1.2)*PI)*12
- draw_set_transform(Vector2(0,bob+jump),tilt,Vector2(1,1+sin(clock*3)*0.015))
- var stride := sin(clock*13) * 3 if velocity.length()>1 else 0.0
- for side in [-1,1]:
-  var foot := Vector2(side*9,20+stride*side)
-  draw_line(Vector2(side*7,4),foot,Color("344860"),5,true)
-  draw_line(foot-Vector2(2,0),foot+Vector2(4,0),Color("9eb9bd"),4,true)
-  var hand := Vector2(side*18,-3+stride*side*0.6)
-  if pickup_pose>0 or expression=="victory": hand.y = -27
-  elif cooldown>stats.attack_interval*0.7: hand += facing*5
-  draw_line(Vector2(side*10,-16),hand,Color("7d9fa8"),4,true)
-  draw_circle(hand,3,Color("cad9c6"))
-  if side==1:
-   draw_rect(Rect2(hand+Vector2(-3,4),Vector2(7,10)),Color("c4ae7b"))
-   draw_rect(Rect2(hand+Vector2(-1,6),Vector2(3,6)),Color("91e8ce"))
- draw_texture_rect(BODY,Rect2(-24,-40,48,64),false)
+ var pose: String = expression
+ if pickup_pose>0: pose="pickup"
+ elif cooldown>stats.attack_interval*0.7: pose="attack"
+ IllustratedNeris.paint(self,clock,velocity.length()>1,pose,facing,Vector2(0,bob+jump),tilt)
  if cooldown > stats.attack_interval*0.7:
   draw_circle(facing*24,5,Color(0.7,1,0.9,0.7))
  if pickup_pose>0:
@@ -113,9 +101,10 @@ func _draw() -> void:
   draw_circle(point,8,Color("b9d9ec"))
   draw_arc(point,12,0,TAU,16,Color(0.7,0.9,1,0.35),2)
  if relics.mirror_active():
-  draw_texture_rect(ART,Rect2(20,-40,48,64),false,Color(0.55,0.8,1,0.4))
+  IllustratedNeris.paint(self,clock,velocity.length()>1,pose,facing,Vector2(44,bob),tilt,1.0,Color(0.55,0.8,1,0.4))
 
 func draw_ellipse_shadow() -> void:
- draw_set_transform(Vector2(0, 18), 0.0, Vector2(1, 0.35))
- draw_circle(Vector2.ZERO, 20, Color(0, 0, 0, 0.35))
- draw_set_transform(Vector2.ZERO)
+ draw_texture_rect(IllustratedNeris.SHADOW,Rect2(-29,9,58,23),false)
+
+func _ready() -> void:
+ texture_filter=CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS

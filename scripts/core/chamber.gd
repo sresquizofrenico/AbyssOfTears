@@ -1,14 +1,17 @@
 extends Node2D
 
-const FLOOR = preload("res://assets/environment/floor.svg")
-const COLUMN = preload("res://assets/environment/column.svg")
-const WALL = preload("res://assets/environment/wall.svg")
+const FLOOR = preload("res://assets/illustrated/floor_0.svg")
+const FLOORS = [FLOOR,preload("res://assets/illustrated/floor_1.svg"),preload("res://assets/illustrated/floor_2.svg")]
+var biome := 0
+const COLUMN = preload("res://assets/illustrated/column.svg")
+const WALL = preload("res://assets/illustrated/wall.svg")
 const BOUNDS := Rect2(42, 68, 876, 412)
 const PILLARS := [Vector2(320, 200), Vector2(640, 200), Vector2(320, 355), Vector2(640, 355)]
 var quality := 1
 var clock := 0.0
 
 func _ready() -> void:
+ texture_filter=CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
  for rect in [Rect2(22,48,916,20), Rect2(22,480,916,20), Rect2(22,68,20,412), Rect2(918,68,20,412)]:
   var shape := RectangleShape2D.new()
   shape.size = rect.size
@@ -42,7 +45,7 @@ func blocks(point: Vector2, radius: float = 5.0) -> bool:
 func _draw() -> void:
  draw_rect(Rect2(22,48,916,452),Color("29374b"))
  draw_rect(BOUNDS,Color("101f30"))
- draw_texture_rect(FLOOR,BOUNDS,true)
+ draw_texture_rect(FLOORS[clampi(biome,0,2)],BOUNDS,false)
  for x in range(24,936,64):
   draw_texture_rect(WALL,Rect2(x,45,64,24),false)
   draw_texture_rect(WALL,Rect2(x,480,64,20),false)
@@ -51,8 +54,8 @@ func _draw() -> void:
    var point := Vector2(70 + (i * 137) % 810, 90 + (i * 97) % 350)
    draw_arc(point, 13 + sin(clock + i) * 3, 0, PI, 16, Color(0.3,0.7,0.8,0.12),1)
  for point: Vector2 in PILLARS:
-  draw_circle(point + Vector2(5,8),28,Color(0,0,0,0.3))
-  draw_texture_rect(COLUMN,Rect2(point-Vector2(29,42),Vector2(58,64)),false)
+  draw_texture_rect(IllustratedNeris.SHADOW,Rect2(point-Vector2(35,7),Vector2(77,54)),false)
+  draw_texture_rect(COLUMN,Rect2(point-Vector2(29,42),Vector2(58,66)),false)
  for point in [Vector2(60,85),Vector2(900,85),Vector2(60,462),Vector2(900,462)]:
   if quality > 0:
    for radius in [28,20,13]:

@@ -1,6 +1,6 @@
 class_name EnemyArt
 extends RefCounted
-const TEXTURES := [preload("res://assets/characters/enemy_0.svg"),
+const TEXTURES := [preload("res://assets/illustrated/shadow_wanderer.svg"),
 preload("res://assets/characters/enemy_1.svg"),
 preload("res://assets/characters/enemy_2.svg"),
 preload("res://assets/characters/enemy_3.svg"),

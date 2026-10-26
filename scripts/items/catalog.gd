@@ -14,7 +14,7 @@ const DATA: Array = [
   "modifiers": {
    "damage": 0.35
   },
-  "icon": "res://assets/relics/crystal.svg"
+  "icon": "res://assets/illustrated/crystal.svg"
  },
  {
   "id": "double",

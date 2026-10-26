@@ -2,9 +2,9 @@ class_name MenuBackdrop
 extends Node2D
 
 const CHARACTER = preload("res://scenes/ui/menu_character.tscn")
-const FLOOR = preload("res://assets/environment/floor.svg")
-const COLUMN = preload("res://assets/environment/column.svg")
-const DOOR = preload("res://assets/environment/door.svg")
+const FLOOR = preload("res://assets/illustrated/floor_0.svg")
+const COLUMN = preload("res://assets/illustrated/column.svg")
+const DOOR = preload("res://assets/illustrated/door.svg")
 const CRYSTAL = preload("res://assets/relics/crystal.svg")
 var character: MenuCharacter
 var clock := 0.0
@@ -97,7 +97,7 @@ func _process(delta: float) -> void:
 func _draw() -> void:
  var size := get_viewport().get_visible_rect().size
  draw_rect(Rect2(Vector2.ZERO,size),Color("0b1524"))
- draw_texture_rect(FLOOR,Rect2(0,size.y*0.57,size.x,size.y*0.43),true,Color(0.6,0.7,0.85,0.6))
+ draw_texture_rect(FLOOR,Rect2(0,size.y*0.57,size.x,size.y*0.43),false,Color(0.6,0.7,0.85,0.6))
  for x in [55.0,170.0,size.x-430,size.x-80]:
   draw_texture_rect(COLUMN,Rect2(x-34,size.y*0.25,68,size.y*0.44),false,Color(0.55,0.65,0.85,0.7))
  var blue := smoothstep(0,1.4,intro_time)

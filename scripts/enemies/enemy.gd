@@ -33,6 +33,7 @@ var telegraph := false
 var dead := false
 
 func _ready() -> void:
+ texture_filter=CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
  definition = EnemyCatalog.DATA[kind]
  health = float(definition.health) * (0.5 if weak else 1.0)
  max_health = health
@@ -132,8 +133,7 @@ func take_damage(amount: float, incoming := Vector2.ZERO) -> void:
  queue_redraw()
 
 func _draw() -> void:
- draw_set_transform(Vector2(0,14),0,Vector2(1,0.3))
- draw_circle(Vector2.ZERO,22,Color(0,0,0,0.3))
+ draw_texture_rect(IllustratedNeris.SHADOW,Rect2(-30,5,60,24),false)
  var bob := sin(clock*(4+kind%5))*2
  var scale_y := 1.0 + sin(clock*5)*0.035
  draw_set_transform(Vector2(0,bob),sin(clock*3)*0.04,Vector2(1,scale_y))

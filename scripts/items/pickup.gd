@@ -3,11 +3,12 @@ extends Node2D
 
 signal unlock_requested(pickup: RelicPickup)
 signal claimed(pickup: RelicPickup)
+const GLOW = preload("res://assets/illustrated/glow.svg")
 const KEY = preload("res://assets/relics/key.svg")
 const COINS = preload("res://assets/relics/coins.svg")
 const HEAL = preload("res://assets/relics/heal.svg")
-const PEDESTAL = preload("res://assets/relics/pedestal.svg")
-const CHEST = preload("res://assets/relics/chest.svg")
+const PEDESTAL = preload("res://assets/illustrated/pedestal.svg")
+const CHEST = preload("res://assets/illustrated/chest.svg")
 const PICKUP_RADIUS := 44.0
 const INTERACTION_RADIUS := 92.0
 var data: Dictionary = {}
@@ -107,9 +108,12 @@ func _draw() -> void:
  else: draw_texture_rect(PEDESTAL,Rect2(-24,-3,48,38),false)
  var bob := sin(clock*3)*3
  var alpha := 1.0-take_age/0.3 if taking else minf(1,clock*3)
- if quality>0: draw_circle(Vector2(0,-19+bob),26,Color(0.5,0.8,0.9,0.07*alpha))
+ if quality>0: draw_texture_rect(GLOW,Rect2(-31,-50+bob,62,62),false,Color(0.5,0.8,0.9,0.25*alpha))
  var texture := icon()
  if int(data.get("price",0))>0: draw_string(ThemeDB.fallback_font,Vector2(-14,31),"%d ób." % int(data.price),HORIZONTAL_ALIGNMENT_LEFT,-1,13,Color("f3d2a0"))
  if texture!=null: draw_texture_rect(texture,Rect2(-19,-45+bob-take_age*75,38,38),false,Color(1,1,1,alpha))
  if quality>0 and valid_reward() and data.get("reward_kind","relic")=="relic" and int(RelicCatalog.definition(data.id).rarity)==4:
   draw_arc(Vector2(0,-22+bob),26,clock*2,clock*2+PI,18,Color(0.9,0.75,1,alpha*0.7),1.5)
+
+func _ready() -> void:
+ texture_filter=CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS

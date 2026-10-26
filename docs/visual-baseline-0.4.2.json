@@ -1,0 +1,10 @@
+{
+  "version": "0.4.2",
+  "commit": "88dfef92b7b776c360bb316988388dc780059d6f",
+  "android_run": "https://github.com/sresquizofrenico/AbyssOfTears/actions/runs/40410802465",
+  "apk_bytes": 28012591,
+  "probe_environment": "Linux, Godot 4.6.3 Compatibility, Mesa llvmpipe, 960x540; not ZTE",
+  "static_bytes": 34696008,
+  "texture_bytes": 7794209,
+  "nodes": 65
+}

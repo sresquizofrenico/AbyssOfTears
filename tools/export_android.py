@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Configure Godot user settings and export a signed ARM64 debug APK."""
 import os
+import json
 from pathlib import Path
 import re
 import subprocess
@@ -54,3 +55,19 @@ match = re.search(r"sdkVersion:'(\d+)'", badging)
 if not match or int(match[1]) > 33:
     raise SystemExit('Minimum Android version would exclude Android 13')
 print(f'Android APK verified: {output} ({output.stat().st_size:,} bytes)')
+# Record actual build size instead of padding the project toward a size target.
+baseline_path = ROOT / 'docs/visual-baseline-0.4.2.json'
+if baseline_path.is_file():
+    baseline = json.loads(baseline_path.read_text())
+    current_size = output.stat().st_size
+    previous_size = int(baseline['apk_bytes'])
+    delta = current_size - previous_size
+    report = (f"### Comparación de tamaño del APK\n\n"
+              f"Referencia {baseline['version']}: {previous_size:,} bytes.\n\n"
+              f"Compilación actual: {current_size:,} bytes.\n\n"
+              f"Cambio: {delta:+,} bytes ({delta / previous_size * 100:+.2f} %).\n\n"
+              "Compilar no demuestra FPS ni instalación en el teléfono.\n")
+    print(report)
+    if os.environ.get('GITHUB_STEP_SUMMARY'):
+        with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as summary:
+            summary.write(report)
