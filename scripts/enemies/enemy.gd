@@ -24,6 +24,7 @@ var peers: Array[AbyssEnemy] = []
 var target: AbyssPlayer
 var health := 3.0
 var max_health := 3.0
+var hit_radius := 20.0
 var speed := 70.0
 var clock := 0.0
 var attack_timer := 1.6
@@ -41,15 +42,7 @@ func _ready() -> void:
 
 func _physics_process(delta: float) -> void:
  if dead or not is_instance_valid(target) or not target.active: return
- clock += delta
- slowed = maxf(0,slowed-delta)
- burning = maxf(0,burning-delta)
- burn_tick -= delta
- if burning > 0 and burn_tick <= 0:
-  burn_tick = 0.6
-  take_damage(0.3)
-  if dead: return
- flash = maxf(0, flash - delta)
+ if not step_conditions(delta): return
  attack_timer -= delta
  var difference := target.position - position
  var direction := difference.normalized()
@@ -157,3 +150,15 @@ func _draw() -> void:
  if health < max_health:
   draw_rect(Rect2(-18,-31,36,3),Color("302b46"))
   draw_rect(Rect2(-18,-31,36 * maxf(health,0) / max_health,3),Color("efb2ae"))
+
+func step_conditions(delta: float) -> bool:
+ clock += delta
+ slowed = maxf(0,slowed-delta)
+ burning = maxf(0,burning-delta)
+ burn_tick -= delta
+ if burning > 0 and burn_tick <= 0:
+  burn_tick = 0.6
+  take_damage(0.3)
+  if dead: return false
+ flash = maxf(0, flash - delta)
+ return not dead

@@ -60,7 +60,7 @@ func _ready() -> void:
  if OS.has_feature("web"):
   disabled_actions.append("exit")
   buttons.exit.text = "SALIR · NO DISPONIBLE EN WEB"
- box.add_child(make_label("0.3.1 · AVENTURA SIN CONEXIÓN",12))
+ box.add_child(make_label("0.4.0 · AVENTURA SIN CONEXIÓN",12))
  darkness = ColorRect.new()
  darkness.color = Color.BLACK
  darkness.mouse_filter = Control.MOUSE_FILTER_IGNORE

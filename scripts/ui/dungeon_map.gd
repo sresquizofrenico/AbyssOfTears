@@ -31,5 +31,7 @@ func _draw() -> void:
   var color := Color("537082") if not room.visited else Color("9bc9bc")
   if id == layout.current: color = Color("ffdd9b")
   draw_rect(Rect2(point-Vector2(4,4),Vector2(8,8)),color)
+  if room.kind in ["shop","special","secret","boss"]:
+   draw_string(ThemeDB.fallback_font,point+Vector2(-3,3),{"shop":"$","special":"+","secret":"?","boss":"C"}[room.kind],HORIZONTAL_ALIGNMENT_LEFT,-1,9,Color("172538"))
   if room.kind in ["treasure","descent"]:
    draw_circle(point,1.5,Color("172538"))

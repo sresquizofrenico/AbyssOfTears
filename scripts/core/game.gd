@@ -1,5 +1,13 @@
 extends Node
 
+const GUARDIAN = preload("res://scenes/bosses/tide_warden.tscn")
+var props: Array[RoomProp] = []
+var keys := 0
+var door_cooldown := 0.0
+var boss_panel: VBoxContainer
+var boss_name: Label
+var boss_bar: ProgressBar
+
 const MAIN_MENU = preload("res://scenes/ui/main_menu.tscn")
 var menu_intro_seen := false
 
@@ -78,6 +86,20 @@ func _ready() -> void:
  navigation.position = Vector2(520,12)
  ui.add_child(navigation)
  build_relic_ui()
+ boss_panel=VBoxContainer.new()
+ boss_panel.position=Vector2(330,76)
+ boss_name=label("Custodio de la Marea",16)
+ boss_bar=ProgressBar.new()
+ boss_bar.custom_minimum_size=Vector2(300,12)
+ boss_bar.show_percentage=false
+ var boss_fill:=StyleBoxFlat.new()
+ boss_fill.bg_color=Color("a9a4df")
+ boss_fill.set_corner_radius_all(4)
+ boss_bar.add_theme_stylebox_override("fill",boss_fill)
+ boss_panel.add_child(boss_name)
+ boss_panel.add_child(boss_bar)
+ ui.add_child(boss_panel)
+ boss_panel.hide()
  show_main_menu()
 
 func resize_world() -> void:
@@ -179,6 +201,7 @@ func show_main_menu() -> void:
  navigation.hide()
  if is_instance_valid(toast): toast.hide()
  if is_instance_valid(diagnostics): diagnostics.hide()
+ boss_panel.hide()
  controls.set_enabled(false)
  hud.hide()
  dispose_world()
@@ -205,6 +228,7 @@ func show_modes() -> void:
  state = "modes"
  var box := menu("Otros caminos", "Los modos de juego actuales siguen disponibles")
  box.add_child(button("Mazmorra · 3 pisos",start_dungeon))
+ box.add_child(button("Elegir semilla",show_seed_menu))
  box.add_child(button("Incursión de enemigos",func(): expedition=true; wave=0; start_game()))
  box.add_child(button("Prueba de reliquias",start_relic_room))
  box.add_child(button("Volver",show_main_menu))
@@ -222,16 +246,23 @@ func dispose_world() -> void:
  pickups.clear()
  room_pickups = []
  hazards.clear()
+ props.clear()
+ if is_instance_valid(boss_panel): boss_panel.hide()
 
 func start_game(keep_progress: bool = false) -> void:
  backdrop.hide()
  var carried_relics: RelicInventory = player.relics if keep_progress and is_instance_valid(player) else null
  var carried: ActorStats = player.stats if keep_progress and is_instance_valid(player) else null
+ if is_instance_valid(toast): toast.hide()
+ toast_timer=0.0
  var carried_coins := coins if keep_progress else 0
+ var carried_keys := keys if keep_progress else 0
  clear_panel()
  dispose_world()
  state = "playing"
  coins = carried_coins
+ keys = carried_keys
+ door_cooldown = 0.0
  wave = 0
  world = Node2D.new()
  add_child(world)
@@ -249,6 +280,7 @@ func start_game(keep_progress: bool = false) -> void:
  player.died.connect(func(): finish(false))
  world.add_child(player)
  if dungeon_mode:
+  RoomContent.prepare(layout)
   populate_room()
  elif expedition:
   spawn_wave()
@@ -281,6 +313,12 @@ func start_game(keep_progress: bool = false) -> void:
   if not data.get("collected",false): spawn_pickup(data)
  if not dungeon_mode and not expedition:
   spawn_pickup({"id":"crystal","position":Vector2(480,330),"collected":false,"chest":false})
+ if dungeon_mode and layout.expanded:
+  build_room_features()
+  var kind: String=layout.rooms[layout.current].kind
+  floor_label.text += {"shop":" · Tienda: Puertas / Piso","special":" · Palanca y fuente","secret":" · Cámara secreta","boss":" · Sala del Custodio"}.get(kind,"")
+  if kind=="start": show_notice("Una llave espera en el pedestal",RelicPickup.KEY)
+ update_keys()
  transitioning = false
 
 func apply_controls() -> void:
@@ -336,10 +374,12 @@ func spawn_bullet(origin: Vector2, direction: Vector2, speed: float, damage: flo
 
 func _physics_process(delta: float) -> void:
  if state != "playing": return
+ door_cooldown=maxf(0,door_cooldown-delta)
  update_relic_ui(delta)
  for i in range(hazards.size()-1,-1,-1):
   if not is_instance_valid(hazards[i]): hazards.remove_at(i)
  var targets := enemies.duplicate()
+ var has_props := not props.is_empty()
  for i in range(bullets.size()-1, -1, -1):
   var bullet := bullets[i]
   if not is_instance_valid(bullet) or bullet.expired:
@@ -351,7 +391,9 @@ func _physics_process(delta: float) -> void:
   var steps := maxi(1, ceili(old.distance_to(bullet.position) / 5.0))
   for step in range(1, steps + 1):
    var point := old.lerp(bullet.position, float(step) / steps)
+   if has_props and strike_prop(point,bullet): break
    if projectile_blocked(point):
+    if not bullet.hostile: reveal_secret_wall(point)
     if bullet.bounces>0:
      bullet.bounces -= 1
      var x_blocked := projectile_blocked(Vector2(point.x,old.y))
@@ -372,7 +414,7 @@ func _physics_process(delta: float) -> void:
      break
    else:
     for enemy in targets:
-     if is_instance_valid(enemy) and not enemy.dead and not bullet.hits.has(enemy.get_instance_id()) and point.distance_to(enemy.position) < 20:
+     if is_instance_valid(enemy) and not enemy.dead and not bullet.hits.has(enemy.get_instance_id()) and point.distance_to(enemy.position) < enemy.hit_radius:
       bullet.hits[enemy.get_instance_id()] = true
       apply_relic_hit(bullet,enemy)
       if bullet.pierce>0: bullet.pierce -= 1
@@ -412,9 +454,14 @@ func draw_effects() -> void:
     for i in range(3): effect_layer.draw_line(Vector2(460,260+i*12),Vector2(500,260+i*12),color,3)
    else: effect_layer.draw_colored_polygon(PackedVector2Array([Vector2(480,250),Vector2(498,274),Vector2(480,298),Vector2(462,274)]),Color(color,0.4))
   for neighbor: int in layout.rooms[layout.current].links:
+   if layout.room_hidden(neighbor):
+    var crack := door_point(neighbor)
+    effect_layer.draw_line(crack-Vector2(4,10),crack+Vector2(4,10),Color("53616b"),2)
+    continue
    var point := door_point(neighbor)
    var open: bool = layout.rooms[layout.current].cleared
    effect_layer.draw_texture_rect(DOOR_ART,Rect2(point-Vector2(20,30),Vector2(40,50)),false,Color.WHITE if open else Color(0.7,0.5,0.6))
+   if layout.rooms[neighbor].get("locked",false): effect_layer.draw_texture_rect(RelicPickup.KEY,Rect2(point-Vector2(10,10),Vector2(20,20)),false)
    if not open: effect_layer.draw_line(point-Vector2(15,0),point+Vector2(15,0),Color("ba8b8e"),4)
  for effect in effects:
   var t: float = 1.0 - effect.life / 0.45
@@ -434,7 +481,7 @@ func pause_game() -> void:
  if state != "playing": return
  state = "paused"
  set_world_active(false)
- var box := menu("Mareas en calma", "Partida en pausa")
+ var box := menu("Mareas en calma", "Semilla %d · Piso %d/3" % [dungeon_seed,layout.floor_index+1] if dungeon_mode else "Partida en pausa")
  box.add_child(button("Continuar", resume_game))
  box.add_child(button("Reliquias",show_inventory))
  box.add_child(button("Prueba de carga (nueva)",start_benchmark))
@@ -449,6 +496,7 @@ func resume_game() -> void:
 func finish(won: bool) -> void:
  if state != "playing": return
  state = "victory" if won else "defeat"
+ boss_panel.hide()
  player.process_mode = Node.PROCESS_MODE_ALWAYS
  player.expression = "victory" if won else "defeat"
  player.queue_redraw()
@@ -512,6 +560,7 @@ func _notification(what: int) -> void:
  if what == NOTIFICATION_WM_GO_BACK_REQUEST:
   if state == "menu" and panel is AnimatedMainMenu: panel.skip_intro()
   elif state in ["modes","credits"]: show_main_menu()
+  elif state=="seed": show_modes()
   elif state == "playing": pause_game()
   elif state == "paused": resume_game()
 
@@ -607,16 +656,19 @@ func projectile_blocked(point: Vector2) -> bool:
   if is_instance_valid(node) and node.kind == "wall" and point.distance_to(node.position) < 27: return true
  return false
 
-func start_dungeon() -> void:
+func start_dungeon(chosen_seed: int = -1) -> void:
  dungeon_mode = true
  expedition = false
- dungeon_seed = randi()
- layout.generate(dungeon_seed,0)
+ dungeon_seed = (int(randi()) & 2147483647) if chosen_seed<0 else chosen_seed
+ layout.generate(dungeon_seed,0,true)
  start_game()
 
 func populate_room() -> void:
  var room: Dictionary = layout.rooms[layout.current]
  if room.cleared: return
+ if room.kind=="boss":
+  spawn_guardian()
+  return
  var rng := RandomNumberGenerator.new()
  rng.seed = dungeon_seed + layout.floor_index * 1000 + layout.current * 71
  var count := 3 + layout.floor_index
@@ -630,15 +682,21 @@ func populate_room() -> void:
 
 func reward_room() -> void:
  var room: Dictionary = layout.rooms[layout.current]
- if not room.cleared or room.rewarded or room.kind == "start": return
+ if not room.cleared or room.rewarded or room.kind in ["start","shop","special","secret"]: return
  room.rewarded = true
  var rng := RandomNumberGenerator.new()
  rng.seed = dungeon_seed + layout.floor_index * 101 + layout.current
  coins += rng.randi_range(2,5) + layout.floor_index
  if room.kind == "descent": floor_label.text += " · Salida abierta: Puertas / Piso"
  if not room.has("pickups"): room.pickups = []
- if room.kind == "treasure" or rng.randf() < float(RelicCatalog.DROP_SETTINGS.room_chance):
+ if room.kind in ["treasure","boss"] or rng.randf() < float(RelicCatalog.DROP_SETTINGS.room_chance):
   var data := {"id":RelicCatalog.roll(rng,layout.floor_index),"position":Vector2(480,274),"chest":room.kind != "treasure" and rng.randf()<float(RelicCatalog.DROP_SETTINGS.chest_chance),"collected":false}
+  if room.kind=="boss":
+   var rare: Array[String]=[]
+   for definition: Dictionary in RelicCatalog.DATA:
+    if int(definition.rarity)>=2: rare.append(definition.id)
+   data.id=rare[rng.randi_range(0,rare.size()-1)]
+   data.chest=false
   if data.chest:
    var content := rng.randf()
    data.reward_kind = "coins" if content<float(RelicCatalog.DROP_SETTINGS.chest_coins) else "heal" if content<float(RelicCatalog.DROP_SETTINGS.chest_coins)+float(RelicCatalog.DROP_SETTINGS.chest_heal) else "relic"
@@ -651,15 +709,28 @@ func door_point(neighbor: int) -> Vector2:
  return Vector2(480,274)+Vector2(direction)*Vector2(410,185)
 
 func check_doors() -> void:
+ if door_cooldown>0: return
  for neighbor: int in layout.rooms[layout.current].links:
-  if player.position.distance_to(door_point(neighbor)) < 35:
+  if layout.door_visible(neighbor) and player.position.distance_to(door_point(neighbor)) < 35:
    transitioning = true
    travel_to.call_deferred(neighbor)
    return
 
 func travel_to(neighbor: int) -> void:
- if not dungeon_mode or state not in ["playing","doors"] or not layout.enter(neighbor):
-  transitioning = false
+ if not dungeon_mode or state not in ["playing","doors"] or not layout.door_visible(neighbor):
+  transitioning=false
+  return
+ if layout.rooms[neighbor].get("locked",false):
+  if layout.unlock(neighbor,keys):
+   keys-=1
+   update_keys()
+  else:
+   door_cooldown=0.8
+   show_notice("Necesitas una llave",RelicPickup.KEY)
+   transitioning=false
+   return
+ if not layout.enter(neighbor):
+  transitioning=false
   return
  start_game(true)
 
@@ -668,23 +739,30 @@ func show_doors() -> void:
  state = "doors"
  set_world_active(false)
  var room: Dictionary = layout.rooms[layout.current]
- var box := menu("Piso %d · %s" % [layout.floor_index+1,FloorLayout.BIOMES[layout.floor_index]],"Limpia la habitación para abrir las puertas" if not room.cleared else "Elige una puerta o acércate a ella")
+ var box := menu("Piso %d · %s" % [layout.floor_index+1,FloorLayout.BIOMES[layout.floor_index]],"Semilla %d\n" % dungeon_seed + ("Limpia la habitación para abrir las puertas" if not room.cleared else "Elige una puerta o acércate a ella"))
  if room.cleared:
   for neighbor: int in room.links:
+   if not layout.door_visible(neighbor): continue
    var difference: Vector2i = layout.rooms[neighbor].cell-room.cell
    var direction := "Norte" if difference.y < 0 else "Sur" if difference.y > 0 else "Este" if difference.x > 0 else "Oeste"
-   box.add_child(button("Puerta " + direction,func(): travel_to(neighbor)))
+   var caption := "Puerta " + direction + (" · 1 llave" if layout.rooms[neighbor].get("locked",false) else "")
+   var entry := button(caption,func(): travel_to(neighbor))
+   entry.disabled=layout.rooms[neighbor].get("locked",false) and keys<1
+   box.add_child(entry)
+  if room.kind=="shop": box.add_child(button("Ver tienda",show_shop))
   if room.kind == "descent":
-   box.add_child(button("Descender" if layout.floor_index < 2 else "Salir del abismo",descend))
+   var exit_button := button(("Descender" if layout.floor_index<2 else "Salir del abismo") if layout.boss_defeated() else "Derrota primero al Custodio",descend)
+   exit_button.disabled=not layout.boss_defeated()
+   box.add_child(exit_button)
  box.add_child(button("Volver",resume_game))
 
 func descend() -> void:
- if not dungeon_mode or state != "doors" or not layout.rooms[layout.current].cleared or layout.rooms[layout.current].kind != "descent": return
+ if not dungeon_mode or state != "doors" or not layout.rooms[layout.current].cleared or layout.rooms[layout.current].kind != "descent" or not layout.boss_defeated(): return
  if layout.floor_index == 2:
   state = "playing"
   finish(true)
   return
- layout.generate(dungeon_seed,layout.floor_index+1)
+ layout.generate(dungeon_seed,layout.floor_index+1,true)
  start_game(true)
 
 func restart_game() -> void:
@@ -715,19 +793,21 @@ func spawn_pickup(data: Dictionary) -> RelicPickup:
  pickup.position = safe_point(data.get("position",Vector2(480,274)))
  pickup.quality = Settings.values.quality
  pickup.claimed.connect(collect_relic)
+ pickup.unlock_requested.connect(unlock_chest)
  world.add_child(pickup)
  pickups.append(pickup)
  return pickup
 
 func collect_relic(pickup: RelicPickup) -> void:
  var kind: String = pickup.data.get("reward_kind","relic")
- if kind in ["coins","heal"]:
-  if kind=="coins": coins += 5
+ if kind in ["coins","heal","key"]:
+  if kind=="key": keys=mini(99,keys+1); update_keys()
+  elif kind=="coins": coins += 5
   else: player.stats.health = minf(player.stats.max_health,player.stats.health+2)
   update_counts()
   update_health(player.stats.health,player.stats.max_health)
-  toast_icon.texture = RelicPickup.COINS if kind=="coins" else RelicPickup.HEAL
-  toast_label.text = "Óbolos del faro · +5 monedas" if kind=="coins" else "Tónico de sal · Recupera hasta 2 de vida"
+  toast_icon.texture = RelicPickup.KEY if kind=="key" else RelicPickup.COINS if kind=="coins" else RelicPickup.HEAL
+  toast_label.text = "Llave del faro · Abre cerraduras opcionales" if kind=="key" else "Óbolos del faro · +5 monedas" if kind=="coins" else "Tónico de sal · Recupera hasta 2 de vida"
   toast_timer = 2.8
   toast.show()
   player.pickup_pose = 1.0
@@ -830,3 +910,133 @@ func start_benchmark() -> void:
   spawn_enemy(1,Vector2(120+(i%5)*140,130+(i/5)*85))
  for i in range(MAX_BULLETS):
   spawn_enemy_bullet(Vector2(480,220),Vector2.from_angle(float(i)*TAU/MAX_BULLETS))
+
+func build_room_features() -> void:
+ for data: Dictionary in layout.rooms[layout.current].get("props",[]):
+  var prop := RoomProp.new()
+  prop.data=data
+  prop.player=player
+  prop.position=safe_point(data.position)
+  prop.activated.connect(activate_prop)
+  world.add_child(prop)
+  props.append(prop)
+
+func activate_prop(prop: RoomProp) -> void:
+ match prop.data.kind:
+  "switch":
+   layout.reveal_secret()
+   dungeon_map.queue_redraw()
+   show_notice("Una pared secreta ha quedado al descubierto",RelicPickup.KEY)
+  "fountain":
+   player.stats.health=minf(player.stats.max_health,player.stats.health+2)
+   update_health(player.stats.health,player.stats.max_health)
+   show_notice("Fuente de sal · +2 de vida",RelicPickup.HEAL)
+  "barrel":
+   var data := {"id":"crystal","position":prop.position,"reward_kind":"key" if prop.data.drop_key else "coins","collected":false,"chest":false}
+   room_pickups.append(data)
+   spawn_pickup(data)
+
+func strike_prop(point: Vector2, bullet: AbyssProjectile) -> bool:
+ for prop in props:
+  if is_instance_valid(prop) and prop.data.kind=="barrel" and not prop.data.get("used",false) and point.distance_to(prop.position)<20:
+   if not bullet.hostile: prop.take_damage(bullet.damage)
+   bullet.expire()
+   return true
+ return false
+
+func reveal_secret_wall(point: Vector2) -> void:
+ if not dungeon_mode or not layout.expanded or not layout.rooms[layout.current].cleared: return
+ for neighbor: int in layout.rooms[layout.current].links:
+  if layout.room_hidden(neighbor) and point.distance_to(door_point(neighbor))<38:
+   layout.reveal_secret()
+   dungeon_map.queue_redraw()
+   show_notice("¡Pared secreta descubierta!",RelicPickup.KEY)
+
+func unlock_chest(pickup: RelicPickup) -> void:
+ if state!="playing" or not pickup.data.get("locked",false) or not pickup.data.get("chest",false): return
+ if keys>0:
+  keys-=1
+  pickup.data.locked=false
+  update_keys()
+ else: show_notice("Necesitas una llave para este cofre",RelicPickup.KEY)
+
+func update_keys() -> void:
+ if is_instance_valid(navigation): navigation.text="Puertas · Llaves %d" % keys
+
+func show_notice(message: String, icon: Texture2D) -> void:
+ toast_icon.texture=icon
+ toast_label.text=message
+ toast_timer=2.8
+ toast.show()
+
+func spawn_guardian() -> void:
+ if state!="playing" or enemies.size()>=MAX_ENEMIES: return
+ var guardian: TideWarden=GUARDIAN.instantiate()
+ guardian.floor_level=layout.floor_index
+ guardian.position=Vector2(480,180)
+ guardian.target=player
+ guardian.peers=enemies
+ guardian.shot.connect(spawn_enemy_bullet)
+ guardian.hazard.connect(spawn_hazard)
+ guardian.defeated.connect(func(point: Vector2, reward: int): on_enemy_defeated(guardian,point,reward))
+ guardian.health_report.connect(func(current: float, maximum: float, phase: int):
+  boss_bar.max_value=maximum
+  boss_bar.value=current
+  boss_name.text="Custodio de la Marea · Fase %d" % phase
+  boss_panel.visible=current>0)
+ world.add_child(guardian)
+ enemies.append(guardian)
+ update_counts()
+
+func show_shop() -> void:
+ if not dungeon_mode or state not in ["doors","shop"] or layout.rooms[layout.current].kind!="shop": return
+ state="shop"
+ var box := menu("La tienda de sal", "%d óbolos · Las compras aparecen en sus pedestales" % coins)
+ for i in range(room_pickups.size()):
+  var data: Dictionary=room_pickups[i]
+  if data.get("collected",false): continue
+  var name: String="Llave del faro" if data.get("reward_kind","")=="key" else RelicCatalog.definition(data.id).name
+  var price: int=data.get("price",0)
+  var entry := button(name+(" · %d óbolos" % price if price>0 else " · Pagado"),func(): buy_offer(i); show_shop())
+  var capped: bool=data.get("reward_kind","relic")=="relic" and int(player.relics.owned.get(data.id,0))>=int(RelicCatalog.definition(data.id).max_stack)
+  if capped: entry.text=name+" · Máximo alcanzado"
+  entry.disabled=price<=0 or coins<price or capped
+  box.add_child(entry)
+ box.add_child(button("Recoger / Volver",resume_game))
+
+func buy_offer(index: int) -> bool:
+ if not dungeon_mode or state!="shop" or layout.rooms[layout.current].kind!="shop" or index<0 or index>=room_pickups.size(): return false
+ var data: Dictionary=room_pickups[index]
+ var price: int=data.get("price",0)
+ if price<=0 or data.get("collected",false) or coins<price: return false
+ if data.get("reward_kind","relic")=="relic" and int(player.relics.owned.get(data.id,0))>=int(RelicCatalog.definition(data.id).max_stack): return false
+ coins-=price
+ data.price=0
+ data.paid=true
+ update_counts()
+ return true
+
+func show_seed_menu() -> void:
+ state="seed"
+ var box:=menu("Semilla del abismo","La misma semilla reproduce la mazmorra de esta versión")
+ var field:=LineEdit.new()
+ field.placeholder_text="Número de 0 a 2147483647"
+ field.max_length=10
+ field.custom_minimum_size=Vector2(400,44)
+ field.add_theme_font_size_override("font_size",20)
+ field.virtual_keyboard_type=2 # Numeric keyboard on Android.
+ box.add_child(field)
+ var status:=label("",16)
+ box.add_child(status)
+ var submit: Callable=func():
+  if not start_seeded_run(field.text): status.text="Escribe un número entre 0 y 2147483647"
+ field.text_submitted.connect(func(_text: String): submit.call())
+ box.add_child(button("Entrar con esta semilla",submit))
+ box.add_child(button("Volver",show_modes))
+
+func start_seeded_run(text: String) -> bool:
+ if state!="seed" or not text.is_valid_int(): return false
+ var value:=int(text)
+ if value<0 or value>2147483647: return false
+ start_dungeon(value)
+ return true
