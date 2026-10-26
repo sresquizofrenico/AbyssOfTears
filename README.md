@@ -30,7 +30,8 @@ El proyecto y los scripts de validación/exportación existen y se ejecutan en
 el entorno de desarrollo. Consulta [los resultados](docs/validation-results.md).
 Los workflows están preparados; **no se han ejecutado en GitHub**, porque aún
 no hay un repositorio remoto conectado. No existe enlace a un artefacto de
-Actions. Un APK generado en el entorno no equivale a una ejecución de Actions.
+Actions. La creación remota se intentó y GitHub la rechazó con HTTP 403;
+el repositorio debe crearse desde el navegador y habilitarse para Codex. Un APK generado en el entorno no equivale a una ejecución de Actions.
 
 No se da por finalizada la entrega completa hasta comprobar Actions y el
 artefacto. La instalación y el multitáctil físico en el ZTE también están
@@ -42,10 +43,11 @@ no sustituyen las pruebas de pantalla real.
 No instales Godot, Android Studio, Termux ni herramientas de compilación.
 
 1. Abre GitHub en el navegador y crea un repositorio público vacío llamado
-   `AbyssOfTears` (sin README inicial).
+   `AbyssOfTears`. Activa **Add a README file** para crear la rama principal.
 2. Conecta ese repositorio a Codex y facilita su enlace. Codex podrá incorporar
-   este proyecto; no necesitas copiar ni editar código manualmente.
-3. Cuando los archivos estén incorporados a `main`, abre **Actions**.
+   este proyecto mediante una rama y un pull request; no necesitas copiar ni editar código manualmente.
+3. La compilación se ejecutará al abrir el pull request. Abre **Actions**.
+   También puedes lanzarla manualmente una vez incorporada a `main`.
 4. Selecciona **Build Android Debug APK** y pulsa **Run workflow**.
 5. Espera a que termine en verde y abre esa ejecución.
 6. En **Artifacts**, descarga **AbyssOfTears-Android-Debug**.

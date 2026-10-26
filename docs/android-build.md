@@ -11,6 +11,7 @@ manualmente una vez incorporados a la rama predeterminada.
   escena principal, arranque y pruebas de comportamiento. Se ejecuta además en PR.
 - `Build Android Debug APK`: instalación de herramientas, validación, exportación,
   comprobación de firma y empaquetado ARM64, y subida del APK como artefacto.
+  También se ejecuta al abrir o actualizar un pull request, sin fusionarlo.
 
 No se necesitan secretos, tokens añadidos ni permisos de escritura. Los jobs
 usan `contents: read`. El repositorio público evita depender de la cuota privada
