@@ -1,7 +1,7 @@
 extends Node
 
 const PATH := "user://settings.json"
-const DEFAULTS := {"version": 1, "quality": 1, "control_scale": 1.0, "control_opacity": 0.75, "diagnostics": false}
+const DEFAULTS := {"version": 1, "quality": 1, "control_scale": 1.0, "control_opacity": 0.75, "diagnostics": false, "stats_view": 0}
 var values: Dictionary = DEFAULTS.duplicate()
 
 func _ready() -> void:
@@ -13,6 +13,8 @@ func validate(data: Variant) -> Dictionary:
   return clean
  if data.get("quality") is int or data.get("quality") is float:
   clean.quality = clampi(int(data.quality), 0, 2)
+ if (data.get("stats_view") is int or data.get("stats_view") is float) and is_finite(float(data.stats_view)):
+  clean.stats_view=clampi(int(data.stats_view),0,2)
  if data.get("diagnostics") is bool: clean.diagnostics = data.diagnostics
  for key in ["control_scale", "control_opacity"]:
   var v = data.get(key)

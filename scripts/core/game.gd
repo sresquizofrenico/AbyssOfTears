@@ -39,7 +39,7 @@ var bullets: Array[AbyssProjectile] = []
 var controls: TouchControls
 var ui: Control
 var panel: PanelContainer
-var hud: HBoxContainer
+var hud: CompactHUD
 var health_label: Label
 var health_bar: ProgressBar
 var coins_label: Label
@@ -81,13 +81,14 @@ func _ready() -> void:
  dungeon_map.set_anchors_preset(Control.PRESET_TOP_RIGHT)
  dungeon_map.position = Vector2(ui.size.x-160,6)
  ui.add_child(dungeon_map)
- floor_label = label("",15)
- floor_label.position = Vector2(24,52)
+ floor_label = label("",12)
+ floor_label.position = Vector2(548,12)
+ floor_label.size = Vector2(240,22)
+ floor_label.clip_text=true
+ floor_label.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS
+ floor_label.mouse_filter=Control.MOUSE_FILTER_IGNORE
  ui.add_child(floor_label)
- navigation = button("Puertas / Piso",show_doors)
- navigation.custom_minimum_size = Vector2(160,40)
- navigation.position = Vector2(520,12)
- ui.add_child(navigation)
+ navigation=hud.doors_button
  build_relic_ui()
  pickup_interaction=PickupInteraction.new()
  ui.add_child(pickup_interaction)
@@ -109,36 +110,23 @@ func _ready() -> void:
  show_main_menu()
 
 func resize_world() -> void:
+ if is_instance_valid(hud): hud.layout_hud()
  if is_instance_valid(pickup_interaction): position_pickup_interaction()
  if is_instance_valid(dungeon_map): dungeon_map.position.x = get_viewport().get_visible_rect().size.x-160
  if is_instance_valid(world):
   world.position = (get_viewport().get_visible_rect().size - Vector2(960,540)) * 0.5
 
 func build_hud() -> void:
- hud = HBoxContainer.new()
- hud.position = Vector2(22, 12)
- hud.add_theme_constant_override("separation", 20)
+ hud=CompactHUD.new()
  ui.add_child(hud)
- health_label = label("", 22)
- coins_label = label("", 20)
- enemies_label = label("", 20)
- var life := VBoxContainer.new()
- life.add_theme_constant_override("separation", 0)
- life.add_child(health_label)
- health_bar = ProgressBar.new()
- health_bar.show_percentage = false
- health_bar.custom_minimum_size = Vector2(120, 8)
- var fill := StyleBoxFlat.new()
- fill.bg_color = Color("8de5dc")
- fill.set_corner_radius_all(3)
- health_bar.add_theme_stylebox_override("fill", fill)
- life.add_child(health_bar)
- hud.add_child(life)
- hud.add_child(coins_label)
- hud.add_child(enemies_label)
- var pause_button := button("Ⅱ Pausa", pause_game)
- pause_button.custom_minimum_size = Vector2(112,42)
- hud.add_child(pause_button)
+ hud.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+ hud.pause_requested.connect(pause_game)
+ hud.doors_requested.connect(show_doors)
+ hud.preference_failed.connect(func(): show_notice("No se pudo guardar la vista de estadísticas",preload("res://assets/ui/stats.svg")))
+ health_label=hud.health_label
+ health_bar=hud.health_bar
+ coins_label=hud.coins_label
+ enemies_label=hud.enemies_label
  hud.hide()
 
 func label(text: String, font_size: int = 20) -> Label:
@@ -210,6 +198,7 @@ func show_main_menu() -> void:
  if is_instance_valid(diagnostics): diagnostics.hide()
  boss_panel.hide()
  controls.set_enabled(false)
+ hud.set_playing(false)
  hud.hide()
  dispose_world()
  clear_panel()
@@ -337,6 +326,9 @@ func start_game(keep_progress: bool = false) -> void:
  apply_controls()
  controls.set_enabled(true)
  hud.show()
+ hud.bind_stats(player.stats)
+ hud.set_playing(true)
+ hud.layout_hud(Settings.values.control_scale)
  update_health(player.stats.health, player.stats.max_health)
  update_counts()
  if dungeon_mode:
@@ -344,7 +336,7 @@ func start_game(keep_progress: bool = false) -> void:
   dungeon_map.layout = layout
   dungeon_map.show()
   dungeon_map.queue_redraw()
-  floor_label.text = "Piso %d/3 · %s" % [layout.floor_index+1,FloorLayout.BIOMES[layout.floor_index]]
+  floor_label.text = "P%d/3 · %s" % [layout.floor_index+1,FloorLayout.BIOMES[layout.floor_index]]
   floor_label.show()
   navigation.show()
   reward_room()
@@ -360,7 +352,7 @@ func start_game(keep_progress: bool = false) -> void:
   spawn_pickup({"id":"crystal","position":Vector2(480,330),"collected":false,"chest":false})
  if dungeon_mode and layout.expanded:
   var kind: String=layout.rooms[layout.current].kind
-  floor_label.text += {"shop":" · Tienda: Puertas / Piso","special":" · Palanca y fuente","secret":" · Cámara secreta","boss":" · Sala del Custodio"}.get(kind,"")
+  floor_label.text += {"shop":" · Tienda","special":" · Palanca y fuente","secret":" · Cámara secreta","boss":" · Custodio"}.get(kind,"")
   if kind=="start": show_notice("Una llave espera en el pedestal",RelicPickup.KEY)
  update_keys()
  transitioning = false
@@ -371,13 +363,12 @@ func apply_controls() -> void:
  controls.queue_redraw()
 
 func update_health(current: float, maximum: float) -> void:
- health_label.text = "VIDA %d / %d" % [ceili(current), ceili(maximum)]
- health_bar.max_value = maximum
- health_bar.value = current
+ hud.set_health(current,maximum)
+ if is_instance_valid(player): hud.refresh_stats(player.stats)
 
 func update_counts() -> void:
- coins_label.text = "Óbolos %d" % coins
- enemies_label.text = ("O%d/5 · " % (wave+1) if expedition else "") + "Sombras %d" % enemies.size()
+ hud.set_counts(coins,keys,enemies.size(),wave if expedition else -1)
+ if is_instance_valid(player): hud.refresh_stats(player.stats)
 
 func spawn_player_bullet(origin: Vector2, direction: Vector2, stats: ActorStats) -> void:
  var inventory := player.relics
@@ -419,6 +410,8 @@ func spawn_bullet(origin: Vector2, direction: Vector2, speed: float, damage: flo
 func _physics_process(delta: float) -> void:
  if state != "playing": return
  door_cooldown=maxf(0,door_cooldown-delta)
+ hud.refresh_stats(player.stats,delta)
+ position_notice()
  update_relic_ui(delta)
  update_pickup_interaction()
  for i in range(hazards.size()-1,-1,-1):
@@ -518,6 +511,7 @@ func draw_effects() -> void:
    effect_layer.draw_circle(effect.point + offset, 3 * (1-t), Color(0.6,0.95,0.87,1-t))
 
 func set_world_active(active: bool) -> void:
+ hud.set_playing(active)
  if not active and is_instance_valid(pickup_interaction): pickup_interaction.hide()
  if is_instance_valid(world):
   world.process_mode = Node.PROCESS_MODE_INHERIT if active else Node.PROCESS_MODE_DISABLED
@@ -695,7 +689,7 @@ func spawn_hazard(point: Vector2, type: String) -> void:
 func spawn_wave() -> void:
  var points := [Vector2(150,140),Vector2(800,140),Vector2(480,120),Vector2(820,300)]
  for i in range(4): spawn_enemy(wave * 4 + i,points[i])
- enemies_label.text = "Oleada %d/5" % (wave+1)
+ update_counts()
 
 func clear_wave() -> void:
  if state != "playing" or not enemies.is_empty(): return
@@ -1040,9 +1034,15 @@ func unlock_chest(pickup: RelicPickup) -> void:
  else: show_notice("Necesitas una llave para este cofre",RelicPickup.KEY)
 
 func update_keys() -> void:
- if is_instance_valid(navigation): navigation.text="Puertas · Llaves %d" % keys
+ if is_instance_valid(hud): hud.set_counts(coins,keys,enemies.size(),wave if expedition else -1)
+
+func position_notice() -> void:
+ if not is_instance_valid(toast): return
+ var width:=get_viewport().get_visible_rect().size.x
+ toast.position=Vector2((width-960)*0.5+540,118) if hud.detail.visible else Vector2(width*0.5-195,110)
 
 func show_notice(message: String, icon: Texture2D) -> void:
+ position_notice()
  toast_icon.texture=icon
  toast_label.text=message
  toast_timer=2.8
