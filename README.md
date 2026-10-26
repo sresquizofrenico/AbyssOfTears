@@ -1,3 +1,9 @@
+## HUD y estadísticas reales · 0.5.1
+
+Iconos compactos para vida, óbolos, llaves y enemigos. El botón de barras amplía
+u oculta las estadísticas y guarda la preferencia.
+[Detalles, pruebas y capturas](docs/hud-0.5.1.md).
+
 ## Muestra ilustrada · 0.5.0
 
 Neris por capas, Sombra Errante, cristal y habitación originales de estilo 2D
