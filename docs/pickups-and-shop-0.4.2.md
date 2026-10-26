@@ -59,11 +59,13 @@ Los cofres muestran ABRIR COFRE y su coste de llave cuando corresponde. Mantiene
 la apertura por proximidad. La apertura se anima; después se puede recoger su
 premio. La cerradura y la recompensa se consumen una sola vez. El panel aparece
 entre ambos controles táctiles, se oculta durante la pausa y respeta el rango.
+Los botones contextuales procesan dedos independientes sin depender del ratón
+emulado; comprar con otro dedo conserva el joystick y evita eventos duplicados.
 
 ## Pruebas
 
 `tools/validate.py` ejecuta ocho suites, incluyendo
-`tests/pickup_interaction_tests.gd` (50 comprobaciones): movimiento con un dedo
+`tests/pickup_interaction_tests.gd` (52 comprobaciones): movimiento con un dedo
 mientras se dispara con otro, recogida automática, aplicación de estadísticas,
 tónicos, compras baratas/caras/sin fondos, saldo exacto, entrega inmediata,
 rechazo de duplicados y compras reentrantes, reversión al fallar la entrega,

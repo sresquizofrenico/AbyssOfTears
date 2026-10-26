@@ -17,13 +17,10 @@ func touch(index: int, point: Vector2, pressed: bool) -> void:
  event.pressed=pressed
  root.push_input(event,true)
 func click(button: Button) -> void:
- # Android emulates this GUI pointer dispatch; movement uses real ScreenTouch IDs.
- for pressed in [true,false]:
-  var event:=InputEventMouseButton.new()
-  event.button_index=MOUSE_BUTTON_LEFT
-  event.position=button.get_global_rect().get_center()
-  event.pressed=pressed
-  root.push_input(event,true)
+ # A separate real touch finger must work even while finger 0 holds the joystick.
+ var point:=button.get_global_rect().get_center()
+ touch(3,point,true)
+ touch(3,point,false)
 func pickup(id: String, position: Vector2, extra: Dictionary={}) -> RelicPickup:
  var data: Dictionary={"id":id,"position":position,"collected":false,"chest":false}
  data.merge(extra,true)
@@ -82,7 +79,11 @@ func run() -> void:
  check(game.coins==price-1 and not product.data.collected and int(product.data.price)==price,"Insufficient purchase neither charges nor consumes product")
  check(game.toast_label.text=="MONEDAS INSUFICIENTES","Insufficient purchase provides required message")
  game.coins=price+10
+ touch(0,game.controls.joystick_center()+Vector2(0,-20),true)
+ check(game.controls.joystick_finger==0,"Joystick is held before independent purchase tap")
  click(game.pickup_interaction.action)
+ check(game.controls.joystick_finger==0,"Purchase touch does not release movement finger")
+ touch(0,game.controls.joystick_center(),false)
  check(game.coins==10 and product.data.collected and product.taking and game.player.relics.has(id),"GUI purchase immediately delivers item and deducts exact cost")
  check(not game.purchase_pickup(product) and game.coins==10,"Repeated purchase cannot charge twice")
  check(not game.pickup_interaction.visible,"Sold product leaves interaction UI")
