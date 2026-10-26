@@ -28,6 +28,8 @@ y físicas a 60 Hz; el rendimiento real del ZTE 8050 queda por medir.
 
 Repositorio: https://github.com/sresquizofrenico/AbyssOfTears
 
+Pull request de entrega: https://github.com/sresquizofrenico/AbyssOfTears/pull/1
+
 El proyecto y los scripts de validación/exportación se han ejecutado en el
 entorno de desarrollo. Consulta [los resultados locales](docs/validation-results.md).
 Para confirmar cada compilación de GitHub, abre

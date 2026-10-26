@@ -5,21 +5,16 @@ Repositorio: https://github.com/sresquizofrenico/AbyssOfTears
 Rama local de entrega: `delivery/android-apk`, basada en el README inicial de
 `main`. El historial del prototipo está preparado sin modificar las mecánicas.
 
-El repositorio existe y se puede leer, pero el envío por Git y la creación de
-rama mediante la API han recibido **HTTP 403: Resource not accessible by
-integration**. La cuenta es propietaria del repositorio; la autorización que
-recibe esta sesión no permite crear referencias ni publicar los archivos.
-No se ha creado todavía el pull request ni una ejecución de Actions.
+Publicación confirmada en GitHub. Pull request:
+https://github.com/sresquizofrenico/AbyssOfTears/pull/1
 
-Antes de continuar, revisa la autorización de la integración en
-https://github.com/settings/installations: configura la integración usada por
-Codex, incluye `AbyssOfTears` y guarda. Si GitHub muestra una actualización de
-permisos solicitados, revísala para permitir publicar contenidos/workflows y
-operar Actions. Si el repositorio ya está incluido, renueva la conexión de
-GitHub en Codex. No basta con que tu cuenta tenga permisos de administrador.
+La instalación de ChatGPT Codex Connector resolvió el error de escritura HTTP
+403 de la autorización inicial. Las compilaciones se consultan en Actions:
+https://github.com/sresquizofrenico/AbyssOfTears/actions
 
-Una vez autorizada la escritura, el pull request permitirá revisar la entrega
-y obtener el APK antes de fusionar.
+El pull request permite revisar la entrega y obtener el APK antes de fusionar.
+Comprueba siempre el resultado verde y la presencia del artefacto en la
+misma ejecución que vayas a descargar.
 
 ## Descargar desde Android
 
