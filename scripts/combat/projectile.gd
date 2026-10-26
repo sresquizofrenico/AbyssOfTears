@@ -7,6 +7,10 @@ var damage := 1.0
 var remaining := 540.0
 var hostile := false
 var expired := false
+var pierce := 0
+var bounces := 0
+var elements: Array[String] = []
+var hits: Dictionary = {}
 var clock := 0.0
 
 func advance(delta: float) -> void:
@@ -25,6 +29,10 @@ func expire() -> void:
 
 func _draw() -> void:
  var color := Color("f6a58f") if hostile else Color("91ffeb")
+ if "fire" in elements: color = Color("ffb26b")
+ if "ice" in elements: color = Color("a1e4f5")
+ if "electric" in elements: color = Color("d5c2ff")
+ if elements.size()>1: draw_arc(Vector2.ZERO,9,clock*8,clock*8+PI,10,Color("ffd7a0"),2)
  draw_line(-direction * 12, Vector2.ZERO, Color(color, 0.25), 7)
  draw_circle(Vector2.ZERO, 5 + sin(clock * 18) * 0.6, color)
  draw_circle(-direction * 1.5, 2, Color("f4fff4"))

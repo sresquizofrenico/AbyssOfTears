@@ -1,5 +1,9 @@
 # Abyss of Tears
 
+**0.3.0 — Reliquias del faro:** catorce objetos físicos, cofres, inventario,
+combate combinado, ilustraciones originales y diagnóstico opcional.
+[Contenido y controles de esta entrega](docs/update-0.3-relics.md).
+
 **0.2.1:** mazmorra de tres pisos, ocho habitaciones por piso y minimapa.
 [Cómo recorrerla y qué sigue pendiente](docs/update-0.2.1-floors.md).
 

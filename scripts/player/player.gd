@@ -5,6 +5,12 @@ signal shot(origin: Vector2, direction: Vector2, stats: ActorStats)
 signal health_changed(current: float, maximum: float)
 signal died
 
+const BODY = preload("res://assets/characters/neris_body.svg")
+const ART = preload("res://assets/characters/neris.svg")
+var relics := RelicInventory.new()
+var pickup_pose := 0.0
+var expression := "idle"
+var terminal_age := 0.0
 var stats := ActorStats.new()
 var controls: TouchControls
 var active := true
@@ -12,6 +18,11 @@ var cooldown := 0.0
 var immunity := 0.0
 var clock := 0.0
 var facing := Vector2.DOWN
+
+func _process(delta: float) -> void:
+ if not active and expression in ["victory","defeat"] and terminal_age<1.2:
+  terminal_age += delta
+  queue_redraw()
 
 func movement_input() -> Vector2:
  var keyboard := Vector2(float(Input.is_physical_key_pressed(KEY_D)) - float(Input.is_physical_key_pressed(KEY_A)), float(Input.is_physical_key_pressed(KEY_S)) - float(Input.is_physical_key_pressed(KEY_W)))
@@ -32,6 +43,8 @@ func _physics_process(delta: float) -> void:
  if not active:
   return
  clock += delta
+ relics.tick(delta)
+ pickup_pose = maxf(0,pickup_pose-delta)
  cooldown = maxf(0, cooldown - delta)
  immunity = maxf(0, immunity - delta)
  velocity = movement_input() * stats.speed
@@ -52,6 +65,10 @@ func try_shoot(direction: Vector2) -> bool:
 func take_damage(amount: float) -> void:
  if not active or immunity > 0.0:
   return
+ if relics.block_hit():
+  immunity = 0.3
+  queue_redraw()
+  return
  stats.apply_damage(amount)
  immunity = 1.1
  health_changed.emit(stats.health, stats.max_health)
@@ -65,14 +82,38 @@ func _draw() -> void:
  draw_ellipse_shadow()
  if immunity > 0.0 and int(clock * 18.0) % 2 == 0:
   return
- draw_colored_polygon(PackedVector2Array([Vector2(0, -15 + bob), Vector2(-17, 18), Vector2(0, 12), Vector2(17, 18)]), Color("355b7c"))
- draw_circle(Vector2(0, -9 + bob), 13, Color("8de5dc"))
- draw_arc(Vector2(0, -9 + bob), 15, PI, TAU, 20, Color("e9d8b3"), 4)
- var eyes := facing * 3.0 + Vector2(0, -9 + bob)
- draw_circle(eyes + Vector2(-4, 0), 2.3, Color("101b30"))
- draw_circle(eyes + Vector2(4, 0), 2.3, Color("101b30"))
- draw_line(Vector2(-6, 17), Vector2(-6, 21 + bob), Color("8de5dc"), 4)
- draw_line(Vector2(6, 17), Vector2(6, 21 - bob), Color("8de5dc"), 4)
+ var tilt := sin(clock*9)*0.05 if velocity.length()>1 else sin(clock*2)*0.015
+ if expression == "defeat": tilt = minf(0.9,terminal_age*1.5)
+ var jump := -sin(pickup_pose*PI)*9 if pickup_pose>0 else 0.0
+ if expression == "victory": jump -= sin(minf(1,terminal_age/1.2)*PI)*12
+ draw_set_transform(Vector2(0,bob+jump),tilt,Vector2(1,1+sin(clock*3)*0.015))
+ var stride := sin(clock*13) * 3 if velocity.length()>1 else 0.0
+ for side in [-1,1]:
+  var foot := Vector2(side*9,20+stride*side)
+  draw_line(Vector2(side*7,4),foot,Color("344860"),5,true)
+  draw_line(foot-Vector2(2,0),foot+Vector2(4,0),Color("9eb9bd"),4,true)
+  var hand := Vector2(side*18,-3+stride*side*0.6)
+  if pickup_pose>0 or expression=="victory": hand.y = -27
+  elif cooldown>stats.attack_interval*0.7: hand += facing*5
+  draw_line(Vector2(side*10,-16),hand,Color("7d9fa8"),4,true)
+  draw_circle(hand,3,Color("cad9c6"))
+  if side==1:
+   draw_rect(Rect2(hand+Vector2(-3,4),Vector2(7,10)),Color("c4ae7b"))
+   draw_rect(Rect2(hand+Vector2(-1,6),Vector2(3,6)),Color("91e8ce"))
+ draw_texture_rect(BODY,Rect2(-24,-40,48,64),false)
+ if cooldown > stats.attack_interval*0.7:
+  draw_circle(facing*24,5,Color(0.7,1,0.9,0.7))
+ if pickup_pose>0:
+  draw_arc(Vector2(0,-9),30,0,TAU,20,Color(0.9,0.85,0.6,pickup_pose),2)
+ if expression == "victory":
+  draw_arc(Vector2(0,-38),14,PI,TAU,18,Color("ffe3a0"),3)
+ draw_set_transform(Vector2.ZERO)
+ if relics.has("orbital"):
+  var point := relics.orbital_point(position)-position
+  draw_circle(point,8,Color("b9d9ec"))
+  draw_arc(point,12,0,TAU,16,Color(0.7,0.9,1,0.35),2)
+ if relics.mirror_active():
+  draw_texture_rect(ART,Rect2(20,-40,48,64),false,Color(0.55,0.8,1,0.4))
 
 func draw_ellipse_shadow() -> void:
  draw_set_transform(Vector2(0, 18), 0.0, Vector2(1, 0.35))

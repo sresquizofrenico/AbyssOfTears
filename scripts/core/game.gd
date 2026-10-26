@@ -4,6 +4,7 @@ const PLAYER = preload("res://scenes/player/player.tscn")
 const ENEMY = preload("res://scenes/enemies/enemy.tscn")
 const CHAMBER = preload("res://scenes/rooms/chamber.tscn")
 const BULLET = preload("res://scripts/combat/projectile.gd")
+const DOOR_ART = preload("res://assets/environment/door.svg")
 const MAX_BULLETS := 96
 const MAX_ENEMIES := 16
 const MAX_HAZARDS := 10
@@ -32,11 +33,23 @@ var coins_label: Label
 var enemies_label: Label
 var coins := 0
 var hazards: Array[EnemyHazard] = []
+var pickups: Array[RelicPickup] = []
+var room_pickups: Array = []
+var backdrop: MenuBackdrop
+var toast: HBoxContainer
+var toast_label: Label
+var toast_icon: TextureRect
+var toast_timer := 0.0
+var diagnostics: Label
+var diagnostic_timer := 0.0
+var sparks: Array[Dictionary] = []
 var effects: Array[Dictionary] = []
 var effect_layer: Node2D
 var options_return := "menu"
 
 func _ready() -> void:
+ backdrop = MenuBackdrop.new()
+ add_child(backdrop)
  var canvas := CanvasLayer.new()
  add_child(canvas)
  ui = Control.new()
@@ -60,6 +73,7 @@ func _ready() -> void:
  navigation.custom_minimum_size = Vector2(160,40)
  navigation.position = Vector2(520,12)
  ui.add_child(navigation)
+ build_relic_ui()
  show_main_menu()
 
 func resize_world() -> void:
@@ -106,6 +120,13 @@ func button(text: String, action: Callable) -> Button:
  node.text = text
  node.custom_minimum_size = Vector2(260, 46)
  node.add_theme_font_size_override("font_size", 20)
+ for variation in ["normal","hover","pressed"]:
+  var style := StyleBoxFlat.new()
+  style.bg_color = Color("223c4c") if variation == "pressed" else Color("1b3244") if variation == "hover" else Color("182c3b")
+  style.border_color = Color("7aada8") if variation == "pressed" else Color("365765")
+  style.set_border_width_all(1)
+  style.set_corner_radius_all(7)
+  node.add_theme_stylebox_override(variation,style)
  node.pressed.connect(action)
  return node
 
@@ -144,22 +165,26 @@ func menu(title: String, subtitle: String) -> VBoxContainer:
  return box
 
 func show_main_menu() -> void:
+ backdrop.show()
  state = "menu"
  expedition = false
  dungeon_mode = false
  dungeon_map.hide()
  floor_label.hide()
  navigation.hide()
+ if is_instance_valid(toast): toast.hide()
+ if is_instance_valid(diagnostics): diagnostics.hide()
  controls.set_enabled(false)
  hud.hide()
  dispose_world()
- var box := menu("ABYSS OF TEARS", "La cámara de las mareas • 0.2.1 · Tres pisos")
+ var box := menu("ABYSS OF TEARS", "La cámara de las mareas • 0.3.0 · Reliquias del faro")
  box.add_child(button("Nueva partida", start_game))
+ box.add_child(button("Prueba de reliquias",start_relic_room))
  box.add_child(button("Mazmorra · 3 pisos",start_dungeon))
  box.add_child(button("Incursión 0.2", func(): expedition = true; wave = 0; start_game()))
  box.add_child(button("Opciones", func(): show_options("menu")))
  box.add_child(button("Créditos", show_credits))
- var hint := label("Izquierda: moverse · Derecha: disparar\nPurifica la cámara para abrir el sello.\nEl faro aún recuerda tu nombre.",16)
+ var hint := label("Izquierda: moverse · Derecha: disparar\nPurifica la cámara para abrir el sello.",16)
  hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
  box.add_child(hint)
 
@@ -168,12 +193,18 @@ func dispose_world() -> void:
   remove_child(world)
   world.queue_free()
  world = null
+ effect_layer = null
  enemies.clear()
  bullets.clear()
  effects.clear()
+ sparks.clear()
+ pickups.clear()
+ room_pickups = []
  hazards.clear()
 
 func start_game(keep_progress: bool = false) -> void:
+ backdrop.hide()
+ var carried_relics: RelicInventory = player.relics if keep_progress and is_instance_valid(player) else null
  var carried: ActorStats = player.stats if keep_progress and is_instance_valid(player) else null
  var carried_coins := coins if keep_progress else 0
  clear_panel()
@@ -189,6 +220,7 @@ func start_game(keep_progress: bool = false) -> void:
  world.add_child(chamber)
  player = PLAYER.instantiate()
  if carried != null: player.stats = carried
+ if carried_relics != null: player.relics = carried_relics
  player.position = Vector2(480, 390)
  player.controls = controls
  player.shot.connect(spawn_player_bullet)
@@ -219,6 +251,15 @@ func start_game(keep_progress: bool = false) -> void:
   floor_label.show()
   navigation.show()
   reward_room()
+ if dungeon_mode:
+  room_pickups = layout.rooms[layout.current].get("pickups",[])
+  layout.rooms[layout.current].pickups = room_pickups
+ else:
+  room_pickups = []
+ for data: Dictionary in room_pickups:
+  if not data.get("collected",false): spawn_pickup(data)
+ if not dungeon_mode and not expedition:
+  spawn_pickup({"id":"crystal","position":Vector2(480,330),"collected":false,"chest":false})
  transitioning = false
 
 func apply_controls() -> void:
@@ -236,7 +277,26 @@ func update_counts() -> void:
  enemies_label.text = ("O%d/5 · " % (wave+1) if expedition else "") + "Sombras %d" % enemies.size()
 
 func spawn_player_bullet(origin: Vector2, direction: Vector2, stats: ActorStats) -> void:
- spawn_bullet(origin, direction, stats.projectile_speed, stats.damage, stats.attack_range, false)
+ var inventory := player.relics
+ var directions: Array[Vector2] = [direction]
+ if inventory.has("crown"):
+  directions.append(direction.rotated(-0.25))
+  directions.append(direction.rotated(0.25))
+ var origins: Array[Vector2] = [origin]
+ if inventory.has("double"): origins = [origin-direction.orthogonal()*7,origin+direction.orthogonal()*7]
+ var echoes: Array[Vector2] = [Vector2.ZERO]
+ if inventory.mirror_active(): echoes.append(Vector2(40,0))
+ for echo in echoes:
+  for at in origins:
+   for aim in directions:
+    var before := bullets.size()
+    spawn_bullet(at+echo,aim,stats.projectile_speed,stats.damage,stats.attack_range,false)
+    if bullets.size() > before:
+     var bullet: AbyssProjectile = bullets.back()
+     bullet.pierce = 1 if inventory.has("pierce") else 0
+     bullet.bounces = 1 if inventory.has("bounce") else 0
+     for element in ["fire","ice","electric"]:
+      if inventory.has(element): bullet.elements.append(element)
 
 func spawn_enemy_bullet(origin: Vector2, direction: Vector2) -> void:
  spawn_bullet(origin, direction, 190.0, 1.0, 720.0, true)
@@ -255,8 +315,10 @@ func spawn_bullet(origin: Vector2, direction: Vector2, speed: float, damage: flo
 
 func _physics_process(delta: float) -> void:
  if state != "playing": return
+ update_relic_ui(delta)
  for i in range(hazards.size()-1,-1,-1):
   if not is_instance_valid(hazards[i]): hazards.remove_at(i)
+ var targets := enemies.duplicate()
  for i in range(bullets.size()-1, -1, -1):
   var bullet := bullets[i]
   if not is_instance_valid(bullet) or bullet.expired:
@@ -269,18 +331,31 @@ func _physics_process(delta: float) -> void:
   for step in range(1, steps + 1):
    var point := old.lerp(bullet.position, float(step) / steps)
    if projectile_blocked(point):
-    bullet.expire()
+    if bullet.bounces>0:
+     bullet.bounces -= 1
+     var x_blocked := projectile_blocked(Vector2(point.x,old.y))
+     var y_blocked := projectile_blocked(Vector2(old.x,point.y))
+     if x_blocked: bullet.direction.x *= -1
+     if y_blocked: bullet.direction.y *= -1
+     if not x_blocked and not y_blocked: bullet.direction *= -1
+     bullet.position = old
+    else: bullet.expire()
     break
    if bullet.hostile:
+    if player.relics.has("orbital") and point.distance_to(player.relics.orbital_point(player.position))<14:
+     bullet.expire()
+     break
     if point.distance_to(player.position) < 18:
      player.take_damage(bullet.damage)
      bullet.expire()
      break
    else:
-    for enemy in enemies.duplicate():
-     if is_instance_valid(enemy) and not enemy.dead and point.distance_to(enemy.position) < 20:
-      enemy.take_damage(bullet.damage, bullet.direction)
-      bullet.expire()
+    for enemy in targets:
+     if is_instance_valid(enemy) and not enemy.dead and not bullet.hits.has(enemy.get_instance_id()) and point.distance_to(enemy.position) < 20:
+      bullet.hits[enemy.get_instance_id()] = true
+      apply_relic_hit(bullet,enemy)
+      if bullet.pierce>0: bullet.pierce -= 1
+      else: bullet.expire()
       break
    if bullet.expired or state != "playing": break
   if bullet.expired:
@@ -298,13 +373,15 @@ func on_enemy_defeated(enemy: AbyssEnemy, point: Vector2, reward: int) -> void:
  enemies.erase(enemy)
  coins += reward
  if Settings.values.quality > 0 and effects.size() < 16:
-  effects.append({"point": point, "life": 0.45})
+  effects.append({"point": point, "life": 0.45, "kind":enemy.kind})
  update_counts()
  if enemies.is_empty() and state == "playing":
   # Defer so damage and projectile cleanup can finish safely.
   clear_wave.call_deferred()
 
 func draw_effects() -> void:
+ for spark in sparks:
+  effect_layer.draw_line(spark.from,spark.to,Color(0.8,0.75,1,spark.life/0.18),2)
  if dungeon_mode:
   var room: Dictionary = layout.rooms[layout.current]
   if room.kind in ["treasure","descent"]:
@@ -316,10 +393,12 @@ func draw_effects() -> void:
   for neighbor: int in layout.rooms[layout.current].links:
    var point := door_point(neighbor)
    var open: bool = layout.rooms[layout.current].cleared
-   effect_layer.draw_rect(Rect2(point-Vector2(16,16),Vector2(32,32)),Color("83dbbc") if open else Color("865473"))
-   effect_layer.draw_circle(point,7,Color("183040"))
+   effect_layer.draw_texture_rect(DOOR_ART,Rect2(point-Vector2(20,30),Vector2(40,50)),false,Color.WHITE if open else Color(0.7,0.5,0.6))
+   if not open: effect_layer.draw_line(point-Vector2(15,0),point+Vector2(15,0),Color("ba8b8e"),4)
  for effect in effects:
   var t: float = 1.0 - effect.life / 0.45
+  if effect.has("kind"):
+   effect_layer.draw_texture_rect(EnemyArt.TEXTURES[int(effect.kind)],Rect2(effect.point-Vector2(27,32+t*16),Vector2(54,54)),false,Color(1,1,1,(1-t)*0.6))
   var count := 6 if Settings.values.quality == 1 else 12
   for i in range(count):
    var offset := Vector2.from_angle(float(i) * TAU / count) * t * 35
@@ -336,6 +415,8 @@ func pause_game() -> void:
  set_world_active(false)
  var box := menu("Mareas en calma", "Partida en pausa")
  box.add_child(button("Continuar", resume_game))
+ box.add_child(button("Reliquias",show_inventory))
+ box.add_child(button("Prueba de carga (nueva)",start_benchmark))
  box.add_child(button("Opciones", func(): show_options("paused")))
  box.add_child(button("Menú principal", show_main_menu))
 
@@ -347,6 +428,9 @@ func resume_game() -> void:
 func finish(won: bool) -> void:
  if state != "playing": return
  state = "victory" if won else "defeat"
+ player.process_mode = Node.PROCESS_MODE_ALWAYS
+ player.expression = "victory" if won else "defeat"
+ player.queue_redraw()
  player.active = false
  set_world_active(false)
  var box := menu("SELLO PURIFICADO" if won else "EL ABISMO TE RECLAMA", "Óbolos recuperados: %d" % coins)
@@ -370,6 +454,11 @@ func show_options(previous: String) -> void:
  box.add_child(quality)
  add_slider(box, "Tamaño de controles", "control_scale", 0.8, 1.25)
  add_slider(box, "Opacidad de controles", "control_opacity", 0.3, 1.0)
+ var fps_toggle := CheckButton.new()
+ fps_toggle.text = "Diagnóstico FPS"
+ fps_toggle.button_pressed = Settings.values.get("diagnostics",false)
+ fps_toggle.toggled.connect(func(value: bool): Settings.values.diagnostics = value)
+ box.add_child(fps_toggle)
  var status := label("",14)
  box.add_child(status)
  box.add_child(button("Guardar y volver", func():
@@ -427,6 +516,7 @@ func spawn_enemy(kind_id: int, point: Vector2, weak: bool = false) -> void:
  enemy.once = weak
  enemy.position = safe_point(point)
  enemy.target = player
+ enemy.peers = enemies
  enemy.shot.connect(spawn_enemy_bullet)
  enemy.summon.connect(func(id: int, location: Vector2, small: bool): spawn_enemy(id, location, small))
  enemy.hazard.connect(spawn_hazard)
@@ -522,11 +612,14 @@ func reward_room() -> void:
  rng.seed = dungeon_seed + layout.floor_index * 101 + layout.current
  coins += rng.randi_range(2,5) + layout.floor_index
  if room.kind == "descent": floor_label.text += " · Salida abierta: Puertas / Piso"
- if room.kind == "treasure":
-  floor_label.text += " · Tesoro: +daño y vida"
-  player.stats.modify({"damage":0.25,"max_health":1})
-  player.stats.health = minf(player.stats.max_health,player.stats.health+1)
-  update_health(player.stats.health,player.stats.max_health)
+ if not room.has("pickups"): room.pickups = []
+ if room.kind == "treasure" or rng.randf() < float(RelicCatalog.DROP_SETTINGS.room_chance):
+  var data := {"id":RelicCatalog.roll(rng,layout.floor_index),"position":Vector2(480,274),"chest":room.kind != "treasure" and rng.randf()<float(RelicCatalog.DROP_SETTINGS.chest_chance),"collected":false}
+  if data.chest:
+   var content := rng.randf()
+   data.reward_kind = "coins" if content<float(RelicCatalog.DROP_SETTINGS.chest_coins) else "heal" if content<float(RelicCatalog.DROP_SETTINGS.chest_coins)+float(RelicCatalog.DROP_SETTINGS.chest_heal) else "relic"
+  room.pickups.append(data)
+  if is_instance_valid(effect_layer) and room_pickups == room.pickups: spawn_pickup(data)
  update_counts()
 
 func door_point(neighbor: int) -> Vector2:
@@ -573,3 +666,143 @@ func descend() -> void:
 func restart_game() -> void:
  if dungeon_mode: start_dungeon()
  else: start_game()
+
+func build_relic_ui() -> void:
+ toast = HBoxContainer.new()
+ toast.position = Vector2(285,435)
+ toast.add_theme_constant_override("separation",10)
+ ui.add_child(toast)
+ toast_icon = TextureRect.new()
+ toast_icon.custom_minimum_size = Vector2(42,42)
+ toast_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+ toast_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+ toast.add_child(toast_icon)
+ toast_label = label("",16)
+ toast.add_child(toast_label)
+ toast.mouse_filter = Control.MOUSE_FILTER_IGNORE
+ diagnostics = label("",14)
+ diagnostics.position = Vector2(240,515)
+ ui.add_child(diagnostics)
+
+func spawn_pickup(data: Dictionary) -> RelicPickup:
+ var pickup := RelicPickup.new()
+ pickup.data = data
+ pickup.player = player
+ pickup.position = safe_point(data.get("position",Vector2(480,274)))
+ pickup.quality = Settings.values.quality
+ pickup.claimed.connect(collect_relic)
+ world.add_child(pickup)
+ pickups.append(pickup)
+ return pickup
+
+func collect_relic(pickup: RelicPickup) -> void:
+ var kind: String = pickup.data.get("reward_kind","relic")
+ if kind in ["coins","heal"]:
+  if kind=="coins": coins += 5
+  else: player.stats.health = minf(player.stats.max_health,player.stats.health+2)
+  update_counts()
+  update_health(player.stats.health,player.stats.max_health)
+  toast_icon.texture = RelicPickup.COINS if kind=="coins" else RelicPickup.HEAL
+  toast_label.text = "Óbolos del faro · +5 monedas" if kind=="coins" else "Tónico de sal · Recupera hasta 2 de vida"
+  toast_timer = 2.8
+  toast.show()
+  player.pickup_pose = 1.0
+  return
+ var id: String = pickup.data.id
+ var definition := RelicCatalog.definition(id)
+ var added := player.relics.add(id,player.stats)
+ if not added: coins += 3
+ player.pickup_pose = 1.0
+ player.queue_redraw()
+ update_health(player.stats.health,player.stats.max_health)
+ update_counts()
+ toast_icon.texture = RelicCatalog.icon(id)
+ toast_label.text = definition.name + " · " + RelicCatalog.RARITIES[definition.rarity] + "\n" + (definition.description if added else "Máximo alcanzado: +3 óbolos")
+ toast_timer = 2.8
+ toast.show()
+
+func update_relic_ui(delta: float) -> void:
+ toast_timer = maxf(0,toast_timer-delta)
+ if toast_timer<=0: toast.hide()
+ for i in range(pickups.size()-1,-1,-1):
+  if not is_instance_valid(pickups[i]): pickups.remove_at(i)
+ for i in range(sparks.size()-1,-1,-1):
+  sparks[i].life -= delta
+  if sparks[i].life <= 0: sparks.remove_at(i)
+ diagnostic_timer -= delta
+ diagnostics.visible = Settings.values.get("diagnostics",false)
+ if diagnostic_timer<=0:
+  diagnostic_timer = 0.5
+  diagnostics.text = "FPS %d · enemigos %d · disparos %d · partículas %d · física %.2f ms" % [Engine.get_frames_per_second(),enemies.size(),bullets.size(),effects.size()*(6 if Settings.values.quality==1 else 12)+sparks.size(),Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS)*1000]
+
+func apply_relic_hit(bullet: AbyssProjectile, enemy: AbyssEnemy) -> void:
+ if "fire" in bullet.elements: enemy.burning = 3.0
+ if "ice" in bullet.elements: enemy.slowed = 2.0
+ enemy.take_damage(bullet.damage,bullet.direction)
+ if "electric" in bullet.elements:
+  player.relics.impacts += 1
+  if player.relics.impacts % 3 == 0:
+   for other in enemies.duplicate():
+    if is_instance_valid(other) and other != enemy and not other.dead and other.position.distance_to(enemy.position)<150:
+     other.take_damage(bullet.damage*0.6)
+     if sparks.size()<8: sparks.append({"from":enemy.position,"to":other.position,"life":0.18})
+     break
+
+func show_inventory() -> void:
+ if state != "paused": return
+ state = "inventory"
+ var box := menu("Reliquias", "Daño %.2f · velocidad %.0f · intervalo %.2f s" % [player.stats.damage,player.stats.speed,player.stats.attack_interval])
+ var scroll := ScrollContainer.new()
+ scroll.custom_minimum_size = Vector2(490,240)
+ box.add_child(scroll)
+ var entries := VBoxContainer.new()
+ entries.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+ scroll.add_child(entries)
+ if player.relics.owned.is_empty(): entries.add_child(label("Todavía no has recogido reliquias.",18))
+ for id: String in player.relics.owned:
+  var definition := RelicCatalog.definition(id)
+  var row := HBoxContainer.new()
+  entries.add_child(row)
+  var icon := TextureRect.new()
+  icon.texture = RelicCatalog.icon(id)
+  icon.custom_minimum_size = Vector2(44,44)
+  icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+  icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+  row.add_child(icon)
+  row.add_child(label("%s ×%d · %s\n%s" % [definition.name,player.relics.owned[id],RelicCatalog.RARITIES[definition.rarity],definition.description],16))
+ box.add_child(button("Volver",func(): state="playing"; pause_game()))
+
+func start_relic_room() -> void:
+ dungeon_mode = false
+ expedition = false
+ start_game()
+ for pickup in pickups: pickup.queue_free()
+ pickups.clear()
+ for enemy in enemies: enemy.queue_free()
+ enemies.clear()
+ # Keep victory pending until the player chooses to finish the laboratory.
+ for i in range(RelicCatalog.DATA.size()):
+  var point := Vector2(150+(i%7)*105,180+(i/7)*150)
+  spawn_pickup({"id":RelicCatalog.DATA[i].id,"position":safe_point(point),"collected":false,"chest":i%3==0})
+ state = "laboratory"
+ # Laboratory uses the same physics and input as combat, with a harmless target.
+ spawn_lab_target()
+
+func spawn_lab_target() -> void:
+ state = "playing"
+ spawn_enemy(0,Vector2(780,280))
+ enemies.back().health = 200
+ enemies.back().max_health = 200
+ enemies.back().speed = 0
+ enemies.back().definition = enemies.back().definition.duplicate()
+ enemies.back().definition.damage = 0
+
+func start_benchmark() -> void:
+ dungeon_mode = false
+ expedition = false
+ start_game()
+ Settings.values.diagnostics = true
+ for i in range(MAX_ENEMIES-enemies.size()):
+  spawn_enemy(1,Vector2(120+(i%5)*140,130+(i/5)*85))
+ for i in range(MAX_BULLETS):
+  spawn_enemy_bullet(Vector2(480,220),Vector2.from_angle(float(i)*TAU/MAX_BULLETS))

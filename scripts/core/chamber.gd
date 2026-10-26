@@ -1,5 +1,8 @@
 extends Node2D
 
+const FLOOR = preload("res://assets/environment/floor.svg")
+const COLUMN = preload("res://assets/environment/column.svg")
+const WALL = preload("res://assets/environment/wall.svg")
 const BOUNDS := Rect2(42, 68, 876, 412)
 const PILLARS := [Vector2(320, 200), Vector2(640, 200), Vector2(320, 355), Vector2(640, 355)]
 var quality := 1
@@ -39,19 +42,17 @@ func blocks(point: Vector2, radius: float = 5.0) -> bool:
 func _draw() -> void:
  draw_rect(Rect2(22,48,916,452),Color("29374b"))
  draw_rect(BOUNDS,Color("101f30"))
- for x in range(48, 918, 58):
-  for y in range(74, 480, 46):
-   var color := Color("152639") if (x + y) % 3 else Color("172b3c")
-   draw_rect(Rect2(x,y,54,42),color)
+ draw_texture_rect(FLOOR,BOUNDS,true)
+ for x in range(24,936,64):
+  draw_texture_rect(WALL,Rect2(x,45,64,24),false)
+  draw_texture_rect(WALL,Rect2(x,480,64,20),false)
  if quality > 0:
   for i in range(16):
    var point := Vector2(70 + (i * 137) % 810, 90 + (i * 97) % 350)
    draw_arc(point, 13 + sin(clock + i) * 3, 0, PI, 16, Color(0.3,0.7,0.8,0.12),1)
  for point: Vector2 in PILLARS:
   draw_circle(point + Vector2(5,8),28,Color(0,0,0,0.3))
-  draw_circle(point,25,Color("334558"))
-  draw_circle(point-Vector2(0,5),20,Color("506177"))
-  draw_arc(point-Vector2(0,5),15,PI,TAU,16,Color("739094"),2)
+  draw_texture_rect(COLUMN,Rect2(point-Vector2(29,42),Vector2(58,64)),false)
  for point in [Vector2(60,85),Vector2(900,85),Vector2(60,462),Vector2(900,462)]:
   if quality > 0:
    for radius in [28,20,13]:
