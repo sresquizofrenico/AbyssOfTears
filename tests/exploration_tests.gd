@@ -117,7 +117,7 @@ func run() -> void:
  var keys: int=game.keys
  game.travel_to(10)
  check(game.layout.current==10 and game.keys==keys-1,"Secret door consumes a key")
- check(game.pickups.size()==1 and int(RelicCatalog.definition(game.pickups[0].data.id).rarity)>=3,"Secret chest contains high rarity relic")
+ check(game.pickups.size()==1 and int(RelicCatalog.definition(game.pickups[0].data.id).rarity)<4,"First-floor secret has valid table loot without guaranteed legendary")
  game.pickups[0].data.chest=false
  game.pickups[0].claim()
  game.travel_to(neighbor)
@@ -157,6 +157,8 @@ func run() -> void:
  for prop in game.props:
   if prop.data.kind=="barrel": barrel=prop
  check(barrel!=null,"Interactive barrel exists")
+ barrel.data.drop_type=1
+ barrel.data.coin_amount=1
  game.spawn_bullet(barrel.position+Vector2(0,35),Vector2.UP,300,3,100,false)
  var before: int=game.pickups.size()
  game._physics_process(0.1)

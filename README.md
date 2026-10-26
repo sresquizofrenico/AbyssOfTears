@@ -1,3 +1,8 @@
+## Auditoría, economía y botín · 0.7.0
+
+Monedas físicas por probabilidad, precios por piso y tablas de rareza separadas.
+[Auditoría previa](docs/audit-0.7.md) · [Cambios, capturas y simulaciones](docs/economy-0.7.md).
+
 ## Habitaciones y presentación · 0.6.0
 
 Doce distribuciones interiores reproducibles, inicio despejado, rocas, estatuas
