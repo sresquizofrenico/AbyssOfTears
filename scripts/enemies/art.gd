@@ -1,0 +1,22 @@
+class_name EnemyArt
+extends RefCounted
+const TEXTURES := [preload("res://assets/characters/enemy_0.svg"),
+preload("res://assets/characters/enemy_1.svg"),
+preload("res://assets/characters/enemy_2.svg"),
+preload("res://assets/characters/enemy_3.svg"),
+preload("res://assets/characters/enemy_4.svg"),
+preload("res://assets/characters/enemy_5.svg"),
+preload("res://assets/characters/enemy_6.svg"),
+preload("res://assets/characters/enemy_7.svg"),
+preload("res://assets/characters/enemy_8.svg"),
+preload("res://assets/characters/enemy_9.svg"),
+preload("res://assets/characters/enemy_10.svg"),
+preload("res://assets/characters/enemy_11.svg"),
+preload("res://assets/characters/enemy_12.svg"),
+preload("res://assets/characters/enemy_13.svg"),
+preload("res://assets/characters/enemy_14.svg"),
+preload("res://assets/characters/enemy_15.svg"),
+preload("res://assets/characters/enemy_16.svg"),
+preload("res://assets/characters/enemy_17.svg"),
+preload("res://assets/characters/enemy_18.svg"),
+preload("res://assets/characters/enemy_19.svg")]

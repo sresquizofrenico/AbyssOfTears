@@ -13,11 +13,14 @@ var facing := Vector2.DOWN
 var once := false
 var weak := false
 var slowed := 0.0
+var burning := 0.0
+var burn_tick := 0.0
 var destination := Vector2.ZERO
 var events: Dictionary = {}
 
 func record(key: String) -> void:
  events[key] = int(events.get(key, 0)) + 1
+var peers: Array[AbyssEnemy] = []
 var target: AbyssPlayer
 var health := 3.0
 var max_health := 3.0
@@ -39,6 +42,13 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
  if dead or not is_instance_valid(target) or not target.active: return
  clock += delta
+ slowed = maxf(0,slowed-delta)
+ burning = maxf(0,burning-delta)
+ burn_tick -= delta
+ if burning > 0 and burn_tick <= 0:
+  burn_tick = 0.6
+  take_damage(0.3)
+  if dead: return
  flash = maxf(0, flash - delta)
  attack_timer -= delta
  var difference := target.position - position
@@ -57,8 +67,8 @@ func _physics_process(delta: float) -> void:
   3:
    var center := Vector2.ZERO
    var count := 0
-   for other in get_parent().get_children():
-    if other is AbyssEnemy and other != self and other.kind == 3:
+   for other in peers:
+    if is_instance_valid(other) and not other.dead and other != self and other.kind == 3:
      center += other.position
      count += 1
    if count > 0: velocity += (center / count - position).limit_length(40)
@@ -82,13 +92,14 @@ func _physics_process(delta: float) -> void:
     once = true
     summon.emit(15, position + Vector2(35,0), true)
     record("duplicate")
+ if slowed>0: velocity *= 0.6
  move_and_slide()
  # Ghosts cross pillars but never cross the outer arena boundary.
  position = position.clamp(Vector2(59,85), Vector2(901,463))
  if attack_timer <= 0:
   attack_timer = float(definition.interval)
   perform_attack(direction)
- if difference.length() < 30: target.take_damage(float(definition.damage))
+ if difference.length() < 30 and float(definition.damage)>0: target.take_damage(float(definition.damage))
  queue_redraw()
 
 func perform_attack(direction: Vector2) -> void:
@@ -128,22 +139,20 @@ func take_damage(amount: float, incoming := Vector2.ZERO) -> void:
  queue_redraw()
 
 func _draw() -> void:
- var color := Color.WHITE if flash > 0 else Color.from_hsv(float(kind) / 23,0.4,0.85)
- draw_set_transform(Vector2(0,sin(clock * (4 + kind % 5)) * 2))
- var points := PackedVector2Array()
- for i in range(int(definition.sides) * 2):
-  var radius := 22.0 if i % 2 == 0 else 12.0 + kind % 4
-  points.append(Vector2.from_angle(i * TAU / (int(definition.sides) * 2) + (sin(clock) * 0.15)) * radius)
- draw_colored_polygon(points,color)
- # Distinct internal glyphs encode the behavior, rather than color alone.
- for i in range(1 + kind / 5):
-  draw_line(Vector2(-10 + i*6,6),Vector2(-10 + i*6,12),Color("193047"),2)
+ draw_set_transform(Vector2(0,14),0,Vector2(1,0.3))
+ draw_circle(Vector2.ZERO,22,Color(0,0,0,0.3))
+ var bob := sin(clock*(4+kind%5))*2
+ var scale_y := 1.0 + sin(clock*5)*0.035
+ draw_set_transform(Vector2(0,bob),sin(clock*3)*0.04,Vector2(1,scale_y))
+ var tint := Color(1.5,1.5,1.5) if flash>0 else Color.WHITE
+ draw_texture_rect(EnemyArt.TEXTURES[kind],Rect2(-27,-32,54,54),false,tint)
+ draw_set_transform(Vector2.ZERO)
+ if burning>0: draw_circle(Vector2(0,15),7,Color(1,0.5,0.2,0.7))
+ if slowed>0: draw_arc(Vector2.ZERO,27,0,TAU,20,Color("a1e4f5"),2)
  if kind == 6: draw_arc(Vector2.ZERO,25,facing.angle()-0.8,facing.angle()+0.8,12,Color("e3ebcd"),5)
  if telegraph: draw_arc(Vector2.ZERO,29,0,TAU,24,Color("ffcf91"),2)
  if destination != Vector2.ZERO:
   draw_arc(destination-position,25,0,TAU,24,Color("ffcf91"),2)
- draw_circle(Vector2(-5,-3), 3, Color("1c1b32"))
- draw_circle(Vector2(5,-3), 3, Color("1c1b32"))
  draw_set_transform(Vector2.ZERO)
  if health < max_health:
   draw_rect(Rect2(-18,-31,36,3),Color("302b46"))

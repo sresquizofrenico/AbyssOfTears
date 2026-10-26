@@ -37,7 +37,7 @@ func _physics_process(delta: float) -> void:
 
 func restore() -> void:
  if activated and is_instance_valid(player):
-  player.stats.speed = original_speed
+  player.stats.speed = clampf(player.stats.speed+original_speed*0.3,40,400)
   activated = false
 
 func _exit_tree() -> void:
