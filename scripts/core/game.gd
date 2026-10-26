@@ -59,6 +59,7 @@ var sparks: Array[Dictionary] = []
 var effects: Array[Dictionary] = []
 var effect_layer: Node2D
 var options_return := "menu"
+var pickup_interaction: PickupInteraction
 
 func _ready() -> void:
  get_tree().quit_on_go_back = false
@@ -88,6 +89,9 @@ func _ready() -> void:
  navigation.position = Vector2(520,12)
  ui.add_child(navigation)
  build_relic_ui()
+ pickup_interaction=PickupInteraction.new()
+ ui.add_child(pickup_interaction)
+ pickup_interaction.interact_requested.connect(interact_with_pickup)
  boss_panel=VBoxContainer.new()
  boss_panel.position=Vector2(330,76)
  boss_name=label("Custodio de la Marea",16)
@@ -105,6 +109,7 @@ func _ready() -> void:
  show_main_menu()
 
 func resize_world() -> void:
+ if is_instance_valid(pickup_interaction): position_pickup_interaction()
  if is_instance_valid(dungeon_map): dungeon_map.position.x = get_viewport().get_visible_rect().size.x-160
  if is_instance_valid(world):
   world.position = (get_viewport().get_visible_rect().size - Vector2(960,540)) * 0.5
@@ -253,6 +258,9 @@ func show_modes() -> void:
  box.add_child(button("Volver",show_main_menu))
 
 func dispose_world() -> void:
+ if is_instance_valid(pickup_interaction):
+  pickup_interaction.hide()
+  pickup_interaction.target=null
  if is_instance_valid(world):
   remove_child(world)
   world.queue_free()
@@ -329,12 +337,12 @@ func start_game(keep_progress: bool = false) -> void:
   layout.rooms[layout.current].pickups = room_pickups
  else:
   room_pickups = []
+ if dungeon_mode and layout.expanded: build_room_features()
  for data: Dictionary in room_pickups:
   if not data.get("collected",false): spawn_pickup(data)
  if not dungeon_mode and not expedition:
   spawn_pickup({"id":"crystal","position":Vector2(480,330),"collected":false,"chest":false})
  if dungeon_mode and layout.expanded:
-  build_room_features()
   var kind: String=layout.rooms[layout.current].kind
   floor_label.text += {"shop":" · Tienda: Puertas / Piso","special":" · Palanca y fuente","secret":" · Cámara secreta","boss":" · Sala del Custodio"}.get(kind,"")
   if kind=="start": show_notice("Una llave espera en el pedestal",RelicPickup.KEY)
@@ -396,6 +404,7 @@ func _physics_process(delta: float) -> void:
  if state != "playing": return
  door_cooldown=maxf(0,door_cooldown-delta)
  update_relic_ui(delta)
+ update_pickup_interaction()
  for i in range(hazards.size()-1,-1,-1):
   if not is_instance_valid(hazards[i]): hazards.remove_at(i)
  var targets := enemies.duplicate()
@@ -493,6 +502,7 @@ func draw_effects() -> void:
    effect_layer.draw_circle(effect.point + offset, 3 * (1-t), Color(0.6,0.95,0.87,1-t))
 
 func set_world_active(active: bool) -> void:
+ if not active and is_instance_valid(pickup_interaction): pickup_interaction.hide()
  if is_instance_valid(world):
   world.process_mode = Node.PROCESS_MODE_INHERIT if active else Node.PROCESS_MODE_DISABLED
  controls.set_enabled(active)
@@ -644,7 +654,21 @@ func spawn_hazard(point: Vector2, type: String) -> void:
    if type == "curse" and node.kind == "curse": return
  if count >= MAX_HAZARDS: return
  point = safe_point(point)
- if type == "wall" and point.distance_to(player.position) < 65: return
+ if type == "wall":
+  if point.distance_to(player.position)<65: return
+  var needs_relocation:=false
+  for pickup: RelicPickup in pickups:
+   if is_instance_valid(pickup) and not pickup.taking and point.distance_to(pickup.position)<65: needs_relocation=true; break
+  if needs_relocation:
+   var found:=false
+   for direction in range(16):
+    var candidate:=safe_point(point+Vector2.from_angle(direction*TAU/16.0)*100)
+    if chamber.blocks(candidate,24) or candidate.distance_to(player.position)<65: continue
+    var available:=true
+    for pickup: RelicPickup in pickups:
+     if is_instance_valid(pickup) and not pickup.taking and candidate.distance_to(pickup.position)<65: available=false; break
+    if available: point=candidate; found=true; break
+   if not found: return
  var hazard := EnemyHazard.new()
  hazard.kind = type
  hazard.player = player
@@ -802,7 +826,8 @@ func restart_game() -> void:
 
 func build_relic_ui() -> void:
  toast = HBoxContainer.new()
- toast.position = Vector2(285,435)
+ toast.position = Vector2(285,110)
+ toast.custom_minimum_size.x=380
  toast.add_theme_constant_override("separation",10)
  ui.add_child(toast)
  toast_icon = TextureRect.new()
@@ -811,6 +836,8 @@ func build_relic_ui() -> void:
  toast_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
  toast.add_child(toast_icon)
  toast_label = label("",16)
+ toast_label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+ toast_label.custom_minimum_size.x=330
  toast.add_child(toast_label)
  toast.mouse_filter = Control.MOUSE_FILTER_IGNORE
  diagnostics = label("",14)
@@ -821,17 +848,21 @@ func spawn_pickup(data: Dictionary) -> RelicPickup:
  var pickup := RelicPickup.new()
  pickup.data = data
  pickup.player = player
- pickup.position = safe_point(data.get("position",Vector2(480,274)))
+ pickup.position = safe_pickup_point(data.get("position",Vector2(480,274)))
+ data.position=pickup.position
  pickup.quality = Settings.values.quality
- pickup.claimed.connect(collect_relic)
+ pickup.accept_claim=collect_relic
  pickup.unlock_requested.connect(unlock_chest)
  world.add_child(pickup)
  pickups.append(pickup)
  return pickup
 
-func collect_relic(pickup: RelicPickup) -> void:
+func collect_relic(pickup: RelicPickup) -> bool:
+ if state not in ["playing","shop"] or not is_instance_valid(player) or not player.active or pickup.player!=player or pickup.get_parent()!=world or not pickup.data.get("claiming",false) or pickup.data.get("collected",false) or not pickup.valid_reward(): return false
  var kind: String = pickup.data.get("reward_kind","relic")
  if kind in ["coins","heal","key"]:
+  if kind=="heal" and player.stats.health>=player.stats.max_health: return false
+  if kind=="key" and keys>=99: return false
   if kind=="key": keys=mini(99,keys+1); update_keys()
   elif kind=="coins": coins += 5
   else: player.stats.health = minf(player.stats.max_health,player.stats.health+2)
@@ -842,7 +873,7 @@ func collect_relic(pickup: RelicPickup) -> void:
   toast_timer = 2.8
   toast.show()
   player.pickup_pose = 1.0
-  return
+  return true
  var id: String = pickup.data.id
  var definition := RelicCatalog.definition(id)
  var added := player.relics.add(id,player.stats)
@@ -855,6 +886,7 @@ func collect_relic(pickup: RelicPickup) -> void:
  toast_label.text = definition.name + " · " + RelicCatalog.RARITIES[definition.rarity] + "\n" + (definition.description if added else "Máximo alcanzado: +3 óbolos")
  toast_timer = 2.8
  toast.show()
+ return true
 
 func update_relic_ui(delta: float) -> void:
  toast_timer = maxf(0,toast_timer-delta)
@@ -984,7 +1016,7 @@ func reveal_secret_wall(point: Vector2) -> void:
    show_notice("¡Pared secreta descubierta!",RelicPickup.KEY)
 
 func unlock_chest(pickup: RelicPickup) -> void:
- if state!="playing" or not pickup.data.get("locked",false) or not pickup.data.get("chest",false): return
+ if state not in ["playing","shop"] or not pickup.data.get("locked",false) or not pickup.data.get("chest",false): return
  if keys>0:
   keys-=1
   pickup.data.locked=false
@@ -1022,7 +1054,7 @@ func spawn_guardian() -> void:
 func show_shop() -> void:
  if not dungeon_mode or state not in ["doors","shop"] or layout.rooms[layout.current].kind!="shop": return
  state="shop"
- var box := menu("La tienda de sal", "%d óbolos · Las compras aparecen en sus pedestales" % coins)
+ var box := menu("La tienda de sal", "%d óbolos · Cada compra se entrega al confirmar" % coins)
  for i in range(room_pickups.size()):
   var data: Dictionary=room_pickups[i]
   if data.get("collected",false): continue
@@ -1031,21 +1063,94 @@ func show_shop() -> void:
   var entry := button(name+(" · %d óbolos" % price if price>0 else " · Pagado"),func(): buy_offer(i); show_shop())
   var capped: bool=data.get("reward_kind","relic")=="relic" and int(player.relics.owned.get(data.id,0))>=int(RelicCatalog.definition(data.id).max_stack)
   if capped: entry.text=name+" · Máximo alcanzado"
-  entry.disabled=price<=0 or coins<price or capped
+  entry.disabled=price<=0 or capped
   box.add_child(entry)
- box.add_child(button("Recoger / Volver",resume_game))
+ box.add_child(button("Volver a la habitación",resume_game))
 
 func buy_offer(index: int) -> bool:
- if not dungeon_mode or state!="shop" or layout.rooms[layout.current].kind!="shop" or index<0 or index>=room_pickups.size(): return false
+ if not dungeon_mode or state not in ["playing","shop"] or layout.rooms[layout.current].kind!="shop" or index<0 or index>=room_pickups.size(): return false
  var data: Dictionary=room_pickups[index]
- var price: int=data.get("price",0)
- if price<=0 or data.get("collected",false) or coins<price: return false
- if data.get("reward_kind","relic")=="relic" and int(player.relics.owned.get(data.id,0))>=int(RelicCatalog.definition(data.id).max_stack): return false
+ for pickup: RelicPickup in pickups:
+  if is_instance_valid(pickup) and is_same(pickup.data,data): return purchase_pickup(pickup)
+ return false
+
+func purchase_pickup(pickup: RelicPickup) -> bool:
+ if state not in ["playing","shop"] or not dungeon_mode or layout.rooms[layout.current].kind!="shop" or not is_instance_valid(pickup) or pickup.get_parent()!=world or pickup.player!=player: return false
+ var data: Dictionary=pickup.data
+ var price:=int(data.get("price",0))
+ if price<=0 or data.get("collected",false) or data.get("purchasing",false) or not pickup.valid_reward(): return false
+ if coins<price:
+  show_notice("MONEDAS INSUFICIENTES",RelicPickup.COINS)
+  return false
+ if data.get("reward_kind","relic")=="relic" and int(player.relics.owned.get(data.id,0))>=int(RelicCatalog.definition(data.id).max_stack):
+  show_notice("Máximo de este objeto alcanzado",pickup.icon())
+  return false
+ var was_paid: bool=data.get("paid",false)
+ data.purchasing=true
  coins-=price
  data.price=0
  data.paid=true
+ var delivered:=pickup.claim()
+ data.erase("purchasing")
+ if not delivered:
+  coins+=price
+  data.price=price
+  data.paid=was_paid
+  show_notice("No puedes recibir esta recompensa ahora",pickup.icon())
+  return false
  update_counts()
+ if is_instance_valid(pickup_interaction): pickup_interaction.hide()
  return true
+
+func position_pickup_interaction() -> void:
+ var viewport_size:=get_viewport().get_visible_rect().size
+ pickup_interaction.position=Vector2(viewport_size.x*0.5-215,viewport_size.y-160)
+ pickup_interaction.size=Vector2(430,145)
+
+func update_pickup_interaction() -> void:
+ var nearest: RelicPickup
+ var distance:=RelicPickup.INTERACTION_RADIUS
+ for pickup: RelicPickup in pickups:
+  if not is_instance_valid(pickup) or pickup.taking or pickup.data.get("collected",false): continue
+  var separation:=player.global_position.distance_to(pickup.global_position)
+  if separation<=distance:
+   nearest=pickup
+   distance=separation
+ if nearest==null:
+  pickup_interaction.hide()
+  pickup_interaction.target=null
+ else:
+  pickup_interaction.present(nearest)
+  position_pickup_interaction()
+
+func interact_with_pickup(pickup: RelicPickup) -> bool:
+ if state!="playing" or not is_instance_valid(pickup) or pickup.get_parent()!=world or pickup.player!=player or not pickup.near_player(RelicPickup.INTERACTION_RADIUS): return false
+ var success:=purchase_pickup(pickup) if int(pickup.data.get("price",0))>0 else pickup.open_chest()
+ update_pickup_interaction()
+ return success
+
+func safe_pickup_point(origin: Vector2) -> Vector2:
+ # Deterministic bounded search; use the same placement for every dynamic reward.
+ var initial:=safe_point(origin)
+ for ring in range(9):
+  for direction in range(1 if ring==0 else 16):
+   var candidate:=initial+Vector2.from_angle(direction*TAU/16.0)*ring*32.0
+   if chamber.blocks(candidate,32): continue
+   var obstructed:=false
+   if dungeon_mode:
+    for neighbor: int in layout.rooms[layout.current].links:
+     if candidate.distance_to(door_point(neighbor))<65: obstructed=true; break
+   if obstructed: continue
+   for prop: RoomProp in props:
+    if is_instance_valid(prop) and not (prop.data.kind=="barrel" and prop.data.get("used",false)) and candidate.distance_to(prop.position)<50: obstructed=true; break
+   if obstructed: continue
+   for hazard: EnemyHazard in hazards:
+    if is_instance_valid(hazard) and hazard.kind=="wall" and candidate.distance_to(hazard.position)<58: obstructed=true; break
+   if obstructed: continue
+   for existing: RelicPickup in pickups:
+    if is_instance_valid(existing) and not existing.taking and not existing.data.get("collected",false) and candidate.distance_to(existing.position)<56: obstructed=true; break
+   if not obstructed: return candidate
+ return initial
 
 func show_seed_menu() -> void:
  state="seed"
