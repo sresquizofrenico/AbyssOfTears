@@ -33,7 +33,12 @@ func run() -> void:
  game.start_dungeon()
  check(game.layout.floor_index==0 and game.enemies.is_empty(),"Start room safe")
  var map: FloorLayout = game.layout
- var neighbor: int = map.rooms[0].links[0]
+ var neighbor: int = -1
+ for candidate: int in map.rooms[0].links:
+  if map.door_visible(candidate):
+   neighbor=candidate
+   break
+ check(neighbor>=0,"At least one initial door is visible")
  game.player.stats.health=4
  game.coins=12
  game.travel_to(neighbor)
@@ -65,6 +70,10 @@ func run() -> void:
   game.clear_wave()
   game.show_doors()
   check(game.state=="doors","Touch navigation available")
+  game.descend()
+  check(game.layout.floor_index==floor_id,"Descent requires guardian completion")
+  # Completion itself is exercised through real damage in exploration_tests.gd.
+  game.layout.rooms[game.layout.boss_room].cleared=true
   game.descend()
  check(game.state=="victory","Third descent completes run")
  game.restart_game()

@@ -1,5 +1,9 @@
 # Abyss of Tears
 
+**0.4.0 — Fases 0 y 1:** referencia estable protegida, doce habitaciones por piso,
+tienda, llaves, secretos, trampas y Custodio; Neris conserva su equipo y tiene
+un rostro más adorable. [Guía de exploración y resultados](docs/phase1-exploration.md).
+
 **0.3.1 — Menú cinematográfico:** introducción de 6,5 s que puedes omitir,
 Neris animado y reacciones a los botones. Los modos anteriores están en
 **Otros modos**. [Guía del nuevo menú y funciones pendientes](docs/update-0.3.1-menu.md).
