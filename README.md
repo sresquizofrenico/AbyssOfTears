@@ -1,5 +1,9 @@
 # Abyss of Tears
 
+**0.3.1 — Menú cinematográfico:** introducción de 6,5 s que puedes omitir,
+Neris animado y reacciones a los botones. Los modos anteriores están en
+**Otros modos**. [Guía del nuevo menú y funciones pendientes](docs/update-0.3.1-menu.md).
+
 **0.3.0 — Reliquias del faro:** catorce objetos físicos, cofres, inventario,
 combate combinado, ilustraciones originales y diagnóstico opcional.
 [Contenido y controles de esta entrega](docs/update-0.3-relics.md).
