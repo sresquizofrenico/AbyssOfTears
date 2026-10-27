@@ -115,7 +115,7 @@ Se mantienen escritura temporal, respaldo `.bak`, recuperación y deduplicación
 
 - La referencia 0.8 superó sus trece suites antes de modificarla.
 - Importación, escenas, recursos y **quince suites** de regresión e integración se ejecutan mediante `tools/validate.py`.
-- Suite de expansión: **715 comprobaciones**, con cien recogidas reales, iconos, distribución, 99 ramas de recetas, presupuestos, tienda/magnetismo, minijefe, tres jefes, acceso a la prueba, victoria/desbloqueo real, recurso de Shader, cinco dedos simulados y combinaciones máximas.
+- Suite de expansión: **716 comprobaciones**, con cien recogidas reales, iconos, distribución, 99 ramas de recetas, presupuestos, tienda/magnetismo, minijefe, tres jefes, acceso a la prueba, victoria/desbloqueo real, recurso de Shader, cinco dedos simulados y combinaciones máximas.
 - Suite de pasivas: **22 comprobaciones** de efectos efectivos, agotamiento y límites, no solo presencia de descripciones.
 - La suite de expansión también se ejecutó con Compatibility/Mesa y pasó. No equivale a un dispositivo Android.
 - Capturas reales y [muestra de diagnóstico](mythic-diagnostics-0.9.json): alrededor de 39 MB de memoria estática del asignador del motor y 28 MB de texturas en una escena preparada de dos enemigos. **No son RSS del proceso, memoria Android, prueba de carga máxima ni medición comparativa de FPS.** El renderizador era llvmpipe de un servidor Linux.

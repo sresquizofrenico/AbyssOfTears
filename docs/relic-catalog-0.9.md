@@ -17,7 +17,7 @@ Las catorce entradas de 0.8 conservan ID y efecto. Las otras 86 usan recetas eje
 | `dew_bead` | Cuenta de Rocío | Común | pasivo | Cura 0,5 cada tres salas limpias. Máximo cuatro veces. | 1 |
 | `steady_grip` | Empuñadura Firme | Común | pasivo | Cada tercer disparo gana 100 px de alcance. | 1 |
 | `reed_arrow` | Flecha de Junco | Común | pasivo | Cada cuarto disparo: daño +20% y velocidad +20%. | 1 |
-| `vital_shard` | Fragmento Vital | Común | pasivo | Vida máxima +0,5 y cura 0,5 al recoger. | 1 |
+| `vital_shard` | Fragmento Vital | Común | pasivo | Vida máxima +0,5; al usar habilidad cura 0,5 hasta tres veces por partida. | 1 |
 | `agile_gloves` | Guantes Ágiles | Común | pasivo | Tras usar una habilidad: velocidad +18 durante 2 s. | 1 |
 | `ember_thread` | Hilo de Brasa | Común | pasivo | Cada sexto disparo aplica una quemadura breve. | 1 |
 | `bitter_leaf` | Hoja Amarga | Común | pasivo | Cada sexto disparo envenena durante 3 s. | 1 |
@@ -85,7 +85,7 @@ Las catorce entradas de 0.8 conservan ID y efecto. Las otras 86 usan recetas eje
 | `abyss_mirror` | Espejo del Abismo | Épico | pasivo | Tras usar habilidad: copia ofensiva durante 3 s. | 1 |
 | `eclipse_shard` | Fragmento del Eclipse | Épico | pasivo | Alterna disparos de quemadura y hielo cada dos ataques. | 1 |
 | `thunder_book` | Libro del Trueno | Épico | activo | Activo: onda eléctrica en radio 145. Recarga 22 s. | 1 |
-| `eternal_flame` | Llama Eterna | Épico | pasivo | Quemadura en todos los ataques y daño adicional limitado contra ardiendo. | 1 |
+| `eternal_flame` | Llama Eterna | Épico | pasivo | Los impactos queman durante 5 s; renovar no acumula quemaduras ni supera el límite. | 1 |
 | `electric` | Núcleo Eléctrico | Épico | pasivo | Cada tercer impacto salta a otro enemigo cercano. | 1 |
 | `guardian_core` | Núcleo del Guardián | Épico | pasivo | Escudo periódico cada 6 s; velocidad -8. | 1 |
 | `hunter_eye` | Ojo del Cazador | Épico | pasivo | Crítico +12%; proyectiles con guía leve. | 1 |

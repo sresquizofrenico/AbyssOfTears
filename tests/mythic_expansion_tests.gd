@@ -126,7 +126,7 @@ func run() -> void:
      var bullet:=AbyssProjectile.new()
      bullet.damage=1
      game.apply_relic_hit(bullet,enemy)
-     observed=enemy.health<98.9 if effect.op=="burn_bonus" else enemy.chill_stacks>0 if effect.op=="chill" else enemy.position!=old_position
+     observed=enemy.health<98.9 if effect.op=="burn_bonus" else enemy.burning>=5 if effect.op=="burn_extend" else enemy.chill_stacks>0 if effect.op=="chill" else enemy.position!=old_position
      bullet.free()
     "tick":
      if effect.op=="conditional":

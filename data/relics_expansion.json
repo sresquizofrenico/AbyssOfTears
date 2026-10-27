@@ -190,15 +190,16 @@
       "id": "vital_shard",
       "name": "Fragmento Vital",
       "rarity": 0,
-      "description": "Vida máxima +0,5 y cura 0,5 al recoger.",
+      "description": "Vida máxima +0,5; al usar habilidad cura 0,5 hasta tres veces por partida.",
       "modifiers": {
         "max_health": 0.5
       },
       "effects": [
         {
-          "hook": "pickup",
+          "hook": "ability",
           "op": "heal",
-          "value": 0.5
+          "value": 0.5,
+          "budget": 3
         }
       ],
       "category": "pasivo",
@@ -2336,7 +2337,7 @@
       "id": "eternal_flame",
       "name": "Llama Eterna",
       "rarity": 3,
-      "description": "Quemadura en todos los ataques y daño adicional limitado contra ardiendo.",
+      "description": "Los impactos queman durante 5 s; renovar no acumula quemaduras ni supera el límite.",
       "modifiers": {},
       "effects": [
         {
@@ -2346,8 +2347,8 @@
         },
         {
           "hook": "hit",
-          "op": "burn_bonus",
-          "value": 0.35
+          "op": "burn_extend",
+          "value": 5
         }
       ],
       "category": "pasivo",

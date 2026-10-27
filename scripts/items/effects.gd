@@ -6,11 +6,11 @@ extends RefCounted
 const OPERATIONS := {
  "constant":["pickup_radius","secret_radius","cooldown","critical","shield"],
  "shot":["power","velocity","reach","extra","fan","element","bounce","pierce","homing","return","split","explode","push","mark","far"],
- "hit":["burn_bonus","chill","pull"],
+ "hit":["burn_bonus","burn_extend","chill","pull"],
  "pickup":["heal"],"tick":["conditional","regen","cycle"],
  "kill":["buff","heal","recharge"],"room":["buff","heal","coin","recharge"],
  "hurt":["buff","recharge","pulse","time"],
- "ability":["buff","evade","echo"],"active":["heal","pulse","buff","time","echo"],
+ "ability":["buff","evade","echo","heal"],"active":["heal","pulse","buff","time","echo"],
  "challenge":["buff","determination"]}
 var recipes: Array[Dictionary]=[]
 var constants: Dictionary={}
@@ -205,6 +205,8 @@ func hit(bullet, enemy, player, game) -> void:
   match effect.op:
    "burn_bonus":
     if enemy.burning>0 and not enemy.dead: enemy.take_damage(float(effect.value))
+   "burn_extend":
+    if not enemy.dead: enemy.burning=maxf(enemy.burning,minf(6.0,float(effect.value)))
    "chill":
     if not enemy.dead: enemy.apply_chill()
    "pull":
