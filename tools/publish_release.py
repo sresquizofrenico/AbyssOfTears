@@ -33,7 +33,7 @@ def prepare(apk, report_path, root, tag, output):
         for name in ['AndroidManifest.xml', 'lib/arm64-v8a/libgodot_android.so']:
             if name not in archive.namelist():
                 raise ValueError(f'Missing APK resource: {name}')
-        for name in ['balance.json', 'relics_expansion.json']:
+        for name in ['balance.json', 'relics_expansion.json', 'archaeology.json']:
             if json.loads(archive.read(f'assets/data/{name}')) != json.loads((root / 'data' / name).read_text()):
                 raise ValueError(f'Published APK does not match source: {name}')
     output.mkdir(parents=True, exist_ok=True)

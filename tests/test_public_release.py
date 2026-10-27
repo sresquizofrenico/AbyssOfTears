@@ -16,7 +16,7 @@ class PublicReleaseTests(unittest.TestCase):
         self.config = {'version': 2, 'sample': 'original'}
         self.score = {'version': 1, 'tracks': [{'id': 'menu', 'path': 'res://assets/audio/music/menu.ogg'}]}
         (self.root / 'data/soundtrack.json').write_text(json.dumps(self.score))
-        for name in ['balance.json', 'relics_expansion.json']:
+        for name in ['balance.json', 'relics_expansion.json', 'archaeology.json']:
             (self.root / 'data' / name).write_text(json.dumps(self.config))
         self.apk = self.root / 'game.apk'
         with zipfile.ZipFile(self.apk, 'w') as archive:
@@ -27,7 +27,7 @@ class PublicReleaseTests(unittest.TestCase):
             for path in ['assets/audio/music/menu.ogg', *[f'assets/audio/sfx/{name}.wav' for name in EFFECTS]]:
                 archive.writestr('assets/' + path + '.import', '[remap]\npath="res://.godot/imported/test-audio.sample"\n')
             archive.writestr('assets/.godot/imported/test-audio.sample', b'unit-test-import-resource')
-            for name in ['balance.json', 'relics_expansion.json']:
+            for name in ['balance.json', 'relics_expansion.json', 'archaeology.json']:
                 archive.writestr('assets/data/' + name, json.dumps(self.config))
         self.report = self.root / 'report.json'
         self.report.write_text(json.dumps({'version':'0.9.1', 'apk_bytes':self.apk.stat().st_size}))
@@ -73,6 +73,10 @@ class PublicReleaseTests(unittest.TestCase):
     def test_source_mismatch_rejected(self):
         (self.root/'data'/'balance.json').write_text('{"different":true}')
         with self.assertRaises(ValueError): prepare(self.apk,self.report,self.root,'v0.9.1-public',self.root/'out')
+    def test_archaeology_source_mismatch_rejected(self):
+        (self.root/'data'/'archaeology.json').write_text('{"different":true}')
+        with self.assertRaisesRegex(ValueError,'archaeology.json'):
+            prepare(self.apk,self.report,self.root,'v0.9.1-public',self.root/'out')
     def test_invalid_zip_rejected(self):
         self.apk.write_bytes(b'not an apk')
         self.report.write_text(json.dumps({'version':'0.9.1','apk_bytes':self.apk.stat().st_size}))

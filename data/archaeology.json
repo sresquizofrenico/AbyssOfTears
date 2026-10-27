@@ -1,0 +1,178 @@
+{
+  "version": 1,
+  "artifacts": [
+    {
+      "id": "salt_bell",
+      "name": "Campanilla sin voz",
+      "story": "Un badajo de nácar conserva la señal de quienes cruzaban la cripta antes de que llegara la sal.",
+      "floor": 0,
+      "rarity": 0,
+      "effect": "story",
+      "icon": "res://assets/archaeology/salt_bell.svg",
+      "sources": [
+        "secret",
+        "special"
+      ],
+      "summary": "Conserva una historia en el Diario del Abismo."
+    },
+    {
+      "id": "tide_needle",
+      "name": "Aguja de bajamar",
+      "story": "Su imán señala una grieta olvidada. Al hallarla, una entrada secreta del piso queda marcada, pero conserva su cerradura.",
+      "floor": 0,
+      "rarity": 1,
+      "effect": "hint",
+      "icon": "res://assets/archaeology/tide_needle.svg",
+      "sources": [
+        "secret",
+        "special"
+      ],
+      "summary": "Marca una entrada secreta; no abre la cerradura."
+    },
+    {
+      "id": "gate_tooth",
+      "name": "Diente del embarcadero",
+      "story": "Las antiguas esclusas utilizaban estas piezas. Rescatas una llave utilizable de su mecanismo.",
+      "floor": 0,
+      "rarity": 1,
+      "effect": "key",
+      "icon": "res://assets/archaeology/gate_tooth.svg",
+      "sources": [
+        "secret",
+        "special"
+      ],
+      "summary": "Recupera una llave, una sola vez por vestigio."
+    },
+    {
+      "id": "salt_chart",
+      "name": "Carta de las mareas",
+      "story": "Un plano grabado en cobre conserva el contorno de las salas cercanas. Revela su situación sin darlas por visitadas.",
+      "floor": 0,
+      "rarity": 2,
+      "effect": "map",
+      "icon": "res://assets/archaeology/salt_chart.svg",
+      "sources": [
+        "secret",
+        "special"
+      ],
+      "summary": "Revela salas cercanas sin darlas por visitadas."
+    },
+    {
+      "id": "root_seal",
+      "name": "Sello del herbario",
+      "story": "Una jardinera dejó aquí la impresión de una hoja que nunca florecía de noche. Su nombre se perdió; su cuidado permaneció.",
+      "floor": 1,
+      "rarity": 0,
+      "effect": "story",
+      "icon": "res://assets/archaeology/root_seal.svg",
+      "sources": [
+        "secret",
+        "special"
+      ],
+      "summary": "Conserva una historia en el Diario del Abismo."
+    },
+    {
+      "id": "spore_lens",
+      "name": "Lente de esporas",
+      "story": "El cristal detecta una corriente a través de los muros. Marca una entrada secreta del piso sin abrirla.",
+      "floor": 1,
+      "rarity": 1,
+      "effect": "hint",
+      "icon": "res://assets/archaeology/spore_lens.svg",
+      "sources": [
+        "secret",
+        "special"
+      ],
+      "summary": "Marca una entrada secreta; no abre la cerradura."
+    },
+    {
+      "id": "garden_clasp",
+      "name": "Broche del vivero",
+      "story": "Entre sus dos mitades germinó una raíz. Al limpiarlo recuperas una llave de las herramientas del vivero.",
+      "floor": 1,
+      "rarity": 1,
+      "effect": "key",
+      "icon": "res://assets/archaeology/garden_clasp.svg",
+      "sources": [
+        "secret",
+        "special"
+      ],
+      "summary": "Recupera una llave, una sola vez por vestigio."
+    },
+    {
+      "id": "bark_map",
+      "name": "Mapa de corteza",
+      "story": "Los anillos del árbol describen rutas alrededor de la sala del hallazgo. El dibujo orienta; caminar sigue siendo necesario.",
+      "floor": 1,
+      "rarity": 2,
+      "effect": "map",
+      "icon": "res://assets/archaeology/bark_map.svg",
+      "sources": [
+        "secret",
+        "special"
+      ],
+      "summary": "Revela salas cercanas sin darlas por visitadas."
+    },
+    {
+      "id": "echo_tablet",
+      "name": "Tablilla del primer eco",
+      "story": "Una viajera anotó: si mi voz regresa distinta, todavía queda alguien al otro lado. Las letras brillan al respirar.",
+      "floor": 2,
+      "rarity": 0,
+      "effect": "story",
+      "icon": "res://assets/archaeology/echo_tablet.svg",
+      "sources": [
+        "secret",
+        "special"
+      ],
+      "summary": "Conserva una historia en el Diario del Abismo."
+    },
+    {
+      "id": "prism_eye",
+      "name": "Ocular de resonancia",
+      "story": "Un prisma escucha las diferencias del muro. Marca una entrada secreta cercana en este piso sin gastar ni regalar llaves.",
+      "floor": 2,
+      "rarity": 1,
+      "effect": "hint",
+      "icon": "res://assets/archaeology/prism_eye.svg",
+      "sources": [
+        "secret",
+        "special"
+      ],
+      "summary": "Marca una entrada secreta; no abre la cerradura."
+    },
+    {
+      "id": "crystal_latch",
+      "name": "Pestillo de cuarzo",
+      "story": "La última guardiana lo desmontó para que nadie quedara encerrado. Recuperas una llave entre las piezas.",
+      "floor": 2,
+      "rarity": 1,
+      "effect": "key",
+      "icon": "res://assets/archaeology/crystal_latch.svg",
+      "sources": [
+        "secret",
+        "special"
+      ],
+      "summary": "Recupera una llave, una sola vez por vestigio."
+    },
+    {
+      "id": "fracture_plate",
+      "name": "Placa de fracturas",
+      "story": "Este fragmento era parte de un mapa mayor. Revela salas junto al hallazgo sin descubrir sus tesoros ni completar el mapa.",
+      "floor": 2,
+      "rarity": 2,
+      "effect": "map",
+      "icon": "res://assets/archaeology/fracture_plate.svg",
+      "sources": [
+        "secret",
+        "special"
+      ],
+      "summary": "Revela salas cercanas sin darlas por visitadas."
+    }
+  ],
+  "rarity_weights": [
+    7,
+    3,
+    1
+  ]
+}

@@ -2,14 +2,14 @@ extends Node
 
 signal character_unlocked(id: String)
 signal save_failed(error: Error)
-const VERSION := 2
+const VERSION := 3
 const COUNTERS := ["enemies","bosses","minibosses","floors","wanderer_floors","clean_streak","best_clean_streak","secrets","endings","elemental_bosses","elites","hard_clean","illusion_trials","shader_trials"]
 var storage_path := "user://progress.json"
 var data: Dictionary = fresh()
 var recovered := false
 
 func fresh() -> Dictionary:
- var value := {"version":VERSION,"serial":0,"counters":{},"items":[],"events":{},"unlocked":["neris"],"pending":[],"boss_types":[]}
+ var value := {"version":VERSION,"serial":0,"counters":{},"items":[],"events":{},"unlocked":["neris"],"pending":[],"boss_types":[],"journal":AbyssJournal.fresh()}
  for key in COUNTERS: value.counters[key]=0
  return value
 
@@ -19,7 +19,7 @@ func _ready() -> void:
 func validate(value: Variant) -> Dictionary:
  if not value is Dictionary: return {}
  var version: Variant=value.get("version")
- if not (version is int or version is float) or not is_finite(float(version)) or (float(version)!=1.0 and float(version)!=float(VERSION)): return {}
+ if not (version is int or version is float) or not is_finite(float(version)) or (float(version)!=1.0 and float(version)!=2.0 and float(version)!=float(VERSION)): return {}
  var clean := fresh()
  for key in ["serial"]:
   var number = value.get(key,0)
@@ -42,6 +42,13 @@ func validate(value: Variant) -> Dictionary:
  for key in events:
   if not key is String or key.length()>160 or events[key]!=true: return {}
   clean.events[key]=true
+ var journal:=AbyssJournal.validate(value.get("journal",{}))
+ if journal.is_empty(): return {}
+ clean.journal=journal
+ # Old boss_types are evidence of actual victories; aggregate kill/floor totals
+ # cannot identify species or visited maps and must not fabricate those entries.
+ for id in clean.boss_types:
+  if not clean.journal.bosses.has(id): clean.journal.bosses.append(id)
  return clean
 
 func read_file(path: String) -> Dictionary:
@@ -109,6 +116,20 @@ func begin_run() -> bool:
  data.counters.clean_streak=0
  return commit(previous)
 
+func discover(found: Dictionary) -> bool:
+ for category: String in found:
+  if category not in AbyssJournal.STORED or not found[category] is Array: return false
+  for id: Variant in found[category]:
+   if not id is String or not AbyssJournal.valid_id(category,id): return false
+ var previous:=data.duplicate(true)
+ var changed:=false
+ for category: String in found:
+  for id: String in found[category]:
+   if not data.journal[category].has(id) and data.journal[category].size()<AbyssJournal.LIMIT:
+    data.journal[category].append(id)
+    changed=true
+ return commit(previous) if changed else false
+
 # Events are unique within a persistent run serial, consumed before counters change.
 # Tests/laboratories never call this method through the gameplay adapter.
 func record(event: String, token: String, payload: Dictionary={}) -> bool:
@@ -125,11 +146,16 @@ func record(event: String, token: String, payload: Dictionary={}) -> bool:
    data.counters.bosses+=1
    var boss_id: String=payload.get("boss_id","")
    if boss_id in ["tide_warden","root_matron","prism_regent"] and not data.boss_types.has(boss_id): data.boss_types.append(boss_id)
+   if AbyssJournal.valid_id("bosses",boss_id) and not data.journal.bosses.has(boss_id): data.journal.bosses.append(boss_id)
    if payload.get("elemental",false): data.counters.elemental_bosses+=1
   "miniboss": data.counters.minibosses+=1
   "elite": data.counters.elites+=1
-  "illusion_trial": data.counters.illusion_trials+=1
-  "shader_trial": data.counters.shader_trials+=1
+  "illusion_trial":
+   data.counters.illusion_trials+=1
+   if not data.journal.events.has(event): data.journal.events.append(event)
+  "shader_trial":
+   data.counters.shader_trials+=1
+   if not data.journal.events.has(event): data.journal.events.append(event)
   "floor":
    data.counters.floors+=1
    if payload.get("character")=="neris": data.counters.wanderer_floors+=1
@@ -140,7 +166,9 @@ func record(event: String, token: String, payload: Dictionary={}) -> bool:
   "item":
    if not data.items.has(payload.id): data.items.append(payload.id)
   "secret": data.counters.secrets+=1
-  "ending": data.counters.endings+=1
+  "ending":
+   data.counters.endings+=1
+   if not data.journal.events.has("ending"): data.journal.events.append("ending")
  evaluate()
  return commit(previous)
 
@@ -154,11 +182,11 @@ func export_code() -> String:
  var backup:=data.duplicate(true)
  backup.events.clear()
  backup.counters.clean_streak=0
- return "AOT2."+Marshalls.utf8_to_base64(JSON.stringify(backup))
+ return "AOT3."+Marshalls.utf8_to_base64(JSON.stringify(backup))
 
 func import_code(code: String) -> bool:
  code=code.strip_edges()
- if (not code.begins_with("AOT1.") and not code.begins_with("AOT2.")) or code.length()>1500000: return false
+ if (not code.begins_with("AOT1.") and not code.begins_with("AOT2.") and not code.begins_with("AOT3.")) or code.length()>1500000: return false
  var parser:=JSON.new()
  if parser.parse(Marshalls.base64_to_utf8(code.substr(5)))!=OK: return false
  var incoming:=validate(parser.data)
@@ -170,6 +198,9 @@ func import_code(code: String) -> bool:
  for field in ["items","unlocked","boss_types"]:
   for id in incoming[field]:
    if not data[field].has(id): data[field].append(id)
+ for category: String in AbyssJournal.STORED:
+  for id: String in incoming.journal[category]:
+   if not data.journal[category].has(id) and data.journal[category].size()<AbyssJournal.LIMIT: data.journal[category].append(id)
  data.serial=maxi(int(data.serial),int(incoming.serial))
  evaluate()
  return commit(previous)

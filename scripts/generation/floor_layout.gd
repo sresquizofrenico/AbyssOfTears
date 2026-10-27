@@ -81,6 +81,8 @@ func visible_rooms() -> Array[int]:
    for neighbor: int in rooms[i].links:
     if not room_hidden(neighbor) and not result.has(neighbor): result.append(neighbor)
  if expanded and secret_room>=0 and not room_hidden(secret_room) and not result.has(secret_room): result.append(secret_room)
+ for i in range(rooms.size()):
+  if rooms[i].get("mapped",false) and not room_hidden(i) and not result.has(i): result.append(i)
  return result
 
 func expand_rooms(cells: Array[Vector2i], rng: RandomNumberGenerator) -> void:
