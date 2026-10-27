@@ -44,6 +44,8 @@ with zipfile.ZipFile(output) as apk:
         raise SystemExit('APK is missing its runtime balance configuration')
     if json.loads(apk.read('assets/data/balance.json')) != json.loads((ROOT / 'data/balance.json').read_text()):
         raise SystemExit('APK balance configuration differs from validated source')
+    if 'assets/data/relics_expansion.json' not in apk.namelist() or json.loads(apk.read('assets/data/relics_expansion.json')) != json.loads((ROOT / 'data/relics_expansion.json').read_text()):
+        raise SystemExit('APK is missing or changed its runtime relic expansion')
     if 'AndroidManifest.xml' not in apk.namelist() or 'lib/arm64-v8a/libgodot_android.so' not in apk.namelist():
         raise SystemExit('Missing Android manifest or ARM64 engine')
     if any(n.startswith(('lib/armeabi-v7a/', 'lib/x86/', 'lib/x86_64/')) for n in apk.namelist()):

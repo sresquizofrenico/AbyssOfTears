@@ -10,6 +10,10 @@ var boss_bar: ProgressBar
 
 const MAIN_MENU = preload("res://scenes/ui/main_menu.tscn")
 var menu_intro_seen := false
+var trial_kind: String=""
+var trial_stage:=0
+var lab_page:=0
+var lab_mode:=false
 var selected_character := "neris"
 const CHARACTER_SELECTION = preload("res://scenes/ui/character_selection.tscn")
 
@@ -88,6 +92,8 @@ func _ready() -> void:
  controls = TouchControls.new()
  controls.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
  controls.ability_requested.connect(use_character_ability)
+ controls.item_requested.connect(use_active_item)
+ controls.awaken_requested.connect(use_shader_awaken)
  ui.add_child(controls)
  get_viewport().size_changed.connect(resize_world)
  build_hud()
@@ -204,6 +210,8 @@ func menu(title: String, subtitle: String) -> VBoxContainer:
 func show_main_menu() -> void:
  backdrop.show()
  state = "menu"
+ trial_kind=""
+ lab_mode=false
  expedition = false
  dungeon_mode = false
  dungeon_map.hide()
@@ -245,6 +253,7 @@ func show_character_selection() -> void:
  selection.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
  selection.back_requested.connect(show_main_menu)
  selection.begin_requested.connect(begin_character_run)
+ selection.trial_requested.connect(func(): start_trial("shader"))
 
 func begin_character_run(id: String) -> bool:
  if state != "character_selection" or not CharacterCatalog.playable(id): return false
@@ -259,6 +268,7 @@ func show_modes() -> void:
  box.add_child(button("Incursión de enemigos",func(): expedition=true; wave=0; start_game()))
  box.add_child(button("Prueba de reliquias",start_relic_room))
  box.add_child(button("Muestra ilustrada",start_art_sample))
+ box.add_child(button("Prueba de Ilusiones",func(): start_trial("illusion")))
  box.add_child(button("Volver",show_main_menu))
 
 func start_art_sample() -> void:
@@ -324,19 +334,24 @@ func start_game(keep_progress: bool = false) -> void:
  else: player.stats = CharacterCatalog.initial_stats(selected_character)
  player.configure_character(selected_character)
  controls.ability_icon=CharacterCatalog.ability_icon(selected_character)
+ controls.ability_name=CharacterCatalog.definition(selected_character).ability
  if not carried_ability.is_empty(): player.restore_ability(carried_ability)
  if carried_relics != null: player.relics = carried_relics
+ else: player.relics.effects.rng.seed=dungeon_seed+7927
  player.position = Vector2(480, 390)
  player.controls = controls
  player.shot.connect(spawn_player_bullet)
  player.health_changed.connect(update_health)
  player.damaged.connect(func():
-  if dungeon_mode: layout.rooms[layout.current].damaged=true)
+  if dungeon_mode: layout.rooms[layout.current].damaged=true
+  player.relics.effects.event("hurt",player,self))
  player.died.connect(func(): finish(false))
  world.add_child(player)
  if dungeon_mode:
   RoomContent.prepare(layout,player.relics.owned)
   populate_room()
+ elif trial_kind!="":
+  spawn_trial_stage()
  elif expedition:
   spawn_wave()
  else:
@@ -370,7 +385,7 @@ func start_game(keep_progress: bool = false) -> void:
  if dungeon_mode and layout.expanded: build_room_features()
  for data: Dictionary in room_pickups:
   if not data.get("collected",false): spawn_pickup(data)
- if not dungeon_mode and not expedition:
+ if not dungeon_mode and not expedition and trial_kind=="":
   spawn_pickup({"id":"crystal","position":Vector2(480,330),"collected":false,"chest":false})
  if dungeon_mode and layout.expanded:
   var kind: String=layout.rooms[layout.current].kind
@@ -380,6 +395,7 @@ func start_game(keep_progress: bool = false) -> void:
  transitioning = false
 
 func apply_controls() -> void:
+ if is_instance_valid(player): player.quality=Settings.values.quality
  controls.scale_factor = Settings.values.control_scale
  controls.opacity = Settings.values.control_opacity
  controls.queue_redraw()
@@ -394,25 +410,42 @@ func update_counts() -> void:
 
 func spawn_player_bullet(origin: Vector2, direction: Vector2, stats: ActorStats) -> void:
  var inventory := player.relics
+ var packet:=inventory.effects.packet(player)
  var directions: Array[Vector2] = [direction]
- if inventory.has("crown"):
+ if inventory.has("crown") or int(packet.fan)>0:
   directions.append(direction.rotated(-0.25))
   directions.append(direction.rotated(0.25))
  var origins: Array[Vector2] = [origin]
  if inventory.has("double"): origins = [origin-direction.orthogonal()*7,origin+direction.orthogonal()*7]
+ for extra in range(int(packet.extra)): origins.append(origin+direction.orthogonal()*(14+extra*8))
  var echoes: Array[Vector2] = [Vector2.ZERO]
- if inventory.mirror_active() or (player.character_id=="mira" and player.ability_active>0): echoes.append(Vector2(40,0))
+ if inventory.mirror_active() or inventory.effects.echo_time>0 or (player.character_id=="mira" and player.ability_active>0): echoes.append(Vector2(40,0))
+ var shot_budget:=12
  for echo in echoes:
   for at in origins:
    for aim in directions:
+    if shot_budget<=0: return
+    shot_budget-=1
     var before := bullets.size()
-    spawn_bullet(at+echo,aim,stats.projectile_speed,stats.damage,stats.attack_range,false)
+    var echo_power:=1.0 if echo==Vector2.ZERO or inventory.mirror_active() else maxf(inventory.effects.echo_power,0.45)
+    var extra_power:=0.8 if int(packet.extra)>0 else 1.0
+    spawn_bullet(at+echo,aim,stats.projectile_speed*clampf(float(packet.velocity),0.5,1.5),stats.damage*float(packet.power)*echo_power*extra_power,stats.attack_range+float(packet.reach),false)
     if bullets.size() > before:
      var bullet: AbyssProjectile = bullets.back()
-     bullet.pierce = 1 if inventory.has("pierce") else 0
-     bullet.bounces = 1 if inventory.has("bounce") else 0
-     for element in ["fire","ice","electric"]:
-      if inventory.has(element) or (player.character_id=="solen" and element=="fire") or (player.character_id=="vex" and player.ability_active>0 and element==["fire","ice","electric"][player.mixture]): bullet.elements.append(element)
+     bullet.pierce = mini(4,(1 if inventory.has("pierce") else 0)+int(packet.pierce)+(1 if player.awakened>0 else 0))
+     bullet.bounces = mini(2,(1 if inventory.has("bounce") else 0)+int(packet.bounce))
+     bullet.homing=packet.homing>0
+     bullet.returning=packet["return"]>0
+     bullet.split=int(packet.split)
+     bullet.explosion=float(packet.explode)
+     bullet.push=float(packet.push)
+     bullet.marking=packet.mark>0
+     bullet.far_bonus=float(packet.far)
+     bullet.critical=packet.critical
+     for element: String in packet.elements:
+      if not bullet.elements.has(element): bullet.elements.append(element)
+     for element in ["fire","ice","electric","poison"]:
+      if (inventory.has(element) or (player.character_id=="solen" and element=="fire" and player.relics.effects.rng.randf()<0.35) or (player.character_id=="vex" and player.ability_active>0 and element==["fire","ice","electric","poison"][player.mixture])) and not bullet.elements.has(element): bullet.elements.append(element)
 
 func spawn_enemy_bullet(origin: Vector2, direction: Vector2) -> void:
  spawn_bullet(origin, direction, 190.0, 1.0, 720.0, true)
@@ -431,8 +464,14 @@ func spawn_bullet(origin: Vector2, direction: Vector2, speed: float, damage: flo
 
 func _physics_process(delta: float) -> void:
  if state != "playing": return
+ controls.item_visible=not player.relics.effects.active_id.is_empty()
+ controls.item_cooldown=float(player.relics.effects.active_recharge.get(player.relics.effects.active_id,0))
+ controls.awaken_visible=player.character_id=="shader"
+ controls.determination=player.determination
  controls.ability_cooldown=player.ability_remaining
- controls.ability_name=CharacterCatalog.definition(player.character_id).ability
+ if player.character_state.windup>0:
+  player.character_state.windup=maxf(0,float(player.character_state.windup)-delta)
+  if player.character_state.windup<=0: spawn_rupture()
  controls.queue_redraw()
  door_cooldown=maxf(0,door_cooldown-delta)
  hud.refresh_stats(player.stats,delta)
@@ -449,7 +488,15 @@ func _physics_process(delta: float) -> void:
    bullets.remove_at(i)
    continue
   var old := bullet.position
-  bullet.advance(delta)
+  if bullet.homing and not bullet.hostile:
+   var closest: AbyssEnemy
+   var distance:=300.0
+   for enemy: AbyssEnemy in targets:
+    if is_instance_valid(enemy) and not enemy.dead and bullet.position.distance_to(enemy.position)<distance:
+     closest=enemy
+     distance=bullet.position.distance_to(enemy.position)
+   if closest: bullet.direction=bullet.direction.lerp((closest.position-bullet.position).normalized(),minf(0.2,delta*2.0)).normalized()
+  bullet.advance(delta*(player.relics.effects.hostile_scale if bullet.hostile and player.relics.effects.hostile_time>0 else 1.0))
   # Sample travel at <= 5 px so fast bullets cannot pass through pillars/walls.
   var steps := maxi(1, ceili(old.distance_to(bullet.position) / 5.0))
   for step in range(1, steps + 1):
@@ -471,6 +518,7 @@ func _physics_process(delta: float) -> void:
     if player.relics.has("orbital") and point.distance_to(player.relics.orbital_point(player.position))<14:
      bullet.expire()
      break
+    CharacterRules.near_miss(player,point.distance_to(player.position))
     if point.distance_to(player.position) < 18:
      player.take_damage(bullet.damage)
      bullet.expire()
@@ -498,13 +546,27 @@ func _physics_process(delta: float) -> void:
 func on_enemy_defeated(enemy: AbyssEnemy, point: Vector2, _reward: int) -> void:
  if state!="playing" or not is_instance_valid(enemy) or not enemies.has(enemy) or not enemy.dead: return
  enemies.erase(enemy) # Membership is consumed before any reentrant reward callback.
+ player.relics.effects.event("kill",player,self)
+ CharacterRules.killed(player)
+ if dungeon_mode and enemy.rank=="miniboss" and not layout.rooms[layout.current].get("miniboss_rewarded",false):
+  layout.rooms[layout.current].miniboss_rewarded=true
+  var reward: Dictionary={"id":RelicCatalog.roll(loot_rng,layout.floor_index,"boss"),"position":point,"collected":false,"chest":false}
+  room_pickups.append(reward)
+  spawn_pickup(reward)
  if dungeon_mode and not enemy.weak:
   record_progress("enemy",str(enemy.get_instance_id()))
   if enemy is TideWarden:
    var elemental:=player.relics.has("fire") or player.relics.has("ice") or player.relics.has("electric")
-   record_progress("boss","guardian",{"elemental":elemental})
+   record_progress("boss","guardian",{"elemental":elemental,"boss_id":enemy.definition.id})
+   player.add_determination(25)
+  elif enemy.rank=="elite":
+   record_progress("elite",str(enemy.get_instance_id()))
+   player.add_determination(8)
+  elif enemy.rank=="miniboss":
+   record_progress("miniboss",str(enemy.get_instance_id()))
+   player.add_determination(12)
  if not enemy is TideWarden:
-  var amount:=Economy.enemy_coin(loot_rng,enemy.kind,enemy.weak)
+  var amount:=Economy.enemy_coin(loot_rng,enemy.kind,enemy.weak,enemy.rank in ["elite","miniboss"])
   if amount>0:
    var data:=Economy.coin_data(amount,point)
    room_pickups.append(data)
@@ -560,6 +622,7 @@ func pause_game() -> void:
  var box := menu("Mareas en calma", "Semilla %d · Piso %d/3" % [dungeon_seed,layout.floor_index+1] if dungeon_mode else "Partida en pausa")
  box.add_child(button("Continuar", resume_game))
  box.add_child(button("Reliquias",show_inventory))
+ if lab_mode: box.add_child(button("Reliquias: página %d/8 →" % (lab_page+1),func(): start_relic_room((lab_page+1)%8)))
  box.add_child(button("Prueba de carga (nueva)",start_benchmark))
  box.add_child(button("Opciones", func(): show_options("paused")))
  box.add_child(button("Menú principal", show_main_menu))
@@ -672,10 +735,11 @@ func show_credits() -> void:
  scroll.add_child(text)
  box.add_child(button("Volver", show_main_menu))
 
-func spawn_enemy(kind_id: int, point: Vector2, weak: bool = false) -> void:
+func spawn_enemy(kind_id: int, point: Vector2, weak: bool = false, rank: String="normal") -> void:
  if state != "playing" or enemies.size() >= MAX_ENEMIES: return
  var enemy: AbyssEnemy = ENEMY.instantiate()
  enemy.kind = clampi(kind_id,0,19)
+ enemy.rank=rank if rank in ["normal","elite","miniboss"] else "normal"
  enemy.weak = weak
  enemy.once = weak
  enemy.position = safe_point(point)
@@ -734,14 +798,31 @@ func spawn_wave() -> void:
 
 func clear_wave() -> void:
  if state != "playing" or not enemies.is_empty(): return
+ if trial_kind!="":
+  if trial_stage<2:
+   trial_stage+=1
+   player.stats.health=minf(player.stats.max_health,player.stats.health+1)
+   update_health(player.stats.health,player.stats.max_health)
+   spawn_trial_stage()
+  else:
+   progress.record("shader_trial" if trial_kind=="shader" else "illusion_trial","trial:"+str(progress.data.serial))
+   finish(true)
+  return
  # Resolve announced death explosions before allowing victory or the next wave.
  for node in world.get_children():
   if node is EnemyHazard and node.kind == "explosion":
    return
  if dungeon_mode:
   if not layout.rooms[layout.current].cleared:
-   record_progress("room","clear",{"clean":not layout.rooms[layout.current].get("damaged",false)})
+   player.relics.effects.event("room",player,self)
+   var hard: bool=layout.rooms[layout.current].get("hard",false)
+   var clean: bool=not layout.rooms[layout.current].get("damaged",false)
+   record_progress("room","clear",{"clean":clean,"hard":hard})
+   if hard:
+    player.add_determination(10+(10 if clean else 0))
+    player.relics.effects.event("challenge",player,self)
    layout.rooms[layout.current].cleared = true
+   if layout.rooms[layout.current].kind in ["special","secret","treasure","shop"]: CharacterRules.special_room(player,layout.floor_index)
    reward_room()
    dungeon_map.queue_redraw()
   return
@@ -767,6 +848,8 @@ func start_dungeon(chosen_seed: int = -1) -> bool:
  if not progress.begin_run():
   show_main_menu()
   return false
+ trial_kind=""
+ lab_mode=false
  dungeon_mode = true
  expedition = false
  dungeon_seed = (int(randi()) & 2147483647) if chosen_seed<0 else chosen_seed
@@ -776,8 +859,15 @@ func start_dungeon(chosen_seed: int = -1) -> bool:
 
 func populate_room() -> void:
  var room: Dictionary = layout.rooms[layout.current]
+ if room.kind=="special" and layout.floor_index>0 and not room.get("miniboss_done",false):
+  room.cleared=false
+  room.hard=true
+  spawn_enemy(18,Vector2(480,180),false,"miniboss")
+  room.miniboss_done=true
+  return
  if room.cleared: return
  if room.kind=="boss":
+  room.hard=true
   spawn_guardian()
   return
  var rng := RandomNumberGenerator.new()
@@ -787,7 +877,9 @@ func populate_room() -> void:
  var points := [Vector2(150,140),Vector2(800,140),Vector2(480,120),Vector2(820,300),Vector2(140,330),Vector2(480,250)]
  for i in range(count):
   var kind := rng.randi_range(0,[7,13,19][layout.floor_index])
-  spawn_enemy(kind,points[i])
+  var elite: bool=layout.floor_index>0 and i==0 and layout.current%2==0
+  if elite or count>=5: room.hard=true
+  spawn_enemy(kind,points[i],false,"elite" if elite else "normal")
   enemies.back().health *= 1 + layout.floor_index * 0.3
   enemies.back().max_health = enemies.back().health
 
@@ -834,6 +926,7 @@ func travel_to(neighbor: int) -> void:
   return
  if layout.rooms[neighbor].kind=="secret": record_progress("secret","discovered")
  start_game(true)
+ if layout.rooms[neighbor].cleared and layout.rooms[neighbor].kind in ["secret","treasure","special","shop"]: CharacterRules.special_room(player,layout.floor_index)
 
 func show_doors() -> void:
  if not dungeon_mode or state != "playing": return
@@ -924,7 +1017,9 @@ func collect_relic(pickup: RelicPickup) -> bool:
  var id: String = pickup.data.id
  var definition := RelicCatalog.definition(id)
  var added := player.relics.add(id,player.stats)
- if added: record_progress("item",id,{"id":id})
+ if added:
+  record_progress("item",id,{"id":id})
+  player.relics.effects.pickup(id,player,self)
  if not added: coins += int(Economy.config().duplicate_compensation)
  player.pickup_pose = 1.0
  player.queue_redraw()
@@ -953,7 +1048,14 @@ func update_relic_ui(delta: float) -> void:
 func apply_relic_hit(bullet: AbyssProjectile, enemy: AbyssEnemy) -> void:
  if "fire" in bullet.elements: enemy.burning = 3.0
  if "ice" in bullet.elements: enemy.slowed = 2.0
- enemy.take_damage(bullet.damage,bullet.direction)
+ var multiplier:=1.15 if enemy.marked>0 else 1.0
+ if bullet.travelled>210: multiplier+=bullet.far_bonus
+ enemy.take_damage(bullet.damage*multiplier,bullet.direction)
+ if "poison" in bullet.elements: enemy.poisoned=3.0
+ if bullet.marking: enemy.marked=3.0
+ if bullet.push>0 and not enemy.dead: enemy.move_and_collide(bullet.direction*minf(30,bullet.push))
+ player.relics.effects.hit(bullet,enemy,player,self)
+ CharacterRules.hit(player,enemy,bullet,self)
  if "electric" in bullet.elements:
   player.relics.impacts += 1
   if player.relics.impacts % 3 == 0:
@@ -968,7 +1070,7 @@ func show_inventory() -> void:
  state = "inventory"
  var box := menu("Reliquias", "Daño %.2f · velocidad %.0f · intervalo %.2f s" % [player.stats.damage,player.stats.speed,player.stats.attack_interval])
  var scroll := ScrollContainer.new()
- scroll.custom_minimum_size = Vector2(490,240)
+ scroll.custom_minimum_size = Vector2(610,240)
  box.add_child(scroll)
  var entries := VBoxContainer.new()
  entries.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -984,21 +1086,36 @@ func show_inventory() -> void:
   icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
   icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
   row.add_child(icon)
-  row.add_child(label("%s ×%d · %s\n%s" % [definition.name,player.relics.owned[id],RelicCatalog.RARITIES[definition.rarity],definition.description],16))
+  var info:=label("%s ×%d · %s\n%s" % [definition.name,player.relics.owned[id],RelicCatalog.RARITIES[definition.rarity],definition.description],15)
+  info.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+  info.custom_minimum_size.x=430
+  info.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+  row.add_child(info)
+  if definition.category=="activo":
+   var equip_button:=button("Equipado" if player.relics.effects.active_id==id else "Equipar",func():
+    player.relics.effects.equip(id,player.relics.owned)
+    state="paused"
+    show_inventory())
+   equip_button.disabled=player.relics.effects.active_id==id
+   row.add_child(equip_button)
  box.add_child(button("Volver",func(): state="playing"; pause_game()))
 
-func start_relic_room() -> void:
+func start_relic_room(page: int=0) -> void:
+ var keep: bool=lab_mode and is_instance_valid(player)
+ lab_mode=true
+ lab_page=clampi(page,0,7)
+ trial_kind=""
  dungeon_mode = false
  expedition = false
- start_game()
+ start_game(keep)
  for pickup in pickups: pickup.queue_free()
  pickups.clear()
  for enemy in enemies: enemy.queue_free()
  enemies.clear()
  # Keep victory pending until the player chooses to finish the laboratory.
- for i in range(RelicCatalog.DATA.size()):
+ for i in range(mini(14,RelicCatalog.DATA.size()-lab_page*14)):
   var point := Vector2(150+(i%7)*105,180+(i/7)*150)
-  spawn_pickup({"id":RelicCatalog.DATA[i].id,"position":safe_point(point),"collected":false,"chest":i%3==0})
+  spawn_pickup({"id":RelicCatalog.DATA[i+lab_page*14].id,"position":safe_point(point),"collected":false,"chest":i%3==0})
  state = "laboratory"
  # Laboratory uses the same physics and input as combat, with a harmless target.
  spawn_lab_target()
@@ -1065,7 +1182,7 @@ func strike_prop(point: Vector2, bullet: AbyssProjectile) -> bool:
 func reveal_secret_wall(point: Vector2) -> void:
  if not dungeon_mode or not layout.expanded or not layout.rooms[layout.current].cleared: return
  for neighbor: int in layout.rooms[layout.current].links:
-  if layout.room_hidden(neighbor) and point.distance_to(door_point(neighbor))<38:
+  if layout.room_hidden(neighbor) and point.distance_to(door_point(neighbor))<38+player.relics.effects.value("secret_radius"):
    layout.reveal_secret()
    dungeon_map.queue_redraw()
    show_notice("¡Pared secreta descubierta!",RelicPickup.KEY)
@@ -1093,20 +1210,21 @@ func show_notice(message: String, icon: Texture2D) -> void:
  toast_timer=2.8
  toast.show()
 
-func spawn_guardian() -> void:
+func spawn_guardian(variant: int=-1) -> void:
  if state!="playing" or enemies.size()>=MAX_ENEMIES: return
  var guardian: TideWarden=GUARDIAN.instantiate()
- guardian.floor_level=layout.floor_index
+ guardian.floor_level=layout.floor_index if variant<0 else clampi(variant,0,2)
  guardian.position=Vector2(480,180)
  guardian.target=player
  guardian.peers=enemies
  guardian.shot.connect(spawn_enemy_bullet)
+ guardian.summon.connect(func(id: int, location: Vector2, small: bool): spawn_enemy(id,location,small))
  guardian.hazard.connect(spawn_hazard)
  guardian.defeated.connect(func(point: Vector2, reward: int): on_enemy_defeated(guardian,point,reward))
  guardian.health_report.connect(func(current: float, maximum: float, phase: int):
   boss_bar.max_value=maximum
   boss_bar.value=current
-  boss_name.text="Custodio de la Marea · Fase %d" % phase
+  boss_name.text=TideWarden.BOSS_NAMES[guardian.floor_level]+" · Fase %d" % phase
   boss_panel.visible=current>0)
  world.add_child(guardian)
  enemies.append(guardian)
@@ -1247,24 +1365,23 @@ func record_progress(event: String, suffix: String, payload: Dictionary={}) -> b
  return progress.record(event,token,payload)
 
 func use_character_ability() -> bool:
- if state!="playing" or not is_instance_valid(player) or not player.activate_ability(): return false
+ if state!="playing" or not is_instance_valid(player): return false
+ if player.character_id=="lumi" and player.character_state.healing_left<=0:
+  show_notice("Luz Restauradora agotada en esta partida",RelicPickup.HEAL)
+  return false
+ if not player.activate_ability(): return false
+ player.relics.effects.event("ability",player,self)
  character_audio.stop()
  character_audio.stream=CharacterSounds.ability_sound(player.character_id)
  character_audio.play()
  var id: String=player.character_id
- if id=="kael":
-  var before:=bullets.size()
-  spawn_bullet(player.position+player.facing*22,player.facing,player.stats.projectile_speed,player.stats.damage*3,player.stats.attack_range,false)
-  if bullets.size()>before:
-   var empowered: AbyssProjectile=bullets.back()
-   empowered.pierce=4
-   empowered.bounces=1 if player.relics.has("bounce") else 0
-   for element in ["fire","ice","electric"]:
-    if player.relics.has(element): empowered.elements.append(element)
+ if id=="kael": pass # Windup is resolved once by the physics coordinator.
  elif id in ["eira","solen"]:
   for enemy in enemies.duplicate():
    if not is_instance_valid(enemy) or enemy.dead or enemy.position.distance_to(player.position)>145: continue
-   if id=="eira": enemy.slowed=maxf(enemy.slowed,3.0)
+   if id=="eira":
+    enemy.apply_chill()
+    if enemy.rank=="normal": enemy.frozen=maxf(enemy.frozen,0.35)
    else:
     enemy.burning=maxf(enemy.burning,3.0)
     enemy.take_damage(player.stats.damage*1.2)
@@ -1294,3 +1411,65 @@ func _exit_tree() -> void:
  if is_instance_valid(character_audio):
   character_audio.stop()
   character_audio.stream=null
+
+func spawn_rupture() -> void:
+ if state!="playing" or not is_instance_valid(player) or not player.active: return
+ var before:=bullets.size()
+ spawn_bullet(player.position+player.facing*22,player.facing,player.stats.projectile_speed,player.stats.damage*3,player.stats.attack_range,false)
+ if bullets.size()>before:
+  var empowered: AbyssProjectile=bullets.back()
+  empowered.pierce=4
+  empowered.bounces=1 if player.relics.has("bounce") else 0
+  for element in ["fire","ice","electric","poison"]:
+   if player.relics.has(element): empowered.elements.append(element)
+
+func use_active_item() -> bool:
+ if state!="playing" or not is_instance_valid(player) or not player.active: return false
+ if player.relics.effects.activate(player,self): return true
+ if not player.relics.effects.active_id.is_empty(): show_notice("Objeto agotado en esta partida" if player.relics.effects.active_exhausted() else "No se puede usar ahora",RelicCatalog.icon(player.relics.effects.active_id))
+ return false
+
+func use_shader_awaken() -> bool:
+ if state!="playing" or not is_instance_valid(player) or not player.active or player.character_id!="shader" or player.determination<100 or player.awakened>0: return false
+ player.determination=0
+ player.awakened=8.0
+ CharacterRules.update_shader(player)
+ character_audio.stop()
+ character_audio.stream=CharacterSounds.unlock_sound()
+ character_audio.play()
+ return true
+
+func start_trial(kind: String) -> bool:
+ if kind not in ["shader","illusion"] or (kind=="shader" and (not progress.shader_ready() or progress.is_unlocked("shader"))): return false
+ if not progress.begin_run(): return false
+ trial_kind=kind
+ trial_stage=0
+ dungeon_mode=false
+ expedition=false
+ lab_mode=false
+ if not CharacterCatalog.playable(selected_character): selected_character="neris"
+ start_game()
+ floor_label.text="La Prueba de Shader" if kind=="shader" else "La Prueba de Ilusiones"
+ floor_label.show()
+ return true
+
+func spawn_trial_stage() -> void:
+ for bullet in bullets:
+  if is_instance_valid(bullet): bullet.expire()
+ bullets.clear()
+ for node in hazards:
+  if is_instance_valid(node): node.queue_free()
+ hazards.clear()
+ player.position=Vector2(480,390)
+ player.immunity=maxf(player.immunity,1.0)
+ show_notice("Encuentro %d / 3" % (trial_stage+1),preload("res://assets/characters/shader_skill.svg"))
+ if trial_kind=="illusion":
+  for i in range(2+trial_stage): spawn_enemy([9,13,15,1][i],Vector2(200+i*160,160))
+ elif trial_stage==0:
+  for i in range(3): spawn_enemy([0,2,4][i],Vector2(200+i*260,150))
+ elif trial_stage==1:
+  spawn_enemy(6,Vector2(300,170),false,"elite")
+  spawn_enemy(11,Vector2(620,150))
+  spawn_enemy(9,Vector2(740,250))
+ else: spawn_guardian(2)
+ update_counts()

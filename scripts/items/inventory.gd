@@ -2,6 +2,7 @@ class_name RelicInventory
 extends RefCounted
 
 var owned: Dictionary = {}
+var effects:=RelicEffects.new()
 var shield_timer := 0.0
 var clock := 0.0
 var impacts := 0
@@ -14,6 +15,8 @@ func add(id: String, stats: ActorStats) -> bool:
  if definition.is_empty() or int(owned.get(id,0)) >= int(definition.max_stack): return false
  owned[id] = int(owned.get(id,0))+1
  stats.modify(definition.modifiers)
+ effects.rebuild(owned)
+ stats.critical_chance=clampf(stats.base_critical+effects.value("critical"),0,0.4)
  if id == "heart": stats.health = minf(stats.max_health,stats.health+1)
  return true
 
@@ -22,8 +25,10 @@ func tick(delta: float) -> void:
  shield_timer = maxf(0,shield_timer-delta)
 
 func block_hit() -> bool:
- if has("shield") and shield_timer <= 0:
-  shield_timer = 8.0
+ var interval:=effects.value("shield")
+ if has("shield"): interval=minf(interval,8.0) if interval>0 else 8.0
+ if interval>0 and shield_timer <= 0:
+  shield_timer = interval
   return true
  return false
 

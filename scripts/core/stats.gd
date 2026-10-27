@@ -23,6 +23,8 @@ var defense: float:
  set(value): _defense=value-temporary_sum("defense")
 var luck: float = 0.0
 var effect_chance: float = 0.0
+var base_critical := 0.0
+var critical_chance := 0.0
 
 func apply_damage(amount: float) -> float:
  var dealt := maxf(0.25, amount - defense)

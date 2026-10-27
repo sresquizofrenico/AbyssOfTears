@@ -1,6 +1,17 @@
 class_name TouchControls
 extends Control
 
+signal item_requested
+signal awaken_requested
+var item_visible:=false
+var item_cooldown:=0.0
+var awaken_visible:=false
+var determination:=0.0
+var special_fingers: Dictionary={}
+
+func item_center() -> Vector2: return Vector2(size.x-235,size.y-375)
+func awaken_center() -> Vector2: return Vector2(size.x-235,size.y-295)
+
 signal ability_requested
 var ability_cooldown := 0.0
 var ability_icon: Texture2D
@@ -36,6 +47,7 @@ func attack_positions() -> Array[Vector2]:
 func release_all() -> void:
  joystick_finger = -1
  ability_finger=-1
+ special_fingers.clear()
  fire_fingers.clear()
  move_vector = Vector2.ZERO
  fire_vector = Vector2.ZERO
@@ -52,7 +64,11 @@ func _input(event: InputEvent) -> void:
   return
  if event is InputEventScreenTouch:
   if event.pressed:
-   if event.position.distance_to(ability_center())<30*scale_factor:
+   if item_visible and event.position.distance_to(item_center())<30*scale_factor:
+    if not special_fingers.has(event.index): special_fingers[event.index]="item"; item_requested.emit()
+   elif awaken_visible and event.position.distance_to(awaken_center())<30*scale_factor:
+    if not special_fingers.has(event.index): special_fingers[event.index]="awaken"; awaken_requested.emit()
+   elif event.position.distance_to(ability_center())<30*scale_factor:
     if ability_finger==-1:
      ability_finger=event.index
      ability_requested.emit()
@@ -62,6 +78,7 @@ func _input(event: InputEvent) -> void:
    else:
     update_fire(event.index, event.position)
   else:
+   special_fingers.erase(event.index)
    if event.index==ability_finger: ability_finger=-1
    if event.index == joystick_finger:
     joystick_finger = -1
@@ -73,7 +90,7 @@ func _input(event: InputEvent) -> void:
  elif event is InputEventScreenDrag:
   if event.index == joystick_finger:
    update_joystick(event.position)
-  elif event.index!=ability_finger:
+  elif event.index!=ability_finger and not special_fingers.has(event.index):
    update_fire(event.index, event.position)
   queue_redraw()
  elif event is InputEventKey and event.pressed and not event.echo and event.physical_keycode==KEY_SPACE:
@@ -130,3 +147,17 @@ func _draw() -> void:
  else:
   draw_string(font,center+Vector2(-font.get_string_size(caption,HORIZONTAL_ALIGNMENT_LEFT,-1,19).x/2,7),caption,HORIZONTAL_ALIGNMENT_LEFT,-1,19,edge)
  draw_string(font,center+Vector2(-29,-35),"Habilidad",HORIZONTAL_ALIGNMENT_LEFT,-1,13,edge)
+
+ if item_visible: draw_special(item_center(),str(ceili(item_cooldown)) if item_cooldown>0 else "◇","Objeto",base,edge)
+ if awaken_visible:
+  draw_special(awaken_center(),"✧","Despertar",base,edge)
+  var rect:=Rect2(awaken_center()+Vector2(-66,37),Vector2(132,6))
+  draw_rect(rect,Color(0.12,0.11,0.2,opacity))
+  draw_rect(Rect2(rect.position,Vector2(rect.size.x*determination/100,6)),Color("cba4ed"))
+
+func draw_special(center: Vector2, caption: String, title: String, base: Color, edge: Color) -> void:
+ draw_circle(center,28*scale_factor,base)
+ draw_arc(center,28*scale_factor,0,TAU,24,edge,2)
+ var font:=ThemeDB.fallback_font
+ draw_string(font,center+Vector2(-9,7),caption,HORIZONTAL_ALIGNMENT_LEFT,-1,19,edge)
+ draw_string(font,center+Vector2(-30,-35),title,HORIZONTAL_ALIGNMENT_LEFT,-1,13,edge)

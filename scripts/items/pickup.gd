@@ -40,7 +40,7 @@ func _physics_process(delta: float) -> void:
  if taking:
   take_age += delta
   if take_age > 0.3: queue_free()
- elif not data.get("collected",false) and cooldown<=0 and int(data.get("price",0))<=0 and near_player(PICKUP_RADIUS):
+ elif not data.get("collected",false) and cooldown<=0 and int(data.get("price",0))<=0 and near_player(PICKUP_RADIUS+(player.relics.effects.value("pickup_radius") if is_instance_valid(player) else 0)):
   if data.get("chest",false): open_chest()
   elif data.get("reward_kind","")!="heal" or player.stats.health<player.stats.max_health: claim()
  queue_redraw()

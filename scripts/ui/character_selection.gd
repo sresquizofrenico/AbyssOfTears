@@ -1,6 +1,7 @@
 class_name CharacterSelection
 extends PanelContainer
 
+signal trial_requested
 signal begin_requested(id: String)
 signal back_requested
 var entries: Array = CharacterCatalog.DATA.duplicate(true)
@@ -13,12 +14,15 @@ var begin_button: Button
 var back_button: Button
 var left_button: Button
 var right_button: Button
+var left_scroll: ScrollContainer
 var plate: Panel
 var clock := 0.0
 var pending := false
+var starting_trial:=false
 var remaining := 0.0
 var slide: Tween
 var suspended := false
+var portrait: TextureRect
 var seal: UnlockSeal
 var counter_label: Label
 var stat_bars: Array[ProgressBar] = []
@@ -33,6 +37,7 @@ func _ready() -> void:
  canvas.mouse_filter = Control.MOUSE_FILTER_IGNORE
  add_child(canvas)
  heading = make_label("",27)
+ heading.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
  canvas.add_child(heading)
  plate = Panel.new()
  var parchment := StyleBoxTexture.new()
@@ -41,8 +46,16 @@ func _ready() -> void:
  canvas.add_child(plate)
  details = make_label("",15)
  details.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
- plate.add_child(details)
- details.minimum_size_changed.connect(func(): details.set_deferred("size",plate.size-Vector2(60,40)))
+ left_scroll=ScrollContainer.new()
+ left_scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED
+ plate.add_child(left_scroll)
+ var margin:=MarginContainer.new()
+ margin.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+ margin.add_theme_constant_override("margin_left",34)
+ margin.add_theme_constant_override("margin_right",6)
+ left_scroll.add_child(margin)
+ details.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+ margin.add_child(details)
  var icons := [preload("res://assets/ui/life.svg"),preload("res://assets/ui/damage.svg"),preload("res://assets/ui/speed.svg"),preload("res://assets/ui/cadence.svg"),preload("res://assets/ui/range.svg"),preload("res://assets/ui/luck.svg"),preload("res://assets/ui/defense.svg")]
  for i in range(icons.size()):
   var icon := TextureRect.new()
@@ -66,6 +79,11 @@ func _ready() -> void:
  canvas.add_child(status)
  seal=UnlockSeal.new()
  status.add_child(seal)
+ portrait=TextureRect.new()
+ portrait.expand_mode=TextureRect.EXPAND_IGNORE_SIZE
+ portrait.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+ portrait.mouse_filter=Control.MOUSE_FILTER_IGNORE
+ status.add_child(portrait)
  counter_label = make_label("",18)
  canvas.add_child(counter_label)
  character = MenuCharacter.new()
@@ -113,10 +131,17 @@ func refresh() -> void:
  var entry: Dictionary = entries[index]
  var unlocked: bool = entry.get("unlocked",true) and CharacterCatalog.playable(entry.id)
  preview_unlocked=unlocked
- heading.text = entry.name if unlocked else "Viajero sellado"
+ heading.text = entry.name if unlocked else "Viajero mítico sellado" if entry.id=="shader" else "Viajero sellado"
  character.animation_rate=float(entry.get("animation_rate",1.0))
  counter_label.text = "%d / %d" % [index+1,entries.size()]
  character.body_texture = CharacterCatalog.texture(entry.id)
+ character.character_id=entry.id
+ portrait.visible=unlocked
+ if unlocked:
+  var atlas:=AtlasTexture.new()
+  atlas.atlas=character.body_texture
+  atlas.region=Rect2(80,40,224,220)
+  portrait.texture=atlas
  reveal_age=0.0
  var progress := CharacterCatalog.progress_node()
  if unlocked and progress and progress.data.pending.has(entry.id):
@@ -124,16 +149,24 @@ func refresh() -> void:
   progress.acknowledge(entry.id)
  status.text = entry.get("requirement","") if not unlocked else "Disponible · El abismo espera tus pasos"
  character.modulate = Color.WHITE if unlocked else Color(0,0,0,1)
- begin_button.disabled = not unlocked or pending
+ var trial_ready: bool=entry.id=="shader" and progress!=null and progress.shader_ready() and not unlocked
+ begin_button.text="LA PRUEBA" if trial_ready else "COMENZAR"
+ begin_button.disabled = (not unlocked and not trial_ready) or pending
  if not unlocked and progress and entry.get("target",0)>0:
   status.text += "\nProgreso: %d / %d" % [mini(progress.amount(entry.counter),int(entry.target)),entry.target]
  status.text = ("DESBLOQUEADO\n" if unlocked else "BLOQUEADO\n")+status.text
  var stats: ActorStats = CharacterCatalog.preview_stats(entry.id)
  if stats != null and unlocked:
-  details.text = "VIDA       %d / %d\nDAÑO       %.2f\nMOV.       %.0f px/s\nCADENCIA   %.2f/s\nALCANCE    %.0f px\nSUERTE     %.2f\nDEFENSA    %.2f\n\n%s · %.0f s\n+ %s\n− %s\n%s · Objetos: ninguno" % [stats.health,stats.max_health,stats.damage,stats.speed,1.0/stats.attack_interval,stats.attack_range,stats.luck,stats.defense,entry.ability,entry.cooldown,entry.advantages,entry.drawbacks,entry.difficulty]
+  details.text = "VIDA       %.1f / %.1f\nDAÑO       %.2f\nMOV.       %.0f px/s\nCADENCIA   %.2f/s\nALCANCE    %.0f px\nSUERTE     %.2f\nDEFENSA    %.2f\n\n%s · %.0f s\nPasiva: %s\n%s\n+ %s\n− %s\n%s · Objetos: ninguno" % [stats.health,stats.max_health,stats.damage,stats.speed,1.0/stats.attack_interval,stats.attack_range,stats.luck,stats.defense,entry.ability,entry.cooldown,entry.get("passive",""),entry.get("passive_description",""),entry.advantages,entry.drawbacks,entry.difficulty]
  else: details.text = "PERSONAJE BLOQUEADO\n\n" + entry.get("requirement","")
- if not unlocked and entry.id in ["vex","orin"]:
-  details.text += "\n\nEl contenido necesario para completar este desafío llegará en otra entrega."
+ if entry.id=="shader" and not unlocked and progress:
+  details.text="EL CAMINO DE LA DETERMINACIÓN\n\n"
+  for requirement: Dictionary in progress.shader_requirements():
+   details.text+="%s: %d / %d\n" % [requirement.label,mini(int(requirement.current),int(requirement.target)),requirement.target]
+  details.text+="\n7. Supera La Prueba de Shader"
+  status.text="MÍTICO · SECRETO\n"+("LA PRUEBA ESTÁ DISPONIBLE" if trial_ready else "Cumple los seis requisitos para abrir la prueba")
+ elif not CharacterCatalog.definition(entry.id).is_empty(): status.text=CharacterCatalog.rarity_name(entry.id)+"\n"+status.text
+ if entry.id=="shader" and unlocked: details.text+="\nDespertar: 100 Determinación\nCrítico: 8%"
  for bar in stat_bars: bar.visible=unlocked
  for i in range(7): details.get_child(i).visible=unlocked
  if stats and unlocked:
@@ -165,13 +198,13 @@ func layout_selection() -> void:
  character.scale=Vector2(1.65,1.65)
  plate.position=Vector2(inset,84)
  plate.size=Vector2(size.x*0.3-inset*0.35,size.y-106)
- details.position=Vector2(42,24)
- details.size=plate.size-Vector2(60,40)
- details.add_theme_font_size_override("font_size",15)
- var line_height:=details.get_theme_font("font").get_height(15)+details.get_theme_constant("line_spacing")
+ left_scroll.position=Vector2(8,18)
+ left_scroll.size=plate.size-Vector2(16,36)
+ details.add_theme_font_size_override("font_size",14)
+ var line_height:=details.get_theme_font("font").get_height(14)+details.get_theme_constant("line_spacing")
  for i in range(7):
   details.get_child(i).position.y=i*line_height+2
-  stat_bars[i].position=Vector2(details.size.x-46,i*line_height+16)
+  stat_bars[i].position=Vector2(plate.size.x-112,i*line_height+16)
  status.position=Vector2(size.x-218-inset*0.2,142)
  status.size=Vector2(190,160)
  counter_label.position=Vector2(size.x*0.48,size.y-78)
@@ -181,6 +214,8 @@ func layout_selection() -> void:
  status.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
  seal.position=Vector2(75,-52)
  seal.size=Vector2(40,40)
+ portrait.position=Vector2(55,-94)
+ portrait.size=Vector2(80,80)
  begin_button.position=Vector2(size.x-218-inset*0.2,size.y-192)
  begin_button.size=Vector2(190,58)
  back_button.position=Vector2(size.x-218-inset*0.2,size.y-116)
@@ -202,7 +237,8 @@ func select_offset(offset: int) -> void:
 func start() -> void:
  if pending or entries.is_empty(): return
  var entry: Dictionary = entries[index]
- if not entry.get("unlocked",true) or not CharacterCatalog.playable(entry.id): return
+ starting_trial=entry.id=="shader" and not CharacterCatalog.playable(entry.id) and CharacterCatalog.progress_node().shader_ready()
+ if not starting_trial and (not entry.get("unlocked",true) or not CharacterCatalog.playable(entry.id)): return
  pending = true
  remaining = 0.42
  begin_button.disabled = true
@@ -221,6 +257,7 @@ func _process(delta: float) -> void:
  seal.visible=not preview_unlocked or reveal_age>0
  seal.reveal=1.0-reveal_age/1.4 if reveal_age>0 else 0.0
  seal.queue_redraw()
+ portrait.modulate=character.modulate
  character.pose = "present" if pending or reveal_age>0 else "attack" if fmod(clock*character.animation_rate,7)>6.4 else "rest"
  character.look = Vector2(sin(clock*0.7)*0.5,0.4).normalized()
  character.queue_redraw()
@@ -230,7 +267,8 @@ func _process(delta: float) -> void:
   plate.modulate.a = maxf(0,remaining/0.42)
   if remaining<=0:
    set_process(false)
-   begin_requested.emit(entries[index].id)
+   if starting_trial: trial_requested.emit()
+   else: begin_requested.emit(entries[index].id)
  queue_redraw()
 
 func _notification(what: int) -> void:

@@ -37,7 +37,7 @@ func run() -> void:
  var hud: CompactHUD=game.hud
  await process_frame
  check(hud.visible and hud.compact.visible and not hud.detail.visible,"New run initially shows three stats")
- check(hud.compact_labels.size()==3 and hud.stats_labels.size()==7,"Compact view has three fields; expanded view contains seven implemented stats")
+ check(hud.compact_labels.size()==3 and hud.stats_labels.size()==8,"Compact view has three fields; expanded view contains eight implemented stats")
  check(hud.health_label.text=="6/6" and hud.health_bar.value==6,"Life icon has exact numeric and bar values")
  game.player.take_damage(0.25)
  check(hud.health_label.text=="5.75/6" and hud.health_bar.value==5.75,"Fractional damage updates health without rounding it upward")
@@ -49,9 +49,9 @@ func run() -> void:
  check(hud.coins_label.text=="163" and hud.keys_label.text=="3","HUD displays actual balance and keys without changing economy")
  check(not hud.coins_label.text.contains("Óbolos") and not hud.enemies_label.text.contains("Sombras"),"Long counter labels removed")
  check(hud.ICONS.coins!=hud.ICONS.keys and hud.ICONS.shadows!=hud.ICONS.coins,"Currencies and enemies have distinct original icons")
- check(hud.compact_labels.damage.text=="1.00" and hud.compact_labels.cadence.text=="4.17/s" and hud.compact_labels.speed.text=="185px/s","Compact numbers derive from real combat stats and units")
+ check(hud.compact_labels.damage.text=="1.00" and hud.compact_labels.cadence.text=="2.80/s" and hud.compact_labels.speed.text=="185px/s","Compact numbers derive from real combat stats and units")
  check(hud.stats_labels.range.text=="540px" and hud.stats_labels.luck.text=="0.00" and hud.stats_labels.defense.text=="0.00","Full view contains real range luck and defense")
- check(not hud.stats_labels.has("critical") and not hud.stats_labels.has("ability"),"No fictitious crit or active cooldown shown")
+ check(hud.stats_labels.critical.text=="0%" and not hud.stats_labels.has("ability"),"Critical chance is actual zero for a fresh Errante")
  # Second finger can use stats while movement remains held.
  touch(0,game.controls.joystick_center()+Vector2(0,-20),true)
  tap(hud.stats_button)

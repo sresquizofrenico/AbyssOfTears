@@ -76,7 +76,7 @@ func run() -> void:
  check(selection.character.position.x>selection.plate.get_global_rect().end.x+90,"Animated protagonist has clear central space")
  check(selection.begin_button.position.x>selection.character.position.x+100,"Begin is large and separate on the right")
  check(selection.details.text.contains("540") and selection.details.text.contains("SUERTE") and selection.details.text.contains("DEFENSA"),"Sidebar includes actual range luck and defense")
- check(CharacterCatalog.DATA.size()==10 and selection.left_button.visible,"Expanded roster exposes character navigation")
+ check(CharacterCatalog.DATA.size()==11 and selection.left_button.visible,"Expanded roster exposes character navigation")
  selection.start()
  selection._process(0.43)
  check(game.state=="playing" and game.layout.floor_index==0,"Redesigned selection starts real dungeon")

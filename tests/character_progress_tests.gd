@@ -22,7 +22,7 @@ func run() -> void:
  progress.storage_path="user://character-test.json"
  progress.data=progress.fresh()
  var settings_before:=FileAccess.get_file_as_string("user://settings.json") if FileAccess.file_exists("user://settings.json") else ""
- check(CharacterCatalog.DATA.size()==10,"Ten distinct original definitions")
+ check(CharacterCatalog.DATA.size()==11,"Eleven distinct original definitions")
  var ids: Dictionary={}
  for entry: Dictionary in CharacterCatalog.DATA:
   check(not ids.has(entry.id),"Character IDs unique")
@@ -40,12 +40,12 @@ func run() -> void:
  game.show_character_selection()
  await process_frame
  var selection: CharacterSelection=game.panel
- for i in range(10):
+ for i in range(11):
   check(selection.index==i,"Navigation visits every catalog entry")
   check(selection.begin_button.disabled==(i!=0),"Locked characters cannot begin")
   if i>0:
    check(selection.character.modulate.r<0.1,"Locked art is an obscured silhouette")
-   check(selection.heading.text=="Viajero sellado" and selection.status.text.contains("Progreso"),"Hidden name and real requirement progress")
+   check((selection.heading.text=="Viajero mítico sellado" and selection.details.text.contains("Jefes diferentes")) if selection.entries[i].id=="shader" else (selection.heading.text=="Viajero sellado" and selection.status.text.contains("Progreso")),"Hidden name and real requirement progress")
    selection.start()
    check(not selection.pending and not game.begin_character_run(selection.entries[i].id),"Both UI and gameplay reject locked start")
   selection.select_offset(1)
@@ -60,6 +60,7 @@ func run() -> void:
  progress.record("boss","guardian",{"elemental":true})
  check(progress.is_unlocked("kael") and progress.is_unlocked("solen"),"Boss and elemental boss unlocks")
  progress.record("secret","wall")
+ progress.record("illusion_trial","mirrors")
  check(progress.is_unlocked("mira"),"Secret discovery unlocks Mira")
  for i in range(4): progress.record("room","r%d" % i,{"clean":true})
  progress.record("room","hit",{"clean":false})
@@ -69,13 +70,13 @@ func run() -> void:
  progress.record("ending","main")
  check(progress.is_unlocked("nox"),"Main ending unlocks Nox")
  for entry: Dictionary in RelicCatalog.DATA: progress.record("item",entry.id,{"id":entry.id})
- check(progress.amount("items")==14 and not progress.is_unlocked("vex"),"Fourteen available objects never masquerade as twenty")
+ check(progress.amount("items")==100 and progress.is_unlocked("vex"),"Expanded real discoveries unlock Vex after twenty unique objects")
  check(not progress.is_unlocked("orin"),"No fabricated minijefe achievement")
  var backup_code: String=progress.export_code()
  var backup_count: int=progress.amount("enemies")
  check(not progress.import_code("invalid") and progress.amount("enemies")==backup_count,"Invalid backup never clears progress")
  progress.data=progress.fresh()
- check(progress.import_code(backup_code) and progress.is_unlocked("eira") and progress.amount("items")==14,"Portable backup restores permanent progress")
+ check(progress.import_code(backup_code) and progress.is_unlocked("eira") and progress.amount("items")==100,"Portable backup restores permanent progress")
  progress.record("enemy","new-after-backup")
  check(progress.import_code(backup_code) and progress.amount("enemies")==backup_count+1,"Import merges progress without rewinding newer achievements")
  var before: Dictionary=progress.data.duplicate(true)
@@ -126,7 +127,11 @@ func run() -> void:
     var health:=player.stats.health
     enemy._physics_process(0.01)
     check(player.stats.health==health,"Enemy at decoy cannot damage distant player")
-   "kael": check(game.bullets.back().pierce==4 and is_equal_approx(game.bullets.back().damage,player.stats.damage*3),"Rupture is stronger and genuinely piercing")
+   "kael":
+    check(game.bullets.is_empty(),"Rupture announces its preparation")
+    player.facing=Vector2.UP
+    game._physics_process(0.36)
+    check(not game.bullets.is_empty() and game.bullets.back().pierce==4 and is_equal_approx(game.bullets.back().damage,player.stats.damage*3),"Prepared Rupture is stronger and genuinely piercing")
    "lumi":
     var health:=player.stats.health
     for i in range(40): player.tick_ability(0.1)
@@ -148,7 +153,7 @@ func run() -> void:
     game.spawn_player_bullet(player.position,Vector2.UP,player.stats)
     check(game.bullets.size()==2,"Living reflection produces a second actual shot")
    "nox":
-    check(player.stats.damage>stats.damage+0.35 and player.stats.attack_interval<stats.attack_interval,"Abyss power changes actual combat stats")
+    check(player.stats.damage>stats.damage+0.35 and player.stats.speed>stats.speed,"Abyss power changes actual combat stats")
     player.relics.add("crystal",player.stats)
     player.tick_ability(4.1)
     check(player.fatigue>0 and player.stats.speed<stats.speed,"Abyss power has a real exhaustion drawback")

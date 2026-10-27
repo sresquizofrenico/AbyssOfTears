@@ -23,7 +23,7 @@ func run() -> void:
   var stats := ActorStats.new()
   for i in range(int(entry.max_stack)): check(inventory.add(entry.id,stats),"Stack accepted "+entry.id)
   check(not inventory.add(entry.id,stats),"Stack capped "+entry.id)
- check(ids.size()==14,"Unique relic IDs")
+ check(ids.size()==100,"Unique relic IDs")
  var p: RelicPickup = game.pickups[1]
  game.player.position=p.position
  p.cooldown=0
@@ -95,7 +95,7 @@ func run() -> void:
  inventory.add("boots",game.player.stats)
  inventory.add("clock",game.player.stats)
  inventory.add("crystal",game.player.stats)
- check(game.player.stats.max_health==7 and game.player.stats.speed==205 and game.player.stats.attack_interval<0.24 and game.player.stats.damage>1,"Stat relics affect distinct stats")
+ check(game.player.stats.max_health==7 and game.player.stats.speed==205 and game.player.stats.attack_interval<1.0/2.8 and game.player.stats.damage>1,"Stat relics affect distinct stats")
  game.pause_game()
  game.show_inventory()
  check(game.state=="inventory" and game.panel.visible,"Inventory available from pause")

@@ -26,7 +26,7 @@ static func weights_valid(values: Variant, count: int) -> bool:
 static func validate_config(value: Variant) -> Array[String]:
  var errors: Array[String]=[]
  if not value is Dictionary: return ["Root must be a dictionary"]
- if value.get("version")!=1: errors.append("Unsupported version")
+ if value.get("version")!=2: errors.append("Unsupported version")
  for key: String in ["room_coin_chance","normal_item_chance","normal_chest_chance"]:
   var chance: Variant=value.get(key)
   if not (chance is float or chance is int) or not is_finite(float(chance)) or float(chance)<0 or float(chance)>1: errors.append("Invalid chance "+key)
@@ -56,7 +56,7 @@ static func validate_config(value: Variant) -> Array[String]:
  if not value.get("prices") is Array or value.prices.size()!=5: errors.append("Prices require five floors")
  else:
   for floor_table: Variant in value.prices:
-   if not floor_table is Array or floor_table.size()!=5: errors.append("Price floor requires five rarities"); continue
+   if not floor_table is Array or floor_table.size()!=6: errors.append("Price floor requires six rarities"); continue
    for limits: Variant in floor_table:
     if not limits is Array or limits.size()!=2: errors.append("Invalid price range"); continue
     if not (limits[0] is float or limits[0] is int) or not (limits[1] is float or limits[1] is int): errors.append("Non-numeric price"); continue
@@ -71,7 +71,7 @@ static func validate_config(value: Variant) -> Array[String]:
    var table: Variant=value.rarity.get(context)
    if not table is Array or table.size()!=6: errors.append("Six rarity rows required: "+context); continue
    for row: Variant in table:
-    if not weights_valid(row,5): errors.append("Invalid rarity weights: "+context); continue
+    if not weights_valid(row,6): errors.append("Invalid rarity weights: "+context); continue
     var sum:=0.0
     for weight: Variant in row: sum+=float(weight)
     if not is_equal_approx(sum,100.0): errors.append("Rarity weights must sum to 100: "+context)
@@ -122,7 +122,7 @@ static func amount(data: Dictionary) -> int:
  return value if value in [1,3,5,10] else 0
 
 static func price_for(rarity: int, floor_index: int, rng: RandomNumberGenerator) -> int:
- var limits: Array=config().prices[clampi(floor_index,0,4)][clampi(rarity,0,4)]
+ var limits: Array=config().prices[clampi(floor_index,0,4)][clampi(rarity,0,5)]
  var multiplier:=1.0+minf(0.75,maxi(0,floor_index-4)*0.08)
  return mini(int(config().price_cap),roundi(rng.randi_range(int(limits[0]),int(limits[1]))*multiplier))
 
@@ -136,7 +136,10 @@ static func roll_relic(rng: RandomNumberGenerator, floor_index: int, context: St
  var rarity:=weighted_index(rng,table)
  var candidates: Array[String]=[]
  for definition: Dictionary in RelicCatalog.DATA:
-  if int(definition.rarity)==rarity: candidates.append(definition.id)
+  if int(definition.rarity)==rarity and RelicCatalog.available(definition.id): candidates.append(definition.id)
+ if candidates.is_empty():
+  for definition: Dictionary in RelicCatalog.DATA:
+   if int(definition.rarity)==maxi(0,rarity-1) and RelicCatalog.available(definition.id): candidates.append(definition.id)
  return candidates[rng.randi_range(0,candidates.size()-1)]
 
 static func room_rewards(rng: RandomNumberGenerator, floor_index: int, kind: String) -> Array[Dictionary]:
@@ -157,3 +160,8 @@ static func room_rewards(rng: RandomNumberGenerator, floor_index: int, kind: Str
   elif content==0: data.id=RelicCatalog.roll(rng,floor_index,"chest")
  result.append(data)
  return result
+
+static func context_allows(id: String, floor_index: int, context: String) -> bool:
+ var table: Array=config().rarity.get(context,config().rarity.base)[clampi(floor_index,0,5)]
+ var entry:=RelicCatalog.definition(id)
+ return not entry.is_empty() and RelicCatalog.available(id) and float(table[int(entry.rarity)])>0

@@ -1,3 +1,16 @@
+## Determinación y cien reliquias · 0.9.0
+
+Once personajes con Shader Mítico secreto, prueba de desbloqueo, activas y pasivas
+revisadas. Cien objetos totales en seis rarezas, activos equipables y efectos
+combinables con límites. Tres jefes distintos, élites y minijefes permiten cumplir
+los desafíos jugando. Se conservan los IDs y se migra el progreso 0.8.
+[Auditoría](docs/mythic-audit-0.9.md) · [Cambios, capturas y límites](docs/mythic-expansion-0.9.md)
+· [Catálogo de cien objetos](docs/relic-catalog-0.9.md).
+
+El arte de Shader parte de la descripción y es provisional; no se pudo consultar
+su imagen de referencia. El APK sigue siendo una entrega de prueba por debajo de
+100 MB, sin relleno. Rendimiento físico en ZTE pendiente.
+
 ## Viajeros y recuerdos permanentes · 0.8.0 (prueba)
 
 Diez entradas de selección con siluetas, estadísticas y habilidades distintas.
