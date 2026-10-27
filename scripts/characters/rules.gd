@@ -2,9 +2,13 @@ class_name CharacterRules
 extends RefCounted
 
 static func fresh() -> Dictionary:
- return {"special_floors":{},"passive_timer":0.0,"guard_timer":0.0,"guard_charge":false,"healing_left":4.5,"shadow_timer":0.0,"kill_timer":0.0,"kill_stacks":0,"hits":0,"dash":0.0,"windup":0.0,"shield_budget":0.0,"panic":false,"evasion_cooldown":0.0}
+ var result: Dictionary={"special_floors":{},"passive_timer":0.0,"guard_timer":0.0,"guard_charge":false,"healing_left":4.5,"shadow_timer":0.0,"kill_timer":0.0,"kill_stacks":0,"hits":0,"dash":0.0,"windup":0.0,"shield_budget":0.0,"panic":false,"evasion_cooldown":0.0}
+
+ result.merge(NineBonds.fresh())
+ return result
 
 static func activate(player) -> void:
+ NineBonds.activate(player)
  match player.character_id:
   "neris":
    player.immunity=maxf(player.immunity,0.24)
@@ -24,6 +28,7 @@ static func activate(player) -> void:
    update_shader(player)
 
 static func tick(player, delta: float, was_active: bool) -> void:
+ NineBonds.tick(player,delta,was_active)
  var state: Dictionary=player.character_state
  for key in ["passive_timer","guard_timer","shadow_timer","kill_timer","dash","evasion_cooldown"]: state[key]=maxf(0,float(state[key])-delta)
  player.awakened=maxf(0,player.awakened-delta)
@@ -54,6 +59,7 @@ static func update_shader(player) -> void:
  player.stats.set_temporary("shader_power",{"damage":player.stats._damage*0.4 if player.awakened>0 else 0.0,"speed":player.stats._speed*(speed_multiplier-1),"attack_interval":player.stats._attack_interval/rate_multiplier-player.stats._attack_interval})
 
 static func reduce_damage(player, amount: float, source: String) -> float:
+ amount=NineBonds.reduce(player,amount,source)
  var state: Dictionary=player.character_state
  if player.character_id=="orin":
   if source=="contact": amount*=0.8

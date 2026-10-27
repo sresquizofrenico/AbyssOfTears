@@ -3,7 +3,7 @@ extends RefCounted
 
 # Keep neris as the stable ID of the original protagonist.
 const CHARACTER_RARITIES := ["Común","Raro","Épico","Legendario","Mítico"]
-const DATA = [
+const LEGACY_DATA = [
  {
   "id": "neris",
   "animation_rate": 1,
@@ -335,6 +335,8 @@ const DATA = [
   }
  }
 ]
+
+static var DATA: Array = LEGACY_DATA + BondCatalog.DATA
 
 static func definition(id: String) -> Dictionary:
  for entry: Dictionary in DATA:

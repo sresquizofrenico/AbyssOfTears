@@ -70,6 +70,7 @@ var character_audio: AudioStreamPlayer
 var pickup_interaction: PickupInteraction
 var diary_return: String="archive"
 var journal_queued:=false
+var bonds: BondsArena
 
 func _ready() -> void:
  get_tree().quit_on_go_back = false
@@ -162,7 +163,7 @@ func label(text: String, font_size: int = 20) -> Label:
  return node
 
 func button(text: String, action: Callable) -> Button:
- var node := Button.new()
+ var node := AbyssTouchButton.new()
  node.text = text
  node.custom_minimum_size = Vector2(260, 46)
  node.add_theme_font_size_override("font_size", 20)
@@ -245,6 +246,7 @@ func on_menu_action(action: String) -> void:
  match action:
   "new_game": show_character_selection()
   "options": show_options("menu")
+  "codes": show_codes()
   "credits": show_credits()
   "modes": show_modes()
   "exit": quit_game()
@@ -279,13 +281,21 @@ func begin_character_run(id: String) -> bool:
 
 func show_modes() -> void:
  state = "modes"
- var box := menu("Otros caminos", "Los modos de juego actuales siguen disponibles")
- box.add_child(button("Mazmorra · 3 pisos",start_dungeon))
- box.add_child(button("Elegir semilla",show_seed_menu))
- box.add_child(button("Incursión de enemigos",func(): expedition=true; wave=0; start_game()))
- box.add_child(button("Prueba de reliquias",start_relic_room))
- box.add_child(button("Muestra ilustrada",start_art_sample))
- box.add_child(button("Prueba de Ilusiones",func(): start_trial("illusion")))
+ var box := menu("Otros caminos", "Modos, pruebas y desafíos de los viajeros")
+ var scroll:=ScrollContainer.new()
+ scroll.custom_minimum_size=Vector2(570,280)
+ box.add_child(scroll)
+ var list:=VBoxContainer.new()
+ list.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+ list.add_theme_constant_override("separation",8)
+ scroll.add_child(list)
+ list.add_child(button("Mazmorra · 3 pisos",start_dungeon))
+ list.add_child(button("Vínculos del Abismo",show_bond_hub))
+ list.add_child(button("Elegir semilla",show_seed_menu))
+ list.add_child(button("Incursión de enemigos",func(): expedition=true; wave=0; start_game()))
+ list.add_child(button("Prueba de reliquias",start_relic_room))
+ list.add_child(button("Muestra ilustrada",start_art_sample))
+ list.add_child(button("Prueba de Ilusiones",func(): start_trial("illusion")))
  box.add_child(button("Volver",show_main_menu))
 
 func start_art_sample() -> void:
@@ -354,6 +364,11 @@ func start_game(keep_progress: bool = false) -> void:
  controls.ability_icon=CharacterCatalog.ability_icon(selected_character)
  controls.ability_name=CharacterCatalog.definition(selected_character).ability
  if not carried_ability.is_empty(): player.restore_ability(carried_ability)
+ player.character_state.near_ids.clear()
+ player.character_state.observation_time.clear()
+ if dungeon_mode and player.character_state.memory_floor!=layout.floor_index:
+  player.character_state.observed.clear()
+  player.character_state.memory_floor=layout.floor_index
  if carried_relics != null: player.relics = carried_relics
  else: player.relics.effects.rng.seed=dungeon_seed+7927
  player.position = Vector2(480, 390)
@@ -362,10 +377,16 @@ func start_game(keep_progress: bool = false) -> void:
  player.health_changed.connect(update_health)
  player.damaged.connect(func():
   Soundscape.play_effect("hurt")
+  if is_instance_valid(bonds): bonds.note_damage(player.latest_hit_source)
   if dungeon_mode: layout.rooms[layout.current].damaged=true
   player.relics.effects.event("hurt",player,self))
  player.died.connect(func(): finish(false))
  world.add_child(player)
+ bonds=BondsArena.new()
+ bonds.game=self
+ world.add_child(bonds)
+ player.bond_arena=bonds
+ bonds.antidote_time=float(player.character_state.antidote_time)
  if dungeon_mode:
   RoomContent.prepare(layout,player.relics.owned,progress.data.journal.artifacts)
   populate_room()
@@ -413,6 +434,11 @@ func start_game(keep_progress: bool = false) -> void:
   if kind=="start": show_notice("Una llave espera en el pedestal",RelicPickup.KEY)
  update_keys()
  transitioning = false
+ if dungeon_mode:
+  bonds.setup_field()
+  if not carried_ability.is_empty():
+   if not layout.rooms[layout.current].get("bond_visited",false): NineBonds.new_room(player)
+  layout.rooms[layout.current].bond_visited=true
  observe_journal_room()
 
 func observe_journal_room() -> void:
@@ -434,6 +460,7 @@ func apply_controls() -> void:
  sync_control_exclusions()
 
 func update_health(current: float, maximum: float) -> void:
+ if is_instance_valid(bonds): bonds.note_health(current)
  hud.set_health(current,maximum)
  if is_instance_valid(player): hud.refresh_stats(player.stats)
 
@@ -443,6 +470,8 @@ func update_counts() -> void:
 
 func spawn_player_bullet(origin: Vector2, direction: Vector2, stats: ActorStats) -> void:
  Soundscape.play_effect("shoot")
+ var precision_power:=1.25 if player.character_state.precision_charge else 1.0
+ player.character_state.precision_charge=false
  var inventory := player.relics
  var packet:=inventory.effects.packet(player)
  var directions: Array[Vector2] = [direction]
@@ -463,7 +492,7 @@ func spawn_player_bullet(origin: Vector2, direction: Vector2, stats: ActorStats)
     var before := bullets.size()
     var echo_power:=1.0 if echo==Vector2.ZERO or inventory.mirror_active() else maxf(inventory.effects.echo_power,0.45)
     var extra_power:=0.8 if int(packet.extra)>0 else 1.0
-    spawn_bullet(at+echo,aim,stats.projectile_speed*clampf(float(packet.velocity),0.5,1.5),stats.damage*float(packet.power)*echo_power*extra_power,stats.attack_range+float(packet.reach),false)
+    spawn_bullet(at+echo,aim,stats.projectile_speed*clampf(float(packet.velocity),0.5,1.5),stats.damage*float(packet.power)*echo_power*extra_power*precision_power,stats.attack_range+float(packet.reach),false)
     if bullets.size() > before:
      var bullet: AbyssProjectile = bullets.back()
      bullet.pierce = mini(4,(1 if inventory.has("pierce") else 0)+int(packet.pierce)+(1 if player.awakened>0 else 0))
@@ -501,6 +530,7 @@ func _physics_process(delta: float) -> void:
  if player.character_state.windup>0:
   player.character_state.windup=maxf(0,float(player.character_state.windup)-delta)
   if player.character_state.windup<=0: spawn_rupture()
+ if is_instance_valid(bonds): bonds.tick(delta)
  sync_control_state()
  controls.queue_redraw()
  door_cooldown=maxf(0,door_cooldown-delta)
@@ -549,6 +579,7 @@ func _physics_process(delta: float) -> void:
      bullet.expire()
      break
     CharacterRules.near_miss(player,point.distance_to(player.position))
+    NineBonds.near_miss(player,bullet,point.distance_to(player.position))
     if point.distance_to(player.position) < 18:
      player.take_damage(bullet.damage)
      bullet.expire()
@@ -579,6 +610,7 @@ func on_enemy_defeated(enemy: AbyssEnemy, point: Vector2, _reward: int) -> void:
  Soundscape.play_effect("enemy")
  player.relics.effects.event("kill",player,self)
  CharacterRules.killed(player)
+ NineBonds.killed(player,enemy)
  if dungeon_mode and enemy.rank=="miniboss" and not layout.rooms[layout.current].get("miniboss_rewarded",false):
   layout.rooms[layout.current].miniboss_rewarded=true
   var reward: Dictionary={"id":RelicCatalog.roll(loot_rng,layout.floor_index,"boss"),"position":point,"collected":false,"chest":false}
@@ -641,6 +673,7 @@ func draw_effects() -> void:
 
 func set_world_active(active: bool) -> void:
  hud.set_playing(active)
+ if not active and is_instance_valid(bonds) and is_instance_valid(bonds.panel): bonds.panel.hide()
  if not active and is_instance_valid(pickup_interaction): pickup_interaction.hide()
  if is_instance_valid(world):
   world.process_mode = Node.PROCESS_MODE_INHERIT if active else Node.PROCESS_MODE_DISABLED
@@ -769,7 +802,7 @@ func show_audio_options() -> void:
 func _process(_delta: float) -> void:
  if state=="closing": return
  # The director compares IDs before loading. No file I/O or tree searches per frame.
- var held:=is_instance_valid(world) and state in ["paused","inventory","doors","shop","options","control_options","control_preview","audio_options","diary"]
+ var held:=is_instance_valid(world) and state in ["paused","inventory","doors","shop","options","control_options","control_preview","audio_options","diary","bond_puzzle","bond_analysis"]
  var kind: String=layout.rooms[layout.current].kind if dungeon_mode and not layout.rooms.is_empty() else "trial" if trial_kind!="" else "combat"
  var playing_score: String=Soundscape.current_track if held else ""
  var score:=AbyssAudioCatalog.route(state,dungeon_mode,layout.floor_index,kind,not enemies.is_empty(),playing_score)
@@ -789,6 +822,9 @@ func _notification(what: int) -> void:
   elif state=="audio_options": show_options(options_return)
   elif state=="archive": show_options("menu")
   elif state=="diary": close_diary()
+  elif state=="codes": show_main_menu()
+  elif state in ["bond_hub","bond_variants"]: show_bond_hub()
+  elif state in ["bond_puzzle","bond_analysis"]: resume_game()
   elif state == "playing": pause_game()
   elif state == "paused": resume_game()
 
@@ -802,6 +838,9 @@ func _unhandled_key_input(event: InputEvent) -> void:
   elif state=="audio_options": show_options(options_return)
   elif state=="archive": show_options("menu")
   elif state=="diary": close_diary()
+  elif state=="codes": show_main_menu()
+  elif state in ["bond_hub","bond_variants"]: show_bond_hub()
+  elif state in ["bond_puzzle","bond_analysis"]: resume_game()
 
 func show_archive() -> void:
  state="archive"
@@ -850,7 +889,9 @@ func spawn_enemy(kind_id: int, point: Vector2, weak: bool = false, rank: String=
  enemy.position = safe_point(point)
  enemy.target = player
  enemy.peers = enemies
- enemy.shot.connect(spawn_enemy_bullet)
+ enemy.shot.connect(func(origin: Vector2, direction: Vector2):
+  NineBonds.observed(player,enemy)
+  spawn_enemy_bullet(origin,direction))
  enemy.summon.connect(func(id: int, location: Vector2, small: bool): spawn_enemy(id, location, small))
  enemy.hazard.connect(spawn_hazard)
  enemy.defeated.connect(func(location: Vector2, reward: int): on_enemy_defeated(enemy, location, reward))
@@ -904,6 +945,9 @@ func spawn_wave() -> void:
 
 func clear_wave() -> void:
  if state != "playing" or not enemies.is_empty(): return
+ if trial_kind.begins_with("bonds:"):
+  if is_instance_valid(bonds): bonds.resolve()
+  return
  if trial_kind!="":
   if trial_stage<2:
    trial_stage+=1
@@ -923,6 +967,7 @@ func clear_wave() -> void:
    player.relics.effects.event("room",player,self)
    var hard: bool=layout.rooms[layout.current].get("hard",false)
    var clean: bool=not layout.rooms[layout.current].get("damaged",false)
+   NineBonds.room(player,clean)
    record_progress("room","clear",{"clean":clean,"hard":hard})
    if hard:
     player.add_determination(10+(10 if clean else 0))
@@ -945,12 +990,14 @@ func clear_wave() -> void:
  else: finish(true)
 
 func projectile_blocked(point: Vector2) -> bool:
+ if is_instance_valid(bonds) and bonds.blocks(point): return true
  if chamber.blocks(point): return true
  for node in hazards:
   if is_instance_valid(node) and node.kind == "wall" and point.distance_to(node.position) < 27: return true
  return false
 
 func start_dungeon(chosen_seed: int = -1) -> bool:
+ if not CharacterCatalog.playable(selected_character): selected_character="neris"
  if not progress.begin_run():
   show_main_menu()
   return false
@@ -1091,7 +1138,7 @@ func build_relic_ui() -> void:
  ui.add_child(diagnostics)
 
 func spawn_pickup(data: Dictionary) -> RelicPickup:
- var pickup: RelicPickup=ArchaeologyPickup.new() if data.get("reward_kind","")=="artifact" else RelicPickup.new()
+ var pickup: RelicPickup=BondPickup.new() if data.get("reward_kind","") in ["component","sample","fragment"] else ArchaeologyPickup.new() if data.get("reward_kind","")=="artifact" else RelicPickup.new()
  pickup.data = data
  pickup.player = player
  pickup.position = safe_pickup_point(data.get("position",Vector2(480,274)))
@@ -1109,6 +1156,7 @@ func collect_relic(pickup: RelicPickup) -> bool:
  if state not in ["playing","shop"] or not is_instance_valid(player) or not player.active or pickup.player!=player or pickup.get_parent()!=world or not pickup.data.get("claiming",false) or pickup.data.get("collected",false) or not pickup.valid_reward(): return false
  var kind: String = pickup.data.get("reward_kind","relic")
  if kind=="artifact": return collect_artifact(pickup)
+ if kind in ["component","sample","fragment"]: return is_instance_valid(bonds) and bonds.collect(pickup)
  if kind in ["coins","heal","key"]:
   if kind=="heal" and player.stats.health>=player.stats.max_health: return false
   if kind=="key" and keys>=99: return false
@@ -1128,6 +1176,7 @@ func collect_relic(pickup: RelicPickup) -> bool:
  var added := player.relics.add(id,player.stats)
  if added:
   record_progress("item",id,{"id":id})
+  if trial_kind.begins_with("bonds:") and not lab_mode: progress.record("item","bond:"+id,{"id":id})
   player.relics.effects.pickup(id,player,self)
  if not added: coins += int(Economy.config().duplicate_compensation)
  player.pickup_pose = 1.0
@@ -1181,9 +1230,9 @@ func apply_relic_hit(bullet: AbyssProjectile, enemy: AbyssEnemy) -> void:
  if "ice" in bullet.elements: enemy.slowed = 2.0
  var multiplier:=1.15 if enemy.marked>0 else 1.0
  if bullet.travelled>210: multiplier+=bullet.far_bonus
- enemy.take_damage(bullet.damage*multiplier,bullet.direction)
+ enemy.take_damage(bullet.damage*multiplier*NineBonds.hit_multiplier(player,enemy),bullet.direction)
  if "poison" in bullet.elements: enemy.poisoned=3.0
- if bullet.marking: enemy.marked=3.0
+ if bullet.marking: enemy.marked=maxf(enemy.marked,3.0)
  if bullet.push>0 and not enemy.dead: enemy.move_and_collide(bullet.direction*minf(30,bullet.push))
  player.relics.effects.hit(bullet,enemy,player,self)
  CharacterRules.hit(player,enemy,bullet,self)
@@ -1355,7 +1404,7 @@ func spawn_guardian(variant: int=-1) -> void:
  guardian.health_report.connect(func(current: float, maximum: float, phase: int):
   boss_bar.max_value=maximum
   boss_bar.value=current
-  boss_name.text=TideWarden.BOSS_NAMES[guardian.floor_level]+" · Fase %d" % phase
+  boss_name.text=(guardian.display_name if guardian.display_name!="" else TideWarden.BOSS_NAMES[guardian.floor_level])+" · Fase %d" % phase
   boss_panel.visible=current>0)
  world.add_child(guardian)
  enemies.append(guardian)
@@ -1422,6 +1471,9 @@ func position_pickup_interaction() -> void:
  sync_control_exclusions()
 
 func update_pickup_interaction() -> void:
+ if is_instance_valid(bonds) and not bonds.selected_station.is_empty():
+  pickup_interaction.hide()
+  return
  var nearest: RelicPickup
  var distance:=RelicPickup.INTERACTION_RADIUS
  for pickup: RelicPickup in pickups:
@@ -1511,6 +1563,9 @@ func use_character_ability() -> bool:
  character_audio.play()
  var id: String=player.character_id
  if id=="kael": pass # Windup is resolved once by the physics coordinator.
+ elif id=="celine":
+  for enemy in enemies:
+   if not enemy.dead: enemy.marked=maxf(enemy.marked,player.ability_active)
  elif id in ["eira","solen"]:
   for enemy in enemies.duplicate():
    if not is_instance_valid(enemy) or enemy.dead or enemy.position.distance_to(player.position)>145: continue
@@ -1590,6 +1645,10 @@ func start_trial(kind: String) -> bool:
  return true
 
 func spawn_trial_stage() -> void:
+ if trial_kind.begins_with("bonds:"):
+  var parts:=trial_kind.split(":")
+  bonds.setup(parts[1],int(parts[2]))
+  return
  for bullet in bullets:
   if is_instance_valid(bullet): bullet.expire()
  bullets.clear()
@@ -1614,6 +1673,7 @@ func sync_control_exclusions() -> void:
  if not is_instance_valid(controls): return
  controls.excluded_regions.clear()
  if is_instance_valid(pickup_interaction) and pickup_interaction.visible: controls.excluded_regions.append(pickup_interaction.get_global_rect())
+ if is_instance_valid(bonds) and is_instance_valid(bonds.panel) and bonds.panel.visible: controls.excluded_regions.append(bonds.panel.get_global_rect())
  if is_instance_valid(hud):
   for target: Button in [hud.pause_button,hud.stats_button,hud.doors_button]:
    if target.is_visible_in_tree(): controls.excluded_regions.append(target.get_global_rect())
@@ -1690,3 +1750,97 @@ func sync_control_state() -> void:
  controls.awaken_visible=player.character_id=="shader"
  controls.determination=player.determination
  controls.ability_cooldown=player.ability_remaining
+
+func show_codes() -> void:
+ state="codes"
+ var box:=menu("CÓDIGOS DEL ABISMO","Acceso libre sin borrar tus recuerdos ni inventar logros")
+ var input:=LineEdit.new()
+ input.name="CodeInput"
+ input.placeholder_text="Escribe tu código"
+ input.max_length=64
+ input.custom_minimum_size=Vector2(530,52)
+ input.add_theme_font_size_override("font_size",22)
+ box.add_child(input)
+ var status:=label("",17)
+ status.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+ status.custom_minimum_size=Vector2(530,50)
+ box.add_child(status)
+ var submit:=func():
+  status.text=progress.redeem(input.text)
+  input.release_focus()
+
+ box.add_child(button("APLICAR CÓDIGO",submit))
+ input.text_submitted.connect(func(_text: String): submit.call())
+ box.add_child(button("VOLVER",show_main_menu))
+
+func show_bond_hub() -> void:
+ state="bond_hub"
+ var box:=menu("LOS VÍNCULOS DEL ABISMO","Desafíos independientes · cada intento inicia una partida nueva")
+ var grid:=GridContainer.new()
+ grid.columns=2
+ grid.add_theme_constant_override("h_separation",12)
+ grid.add_theme_constant_override("v_separation",6)
+ box.add_child(grid)
+ for entry in [["Ingeniería","engineering"],["Ecosistemas","ecology"],["Futuro Fracturado","future"],["Teatro de los Ecos","theater"],["Carreras","race"],["Circuitos","circuit"],["Pruebas tácticas","tactics"],["Resistencia","endurance"],["Constelación Familiar","family"]]:
+  grid.add_child(button(entry[0],func(): show_bond_variants(entry[1])))
+ box.add_child(button("Volver",show_main_menu))
+
+func show_bond_variants(kind: String) -> void:
+ state="bond_variants"
+ if kind=="family":
+  var all_sisters:=true
+  var stars: String=""
+  for id in BondCatalog.SISTERS:
+   stars+="★ " if progress.is_unlocked(id) else "☆ "
+   if not progress.is_unlocked(id): all_sisters=false
+  var box:=menu("CONSTELACIÓN FAMILIAR",stars+" · Desbloquea a las cinco hermanas")
+  if progress.data.bonds.family_done: box.add_child(label("Don obtenido: una barrera de 1 punto por partida",16))
+  var begin:=button("Entrar al desafío",func(): start_bond_challenge(kind,0))
+  begin.disabled=not all_sisters
+  box.add_child(begin)
+  box.add_child(button("Volver",show_bond_hub))
+  return
+ var count:=1 if kind in ["engineering","future"] else 5 if kind in ["circuit","tactics","endurance"] else 3
+ var box:=menu("Pruebas del vínculo","Elige un recorrido. Puedes repetirlo sin duplicar sus logros.")
+ for i in range(count): box.add_child(button("Prueba %d" % (i+1),func(): start_bond_challenge(kind,i)))
+ box.add_child(button("Volver",show_bond_hub))
+
+func start_bond_challenge(kind: String, variant: int=0) -> bool:
+ if kind not in ["engineering","ecology","future","theater","race","circuit","tactics","endurance","family"]: return false
+ var maximum:=0 if kind in ["engineering","future","family"] else 2 if kind in ["ecology","theater","race"] else 4
+ if variant<0 or variant>maximum: return false
+ if kind=="family":
+  for id in BondCatalog.SISTERS:
+   if not progress.is_unlocked(id): return false
+ if not progress.begin_run(): return false
+ if not CharacterCatalog.playable(selected_character): selected_character="neris"
+ trial_kind="bonds:%s:%d" % [kind,variant]
+ dungeon_mode=false
+ expedition=false
+ lab_mode=false
+ start_game()
+ return true
+
+func show_bond_analysis() -> void:
+ if state!="playing" or not is_instance_valid(bonds): return
+ set_world_active(false)
+ state="bond_analysis"
+ var box:=menu("ANÁLISIS DE CRIATURAS","Analizar registra la táctica de una criatura realmente observada")
+ var scroll:=ScrollContainer.new()
+ scroll.custom_minimum_size=Vector2(580,220)
+ box.add_child(scroll)
+ var list:=VBoxContainer.new()
+ list.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+ scroll.add_child(list)
+ var info_label:=label("Pulsa una criatura para consultar su táctica",16)
+ info_label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+ info_label.custom_minimum_size=Vector2(580,68)
+ box.add_child(info_label)
+ for id: String in progress.data.journal.creatures:
+  var info:=AbyssJournal.title("creatures",id)
+  list.add_child(button(info,func():
+   if progress.data.bonds.sets.weaknesses.has(id) or progress.record_bond("weaknesses",id):
+    info_label.text=info+": "+BondProgress.weakness(id)
+    player.character_state.observed[id]=3
+   else: info_label.text="No se pudo guardar el análisis"))
+ box.add_child(button("Volver",resume_game))

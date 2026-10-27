@@ -108,7 +108,7 @@ func make_label(text: String, font_size: int) -> Label:
  return node
 
 func make_button(text: String, callback: Callable) -> Button:
- var node := Button.new()
+ var node := AbyssTouchButton.new()
  node.text = text
  node.add_theme_font_size_override("font_size",22)
  var style := StyleBoxFlat.new()
@@ -140,7 +140,7 @@ func refresh() -> void:
  if unlocked:
   var atlas:=AtlasTexture.new()
   atlas.atlas=character.body_texture
-  atlas.region=Rect2(80,40,224,220)
+  atlas.region=Rect2(45,0,300,270) if entry.id in BondCatalog.IDS else Rect2(80,40,224,220)
   portrait.texture=atlas
  reveal_age=0.0
  var progress := CharacterCatalog.progress_node()
@@ -166,6 +166,12 @@ func refresh() -> void:
   details.text+="\n7. Supera La Prueba de Shader"
   status.text="MÍTICO · SECRETO\n"+("LA PRUEBA ESTÁ DISPONIBLE" if trial_ready else "Cumple los seis requisitos para abrir la prueba")
  elif not CharacterCatalog.definition(entry.id).is_empty(): status.text=CharacterCatalog.rarity_name(entry.id)+"\n"+status.text
+ if entry.id in BondCatalog.IDS and not unlocked and progress:
+  details.text="OBJETIVOS DEL VÍNCULO\n\n"
+  for rule: Dictionary in BondProgress.requirements(entry.id,progress.data):
+   details.text+="%s: %d / %d\n" % [rule.label,mini(int(rule.current),int(rule.target)),rule.target]
+  details.text+="\nDesafíos: Opciones → Modos → Vínculos"
+ if entry.id in BondCatalog.SISTERS and unlocked: details.text+="\nResonancia: reúne dos entre Espejo, Botas, Reloj, Escudo y Guardián Orbital. Mejora tu habilidad con límites."
  if entry.id=="shader" and unlocked: details.text+="\nDespertar: 100 Determinación\nCrítico: 8%"
  for bar in stat_bars: bar.visible=unlocked
  for i in range(7): details.get_child(i).visible=unlocked

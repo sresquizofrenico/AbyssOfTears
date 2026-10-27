@@ -37,7 +37,7 @@ func run() -> void:
  menu.guard_time=0
  menu.refresh_visuals()
  check(not menu.buttons.new_game.disabled,"New game enabled after intro")
- check(menu.buttons.size()==3,"Main menu has only new game, options and exit without a run save")
+ check(menu.buttons.size()==4,"Main menu has only new game, options and exit without a run save")
  for action in ["continue","characters","collection","credits","modes"]:
   check(not menu.buttons.has(action),"Extra or unsupported main button removed: "+action)
   menu.request_action(action)

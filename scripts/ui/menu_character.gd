@@ -24,6 +24,7 @@ func _draw() -> void:
  draw_texture_rect(IllustratedNeris.SHADOW,Rect2(-62,28,124,33),false)
  var bob := absf(sin(clock*11))*1.5 if moving else sin(clock*2)*0.5
  if character_id=="shader": ShaderArt.paint(self,clock,moving,pose,look,Vector2(0,bob),sin(clock*2)*0.015,2.25)
+ elif character_id in BondCatalog.IDS: BondArt.paint(self,character_id,body_texture,clock*animation_rate,moving,pose,look,Vector2(0,bob),sin(clock*2)*0.015,2.25)
  else: IllustratedNeris.paint(self,clock*animation_rate,moving,pose,look,Vector2(0,bob),sin(clock*2)*0.015,2.25,Color.WHITE,body_texture)
 
 func _ready() -> void:

@@ -225,7 +225,7 @@ func run() -> void:
   game.pause_game()
   check(not game.pickup_interaction.visible and not game.interact_with_pickup(nearby),"Pause hides and blocks contextual interaction")
   game.resume_game()
- check(CharacterCatalog.DATA.size()==11 and CharacterCatalog.playable("neris"),"Eleven-character catalog preserves the original playable ID")
+ check(CharacterCatalog.DATA.size()==20 and CharacterCatalog.playable("neris"),"Eleven-character catalog preserves the original playable ID")
  game.queue_free()
  await process_frame
  print("PICKUP INTERACTION RESULT: %d checks, %d failures" % [checks,failures])

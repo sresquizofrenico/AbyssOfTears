@@ -6,6 +6,9 @@ const BOSS_IDS := ["tide_warden","root_matron","prism_regent"]
 const BOSS_NAMES := ["Custodio de la Marea","Matriarca de Raíces","Regente Prismático"]
 const ROOT_ART=preload("res://assets/characters/root_matron.svg")
 const PRISM_ART=preload("res://assets/characters/prism_regent.svg")
+var display_name: String=""
+var sequence: Array[int]=[]
+var sequence_step:=0
 var floor_level := 0
 var phase := 1
 var pattern := 0
@@ -41,7 +44,10 @@ func _physics_process(delta: float) -> void:
  move_and_slide()
  if attack_timer<=0:
   perform_pattern()
-  pattern=(pattern+1)%3
+  if sequence.is_empty(): pattern=(pattern+1)%3
+  else:
+   sequence_step=(sequence_step+1)%sequence.size()
+   pattern=sequence[sequence_step]
   attack_timer=2.5 if phase==1 else 2.0
   announced=false
  if position.distance_to(target.position)<43: target.take_damage(1,"contact")
