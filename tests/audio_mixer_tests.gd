@@ -5,13 +5,20 @@ var failures:=0
 func _initialize() -> void: run.call_deferred()
 
 func measure(capture: AudioEffectCapture, name: String) -> void:
- var samples:=capture.get_buffer(capture.get_frames_available())
+ # The mixer is a separate thread. Wait for actual samples, not an assumed
+ # amount of rendering time: busy runners can deliver the first block late.
+ var deadline:=Time.get_ticks_msec()+2500
+ var frames:=0
  var peak:=0.0
- for sample: Vector2 in samples: peak=maxf(peak,maxf(absf(sample.x),absf(sample.y)))
+ while Time.get_ticks_msec()<deadline and (frames<256 or peak<=0.0001):
+  await create_timer(0.025).timeout
+  var samples:=capture.get_buffer(capture.get_frames_available())
+  frames+=samples.size()
+  for sample: Vector2 in samples: peak=maxf(peak,maxf(absf(sample.x),absf(sample.y)))
  checks+=1
- if samples.size()<256 or peak<=0.0001 or peak>=0.98:
+ if frames<256 or peak<=0.0001 or peak>=0.98:
   failures+=1
-  push_error("TEST FAILED: non-silent unclipped mixer output "+name)
+  push_error("TEST FAILED: non-silent unclipped mixer output %s (frames=%d, peak=%f)" % [name,frames,peak])
 
 func run() -> void:
  var director=root.get_node("Soundscape")
@@ -30,14 +37,12 @@ func run() -> void:
     director.set_context(id)
     director._process(0.8)
     capture.clear_buffer()
-    await create_timer(0.2).timeout
-    measure(capture,id)
+    await measure(capture,id)
   else:
    for id: String in AbyssAudioCatalog.EFFECTS:
     capture.clear_buffer()
     director.play_effect(id)
-    await create_timer(0.2).timeout
-    measure(capture,id)
+    await measure(capture,id)
   AudioServer.remove_bus_effect(index,0)
  settings.values=original
  director.apply_settings()

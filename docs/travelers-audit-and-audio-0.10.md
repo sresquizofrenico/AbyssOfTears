@@ -85,5 +85,7 @@ El guardado actual no cambia de versión: se añaden dos campos opcionales de co
 - Interacción de audio: 219 comprobaciones sin fallos, tanto headless como Compatibility/Mesa en escritorio.
 - Mezclador AudioServer: 24 capturas (13 pistas y 11 efectos) sin silencio inesperado ni saturación.
 - Salida normal con drenaje: ejecutada sin errores ni avisos de recursos pendientes.
-- Exportación local: APK ARM64 0.10.0, código 16; 31.834.478 bytes. Referencia pública 0.9.1: 29.772.753 bytes; aumento útil de 2.061.725 bytes (+6,92%). El APK de CI puede diferir unos bytes por su firma.
+- Exportación local: APK ARM64 0.10.0, código 16; 31.838.661 bytes. Referencia pública 0.9.1: 29.772.753 bytes; aumento útil de 2.065.908 bytes (+6,94%). El APK de CI puede diferir unos bytes por su firma.
 - Mínimo de 100 MB: pendiente. FPS y memoria de Android con música: pendientes de medición en el teléfono.
+
+La captura del mezclador espera muestras reales con un límite de 2,5 s, en vez de suponer que el hilo de audio entrega un bloque dentro de un retardo fijo. Esta corrección elimina una condición de sincronización detectada al ejecutar exportación y pruebas a la vez.
