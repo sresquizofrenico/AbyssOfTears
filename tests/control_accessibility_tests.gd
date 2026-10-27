@@ -157,4 +157,5 @@ func run() -> void:
  await create_timer(0.25).timeout
  settings.values=previous
  print("CONTROL ACCESSIBILITY RESULT: %d checks, %d failures" % [checks,failures])
+ await AudioTestCleanup.drain(self)
  quit(1 if failures else 0)

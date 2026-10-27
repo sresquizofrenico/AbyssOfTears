@@ -229,4 +229,5 @@ func run() -> void:
  game.queue_free()
  await process_frame
  print("PICKUP INTERACTION RESULT: %d checks, %d failures" % [checks,failures])
+ await AudioTestCleanup.drain(self)
  quit(1 if failures else 0)

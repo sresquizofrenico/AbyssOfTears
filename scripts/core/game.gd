@@ -73,6 +73,7 @@ func _ready() -> void:
  get_tree().quit_on_go_back = false
  progress=CharacterCatalog.progress_node()
  character_audio=AudioStreamPlayer.new()
+ character_audio.bus="AbyssSFX"
  character_audio.volume_db=-14
  add_child(character_audio)
  progress.character_unlocked.connect(func(id: String):
@@ -170,6 +171,7 @@ func button(text: String, action: Callable) -> Button:
   style.set_border_width_all(1)
   style.set_corner_radius_all(7)
   node.add_theme_stylebox_override(variation,style)
+ node.pressed.connect(func(): Soundscape.play_effect("ui"))
  node.pressed.connect(action)
  return node
 
@@ -237,12 +239,24 @@ func show_main_menu() -> void:
 
 func on_menu_action(action: String) -> void:
  if state != "menu": return
+ Soundscape.play_effect("ui")
  match action:
   "new_game": show_character_selection()
   "options": show_options("menu")
   "credits": show_credits()
   "modes": show_modes()
-  "exit": get_tree().quit()
+  "exit": quit_game()
+
+func quit_game() -> void:
+ if state=="closing": return
+ state="closing"
+ controls.set_enabled(false)
+ Soundscape.stop_all()
+ character_audio.stop()
+ character_audio.stream=null
+ # Let the audio server release stopped decoder buffers before engine teardown.
+ await get_tree().create_timer(0.25).timeout
+ get_tree().quit()
 
 func show_character_selection() -> void:
  state = "character_selection"
@@ -306,6 +320,7 @@ func dispose_world() -> void:
  if is_instance_valid(boss_panel): boss_panel.hide()
 
 func start_game(keep_progress: bool = false) -> void:
+ if keep_progress: Soundscape.play_effect("door")
  backdrop.hide()
  var carried_ability: Dictionary = player.ability_snapshot() if keep_progress and is_instance_valid(player) else {}
  var carried_relics: RelicInventory = player.relics if keep_progress and is_instance_valid(player) else null
@@ -344,6 +359,7 @@ func start_game(keep_progress: bool = false) -> void:
  player.shot.connect(spawn_player_bullet)
  player.health_changed.connect(update_health)
  player.damaged.connect(func():
+  Soundscape.play_effect("hurt")
   if dungeon_mode: layout.rooms[layout.current].damaged=true
   player.relics.effects.event("hurt",player,self))
  player.died.connect(func(): finish(false))
@@ -412,6 +428,7 @@ func update_counts() -> void:
  if is_instance_valid(player): hud.refresh_stats(player.stats)
 
 func spawn_player_bullet(origin: Vector2, direction: Vector2, stats: ActorStats) -> void:
+ Soundscape.play_effect("shoot")
  var inventory := player.relics
  var packet:=inventory.effects.packet(player)
  var directions: Array[Vector2] = [direction]
@@ -545,6 +562,7 @@ func _physics_process(delta: float) -> void:
 func on_enemy_defeated(enemy: AbyssEnemy, point: Vector2, _reward: int) -> void:
  if state!="playing" or not is_instance_valid(enemy) or not enemies.has(enemy) or not enemy.dead: return
  enemies.erase(enemy) # Membership is consumed before any reentrant reward callback.
+ Soundscape.play_effect("enemy")
  player.relics.effects.event("kill",player,self)
  CharacterRules.killed(player)
  if dungeon_mode and enemy.rank=="miniboss" and not layout.rooms[layout.current].get("miniboss_rewarded",false):
@@ -668,7 +686,7 @@ func show_options(previous: String) -> void:
  fps_toggle.button_pressed = Settings.values.get("diagnostics",false)
  fps_toggle.toggled.connect(func(value: bool): Settings.values.diagnostics = value)
  box.add_child(fps_toggle)
- box.add_child(label("Sonidos de habilidades · música pendiente",14))
+ box.add_child(button("Música y efectos",show_audio_options))
  if previous == "menu":
   var extras := HBoxContainer.new()
   extras.add_theme_constant_override("separation",12)
@@ -704,8 +722,47 @@ func add_slider(box: VBoxContainer, text: String, key: String, low: float, high:
  slider.value_changed.connect(func(value: float): Settings.values[key] = value)
  box.add_child(slider)
 
+func show_audio_options() -> void:
+ state="audio_options"
+ var box:=menu("Sonidos del abismo","Música original · ajustes independientes")
+ for entry in [["Música","music_volume"],["Efectos y habilidades","sfx_volume"]]:
+  var key: String=entry[1]
+  var caption:=label("%s · %d%%" % [entry[0],roundi(float(Settings.values[key])*100)],18)
+  box.add_child(caption)
+  var slider:=HSlider.new()
+  slider.name=key
+  slider.min_value=0
+  slider.max_value=1
+  slider.step=0.01
+  slider.value=Settings.values[key]
+  slider.custom_minimum_size=Vector2(490,48)
+  slider.value_changed.connect(func(value: float):
+   Settings.values[key]=value
+   caption.text="%s · %d%%" % [entry[0],roundi(value*100)]
+   Soundscape.apply_settings())
+  box.add_child(slider)
+ box.add_child(button("Probar efecto",func(): Soundscape.play_effect("relic")))
+ box.add_child(label("0% silencia el canal. La música continúa al pausar.",14))
+ var status:=label("",14)
+ box.add_child(status)
+ box.add_child(button("Guardar y volver",func():
+  if Settings.save_settings()!=OK:
+   status.text="No se pudo guardar. Inténtalo de nuevo."
+   return
+  show_options(options_return)))
+
+func _process(_delta: float) -> void:
+ if state=="closing": return
+ # The director compares IDs before loading. No file I/O or tree searches per frame.
+ var held:=is_instance_valid(world) and state in ["paused","inventory","doors","shop","options","control_options","control_preview","audio_options"]
+ var kind: String=layout.rooms[layout.current].kind if dungeon_mode and not layout.rooms.is_empty() else "trial" if trial_kind!="" else "combat"
+ var playing_score: String=Soundscape.current_track if held else ""
+ var score:=AbyssAudioCatalog.route(state,dungeon_mode,layout.floor_index,kind,not enemies.is_empty(),playing_score)
+ Soundscape.set_context(score,held)
+
 func _notification(what: int) -> void:
  if what == NOTIFICATION_APPLICATION_FOCUS_OUT or what == NOTIFICATION_APPLICATION_PAUSED:
+  if is_instance_valid(character_audio): character_audio.stop(); character_audio.stream=null
   if is_instance_valid(controls): controls.release_all()
   pause_game()
  if what == NOTIFICATION_WM_GO_BACK_REQUEST:
@@ -714,6 +771,7 @@ func _notification(what: int) -> void:
   elif state=="seed": show_modes()
   elif state=="control_options": show_options(controls_return)
   elif state=="control_preview": show_control_options(controls_return)
+  elif state=="audio_options": show_options(options_return)
   elif state == "playing": pause_game()
   elif state == "paused": resume_game()
 
@@ -724,6 +782,7 @@ func _unhandled_key_input(event: InputEvent) -> void:
   elif state in ["character_selection","progress_backup"]: show_main_menu()
   elif state=="control_options": show_options(controls_return)
   elif state=="control_preview": show_control_options(controls_return)
+  elif state=="audio_options": show_options(options_return)
 
 func show_credits() -> void:
  state = "credits"
@@ -731,7 +790,7 @@ func show_credits() -> void:
  var scroll := ScrollContainer.new()
  scroll.custom_minimum_size = Vector2(440, 220)
  box.add_child(scroll)
- var text := label("Motor: Godot 4.6.3 (MIT).\n\n" + FileAccess.get_file_as_string("res://assets/licenses/GODOT_LICENSE.txt") + "\n\nComponentes del motor:\n" + FileAccess.get_file_as_string("res://assets/licenses/GODOT_COPYRIGHT.txt"), 14)
+ var text := label("Motor: Godot 4.6.3 (MIT).\n\nMúsica y efectos originales: composición y síntesis del proyecto (MIT).\n13 piezas para los tres pisos actuales; banda sonora de la campaña ampliada pendiente.\n\n" + FileAccess.get_file_as_string("res://assets/licenses/GODOT_LICENSE.txt") + "\n\nComponentes del motor:\n" + FileAccess.get_file_as_string("res://assets/licenses/GODOT_COPYRIGHT.txt"), 14)
  text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
  text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
  scroll.add_child(text)
@@ -995,6 +1054,8 @@ func spawn_pickup(data: Dictionary) -> RelicPickup:
  pickup.quality = Settings.values.quality
  pickup.accept_claim=collect_relic
  pickup.unlock_requested.connect(unlock_chest)
+ pickup.opened.connect(func(): Soundscape.play_effect("chest"))
+ pickup.claimed.connect(func(item: RelicPickup): Soundscape.play_effect("buy" if item.data.get("paid",false) else "coin" if item.data.get("reward_kind","")=="coins" else "relic"))
  world.add_child(pickup)
  pickups.append(pickup)
  return pickup
@@ -1048,6 +1109,7 @@ func update_relic_ui(delta: float) -> void:
   diagnostics.text = "FPS %d · enemigos %d · disparos %d · partículas %d · física %.2f ms" % [Engine.get_frames_per_second(),enemies.size(),bullets.size(),effects.size()*(6 if Settings.values.quality==1 else 12)+sparks.size(),Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS)*1000]
 
 func apply_relic_hit(bullet: AbyssProjectile, enemy: AbyssEnemy) -> void:
+ Soundscape.play_effect("hit")
  if "fire" in bullet.elements: enemy.burning = 3.0
  if "ice" in bullet.elements: enemy.slowed = 2.0
  var multiplier:=1.15 if enemy.marked>0 else 1.0
@@ -1261,6 +1323,7 @@ func purchase_pickup(pickup: RelicPickup) -> bool:
  var price:=int(data.get("price",0))
  if price<=0 or data.get("collected",false) or data.get("purchasing",false) or not pickup.valid_reward(): return false
  if coins<price:
+  Soundscape.play_effect("error")
   show_notice("MONEDAS INSUFICIENTES",RelicPickup.COINS)
   return false
  if data.get("reward_kind","relic")=="relic" and int(player.relics.owned.get(data.id,0))>=int(RelicCatalog.definition(data.id).max_stack):
@@ -1412,6 +1475,7 @@ func show_progress_backup() -> void:
  box.add_child(button("Volver",func(): show_options("menu")))
 
 func _exit_tree() -> void:
+ Soundscape.stop_all()
  if is_instance_valid(character_audio):
   character_audio.stop()
   character_audio.stream=null

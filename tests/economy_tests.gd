@@ -180,4 +180,5 @@ func run() -> void:
  print("ECONOMY SIMULATION TEST ",JSON.stringify(simulation))
  progress.data.counters.endings=previous_ending
  print("ECONOMY RESULT: %d checks, %d failures" % [checks,failures])
+ await AudioTestCleanup.drain(self)
  quit(1 if failures else 0)

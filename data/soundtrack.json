@@ -1,0 +1,162 @@
+{
+  "version": 1,
+  "license": "MIT",
+  "tracks": [
+    {
+      "id": "menu",
+      "title": "Una luz conserva tu nombre",
+      "path": "res://assets/audio/music/menu.ogg",
+      "bpm": 76,
+      "bars": 8,
+      "seconds": 25.26315192743764,
+      "root_midi": 50,
+      "arrangement": "calm",
+      "motif": 0,
+      "sha256": "13bc7330cdc5ce85736ab2b919fbdfb128cd3c7ddcea81df5a642a08e4d16f4f"
+    },
+    {
+      "id": "salt_explore",
+      "title": "Campanas bajo la sal",
+      "path": "res://assets/audio/music/salt_explore.ogg",
+      "bpm": 80,
+      "bars": 8,
+      "seconds": 24.0,
+      "root_midi": 50,
+      "arrangement": "calm",
+      "motif": 0,
+      "sha256": "9825fa4085516b37ec1cede87b53016de595dbf9a5f1b939e73db2624521d907"
+    },
+    {
+      "id": "salt_combat",
+      "title": "El pulso de la cripta",
+      "path": "res://assets/audio/music/salt_combat.ogg",
+      "bpm": 104,
+      "bars": 8,
+      "seconds": 18.46154195011338,
+      "root_midi": 50,
+      "arrangement": "combat",
+      "motif": 0,
+      "sha256": "d9d8bbeba726d5d2407f704ca4eef258d36330f78bba09151443609373c6996b"
+    },
+    {
+      "id": "salt_boss",
+      "title": "Juramento de la marea",
+      "path": "res://assets/audio/music/salt_boss.ogg",
+      "bpm": 116,
+      "bars": 8,
+      "seconds": 16.55172335600907,
+      "root_midi": 50,
+      "arrangement": "boss",
+      "motif": 0,
+      "sha256": "4faa31128fa28ec2e8c037b3ef50948c8b575d0e716537641e548b306ca7f2f9"
+    },
+    {
+      "id": "garden_explore",
+      "title": "Raíces que recuerdan",
+      "path": "res://assets/audio/music/garden_explore.ogg",
+      "bpm": 84,
+      "bars": 8,
+      "seconds": 22.857142857142858,
+      "root_midi": 53,
+      "arrangement": "calm",
+      "motif": 1,
+      "sha256": "f27b40de6957edc2ba5be2e8cb189a81b0572510c8734f10db0a6e5e3fc95bf3"
+    },
+    {
+      "id": "garden_combat",
+      "title": "Esporas en la penumbra",
+      "path": "res://assets/audio/music/garden_combat.ogg",
+      "bpm": 108,
+      "bars": 8,
+      "seconds": 17.77777777777778,
+      "root_midi": 53,
+      "arrangement": "combat",
+      "motif": 1,
+      "sha256": "4b827384a4df5c63beffb03e62be0b0416c6e009a97b2eb75d66c652ce41f3ae"
+    },
+    {
+      "id": "garden_boss",
+      "title": "La promesa enterrada",
+      "path": "res://assets/audio/music/garden_boss.ogg",
+      "bpm": 120,
+      "bars": 8,
+      "seconds": 16.0,
+      "root_midi": 53,
+      "arrangement": "boss",
+      "motif": 1,
+      "sha256": "6243673f895197e7f9286e627226528fd35837fba365c23021b77df4d26425f5"
+    },
+    {
+      "id": "crystal_explore",
+      "title": "La falla canta",
+      "path": "res://assets/audio/music/crystal_explore.ogg",
+      "bpm": 88,
+      "bars": 8,
+      "seconds": 21.818185941043083,
+      "root_midi": 57,
+      "arrangement": "calm",
+      "motif": 2,
+      "sha256": "3972c135eb5baa01063984842ea43f38bb5861a9ba2d22a7b0067c1aebfbcb83"
+    },
+    {
+      "id": "crystal_combat",
+      "title": "Fragmentos en marcha",
+      "path": "res://assets/audio/music/crystal_combat.ogg",
+      "bpm": 112,
+      "bars": 8,
+      "seconds": 17.142857142857142,
+      "root_midi": 57,
+      "arrangement": "combat",
+      "motif": 2,
+      "sha256": "4dfaf260d62a04b08aa15de9c5aaffee861e2be8358b33bc009a1f53e1a1479e"
+    },
+    {
+      "id": "crystal_boss",
+      "title": "Corona de resonancias",
+      "path": "res://assets/audio/music/crystal_boss.ogg",
+      "bpm": 124,
+      "bars": 8,
+      "seconds": 15.483877551020408,
+      "root_midi": 57,
+      "arrangement": "boss",
+      "motif": 2,
+      "sha256": "9efda6ed68827389c7d21507b3e0191ef6723e66295496facad7789b6287da9e"
+    },
+    {
+      "id": "special",
+      "title": "Un trato con la luz",
+      "path": "res://assets/audio/music/special.ogg",
+      "bpm": 80,
+      "bars": 8,
+      "seconds": 24.0,
+      "root_midi": 55,
+      "arrangement": "calm",
+      "motif": 2,
+      "sha256": "e3a731b344f0c6b17dbedab7859c551434addb9164a0078c0b0a5278ed709a32"
+    },
+    {
+      "id": "victory",
+      "title": "El faro abre los ojos",
+      "path": "res://assets/audio/music/victory.ogg",
+      "bpm": 92,
+      "bars": 8,
+      "seconds": 20.86956916099773,
+      "root_midi": 62,
+      "arrangement": "ending",
+      "motif": 1,
+      "sha256": "0e16b89ef5f5e9943617043c3b843a9ce61cd1a542872313c38b9ded5763074e"
+    },
+    {
+      "id": "defeat",
+      "title": "Todavía queda una brasa",
+      "path": "res://assets/audio/music/defeat.ogg",
+      "bpm": 68,
+      "bars": 8,
+      "seconds": 28.235283446712018,
+      "root_midi": 45,
+      "arrangement": "calm",
+      "motif": 0,
+      "sha256": "f1837851fbccd75b45a97923fb8b99d8740780d4869bbe67cbef2f307f3ce3a8"
+    }
+  ]
+}

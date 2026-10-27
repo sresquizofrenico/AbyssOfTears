@@ -7,6 +7,7 @@ import re
 import subprocess
 import sys
 import zipfile
+from verify_audio_assets import verify_audio_archive
 
 ROOT = Path(__file__).resolve().parents[1]
 sdk = Path(os.environ['ANDROID_HOME']).resolve()
@@ -40,6 +41,7 @@ if not output.exists() or output.stat().st_size < 1_000_000:
 with zipfile.ZipFile(output) as apk:
     if apk.testzip():
         raise SystemExit('Corrupt APK ZIP entries')
+    print(f'Exported audio verified: {verify_audio_archive(apk, ROOT)} real imported resources')
     if 'assets/data/balance.json' not in apk.namelist():
         raise SystemExit('APK is missing its runtime balance configuration')
     if json.loads(apk.read('assets/data/balance.json')) != json.loads((ROOT / 'data/balance.json').read_text()):

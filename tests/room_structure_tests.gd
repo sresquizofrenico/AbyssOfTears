@@ -86,4 +86,5 @@ func run() -> void:
  game.queue_free()
  await process_frame
  print("ROOM STRUCTURE RESULT: %d checks, %d failures, %d variants, %d fallbacks" % [checks,failures,variants.size(),fallbacks])
+ await AudioTestCleanup.drain(self)
  quit(1 if failures else 0)

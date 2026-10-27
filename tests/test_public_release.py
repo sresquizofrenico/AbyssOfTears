@@ -14,12 +14,19 @@ class PublicReleaseTests(unittest.TestCase):
         self.root = Path(self.temp.name)
         (self.root / 'data').mkdir()
         self.config = {'version': 2, 'sample': 'original'}
+        self.score = {'version': 1, 'tracks': [{'id': 'menu', 'path': 'res://assets/audio/music/menu.ogg'}]}
+        (self.root / 'data/soundtrack.json').write_text(json.dumps(self.score))
         for name in ['balance.json', 'relics_expansion.json']:
             (self.root / 'data' / name).write_text(json.dumps(self.config))
         self.apk = self.root / 'game.apk'
         with zipfile.ZipFile(self.apk, 'w') as archive:
             archive.writestr('AndroidManifest.xml', b'test-manifest')
             archive.writestr('lib/arm64-v8a/libgodot_android.so', b'test-engine')
+            archive.writestr('assets/data/soundtrack.json', json.dumps(self.score))
+            from tools.verify_audio_assets import EFFECTS
+            for path in ['assets/audio/music/menu.ogg', *[f'assets/audio/sfx/{name}.wav' for name in EFFECTS]]:
+                archive.writestr('assets/' + path + '.import', '[remap]\npath="res://.godot/imported/test-audio.sample"\n')
+            archive.writestr('assets/.godot/imported/test-audio.sample', b'unit-test-import-resource')
             for name in ['balance.json', 'relics_expansion.json']:
                 archive.writestr('assets/data/' + name, json.dumps(self.config))
         self.report = self.root / 'report.json'
@@ -35,6 +42,29 @@ class PublicReleaseTests(unittest.TestCase):
     def test_invalid_version_rejected(self):
         self.report.write_text(json.dumps({"version":"../unsafe", "apk_bytes":self.apk.stat().st_size}))
         with self.assertRaises(ValueError): prepare(self.apk,self.report,self.root,"v../unsafe-public",self.root/"out")
+    def test_changed_score_registry_rejected(self):
+        (self.root/'data/soundtrack.json').write_text('{"changed":true}')
+        with self.assertRaisesRegex(ValueError, 'soundtrack registry'):
+            prepare(self.apk,self.report,self.root,'v0.9.1-public',self.root/'out')
+    def rewrite_apk(self, old, new=None):
+        with zipfile.ZipFile(self.apk) as archive:
+            entries = {name: archive.read(name) for name in archive.namelist()}
+        if new is None: entries.pop(old)
+        else: entries[old] = new
+        with zipfile.ZipFile(self.apk, 'w') as archive:
+            for name, value in entries.items(): archive.writestr(name, value)
+        self.report.write_text(json.dumps({'version':'0.9.1','apk_bytes':self.apk.stat().st_size}))
+    def test_missing_audio_resource_rejected(self):
+        self.rewrite_apk('assets/.godot/imported/test-audio.sample')
+        with self.assertRaises(KeyError): prepare(self.apk,self.report,self.root,'v0.9.1-public',self.root/'out')
+    def test_empty_audio_resource_rejected(self):
+        self.rewrite_apk('assets/.godot/imported/test-audio.sample', b'')
+        with self.assertRaisesRegex(ValueError, 'Empty exported sound'):
+            prepare(self.apk,self.report,self.root,'v0.9.1-public',self.root/'out')
+    def test_audio_mapping_cannot_escape_resource_directory(self):
+        self.rewrite_apk('assets/assets/audio/music/menu.ogg.import', b'path="res://.godot/imported/../../../other"')
+        with self.assertRaisesRegex(ValueError, 'Invalid exported sound import'):
+            prepare(self.apk,self.report,self.root,'v0.9.1-public',self.root/'out')
     def test_tag_must_match_export(self):
         with self.assertRaises(ValueError): prepare(self.apk,self.report,self.root,'v0.9.2-public',self.root/'out')
     def test_size_mismatch_rejected(self):

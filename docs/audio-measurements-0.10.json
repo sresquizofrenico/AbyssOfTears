@@ -1,0 +1,119 @@
+[
+  {
+    "id": "menu",
+    "seconds": 25.2632,
+    "peak": 0.31825,
+    "rms": 0.06025,
+    "loop_edge_delta": 0.00053,
+    "stereo_difference_rms": 0.01343,
+    "bytes": 167058
+  },
+  {
+    "id": "salt_explore",
+    "seconds": 24.0,
+    "peak": 0.27409,
+    "rms": 0.05857,
+    "loop_edge_delta": 0.00263,
+    "stereo_difference_rms": 0.01404,
+    "bytes": 164070
+  },
+  {
+    "id": "salt_combat",
+    "seconds": 18.4615,
+    "peak": 0.45845,
+    "rms": 0.06158,
+    "loop_edge_delta": 0.00755,
+    "stereo_difference_rms": 0.01448,
+    "bytes": 175205
+  },
+  {
+    "id": "salt_boss",
+    "seconds": 16.5517,
+    "peak": 0.5277,
+    "rms": 0.06308,
+    "loop_edge_delta": 0.00577,
+    "stereo_difference_rms": 0.01384,
+    "bytes": 160932
+  },
+  {
+    "id": "garden_explore",
+    "seconds": 22.8571,
+    "peak": 0.31806,
+    "rms": 0.05785,
+    "loop_edge_delta": 0.00814,
+    "stereo_difference_rms": 0.0141,
+    "bytes": 160108
+  },
+  {
+    "id": "garden_combat",
+    "seconds": 17.7778,
+    "peak": 0.47887,
+    "rms": 0.06279,
+    "loop_edge_delta": 0.01375,
+    "stereo_difference_rms": 0.01407,
+    "bytes": 174551
+  },
+  {
+    "id": "garden_boss",
+    "seconds": 16.0,
+    "peak": 0.51282,
+    "rms": 0.06354,
+    "loop_edge_delta": 0.00834,
+    "stereo_difference_rms": 0.0139,
+    "bytes": 162306
+  },
+  {
+    "id": "crystal_explore",
+    "seconds": 21.8182,
+    "peak": 0.38971,
+    "rms": 0.05724,
+    "loop_edge_delta": 0.00485,
+    "stereo_difference_rms": 0.01372,
+    "bytes": 153849
+  },
+  {
+    "id": "crystal_combat",
+    "seconds": 17.1429,
+    "peak": 0.54776,
+    "rms": 0.06436,
+    "loop_edge_delta": 0.0065,
+    "stereo_difference_rms": 0.01354,
+    "bytes": 170996
+  },
+  {
+    "id": "crystal_boss",
+    "seconds": 15.4839,
+    "peak": 0.56121,
+    "rms": 0.06445,
+    "loop_edge_delta": 0.00223,
+    "stereo_difference_rms": 0.01348,
+    "bytes": 161254
+  },
+  {
+    "id": "special",
+    "seconds": 24.0,
+    "peak": 0.33222,
+    "rms": 0.05983,
+    "loop_edge_delta": 0.00799,
+    "stereo_difference_rms": 0.01333,
+    "bytes": 166432
+  },
+  {
+    "id": "victory",
+    "seconds": 20.8696,
+    "peak": 0.55332,
+    "rms": 0.06244,
+    "loop_edge_delta": 0.00588,
+    "stereo_difference_rms": 0.01358,
+    "bytes": 153517
+  },
+  {
+    "id": "defeat",
+    "seconds": 28.2353,
+    "peak": 0.3315,
+    "rms": 0.05865,
+    "loop_edge_delta": 0.00065,
+    "stereo_difference_rms": 0.01393,
+    "bytes": 176396
+  }
+]

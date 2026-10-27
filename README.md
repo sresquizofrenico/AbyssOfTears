@@ -1,9 +1,14 @@
-## Descarga pública para Android · 0.9.1
+## Descarga pública para Android · 0.10.0
 
 [**Descargar las versiones públicas de Abyss of Tears**](https://github.com/sresquizofrenico/AbyssOfTears/releases)
 
 En la publicación, abre **Assets → AbyssOfTears-Android.apk**. Es una prueba pública
 ARM64, gratuita y sin conexión; no necesitas Godot ni una computadora.
+
+Primera entrega de la expansión: 13 composiciones musicales originales para los
+tres pisos actuales y los menús, once efectos y volúmenes independientes.
+[Auditoría y alcance real](docs/travelers-audit-and-audio-0.10.md).
+Los doce nuevos viajeros y los nueve pisos adicionales siguen pendientes.
 
 Controles mejorados: disparo continuo al deslizar, joystick flotante opcional,
 modo zurdo, zona muerta y pantalla de práctica desde **Opciones → Controles táctiles**.
