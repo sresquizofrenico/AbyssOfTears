@@ -35,6 +35,8 @@ func _ready() -> void:
  text=Label.new()
  text.add_theme_font_size_override("font_size",16)
  text.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+ text.max_lines_visible=3
+ text.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS
  text.mouse_filter=Control.MOUSE_FILTER_IGNORE
  box.add_child(text)
  action=Button.new()

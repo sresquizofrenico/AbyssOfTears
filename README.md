@@ -1,3 +1,19 @@
+## Diario del Abismo y arqueología · 0.11.0
+
+Diario persistente desde **Opciones → Diario y créditos** o **Pausa → Diario del Abismo**.
+Registra descubrimientos reales, criaturas, objetos, secretos y mapas completos.
+Doce vestigios arqueológicos originales aparecen en cofres de los tres pisos;
+conservan historias y pueden proporcionar pistas, mapas o una llave limitada.
+
+Se conservan los once personajes (Shader incluido), cien objetos de combate,
+controles, tiendas y audio. **Los nueve personajes nuevos, Darian y la campaña
+de doce pisos todavía no están implementados.**
+[Auditoría, migración y alcance](docs/nine-bonds-audit-0.11.md).
+
+Los códigos AOT1/AOT2 se importan; el nuevo AOT3 incorpora el diario. Conserva
+un respaldo anterior antes de actualizar: 0.10 no lee el formato nuevo.
+[Descargas públicas de Android](https://github.com/sresquizofrenico/AbyssOfTears/releases).
+
 ## Descarga pública para Android · 0.10.0
 
 [**Descargar las versiones públicas de Abyss of Tears**](https://github.com/sresquizofrenico/AbyssOfTears/releases)

@@ -42,6 +42,15 @@ with zipfile.ZipFile(output) as apk:
     if apk.testzip():
         raise SystemExit('Corrupt APK ZIP entries')
     print(f'Exported audio verified: {verify_audio_archive(apk, ROOT)} real imported resources')
+    archaeology = json.loads((ROOT / 'data/archaeology.json').read_text())
+    if json.loads(apk.read('assets/data/archaeology.json')) != archaeology:
+        raise SystemExit('APK archaeology catalog differs from validated source')
+    for artifact in archaeology['artifacts']:
+        mapping = apk.read('assets/' + artifact['icon'][6:] + '.import').decode()
+        match = re.search(r'^path="res://([^"\n]+)"', mapping, re.M)
+        if not match or apk.getinfo('assets/' + match[1]).file_size < 1:
+            raise SystemExit('APK missing an imported archaeology icon')
+    print(f"Exported archaeology verified: {len(archaeology['artifacts'])} icons and matching runtime catalog")
     if 'assets/data/balance.json' not in apk.namelist():
         raise SystemExit('APK is missing its runtime balance configuration')
     if json.loads(apk.read('assets/data/balance.json')) != json.loads((ROOT / 'data/balance.json').read_text()):

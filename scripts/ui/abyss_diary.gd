@@ -1,7 +1,7 @@
 class_name AbyssDiary
 extends PanelContainer
 signal close_requested
-var snapshot: Dictionary={}
+var snapshot: Dictionary={"items":[],"journal":AbyssJournal.fresh()}
 var category: String="floors"
 var page:=0
 var navigation: VBoxContainer
@@ -132,9 +132,9 @@ func refresh() -> void:
   row.custom_minimum_size.y=74
   row.add_theme_constant_override("separation",12)
   content.add_child(row)
-  if category=="items":
+  if category in ["items","artifacts"]:
    var icon:=TextureRect.new()
-   icon.texture=RelicCatalog.icon(id)
+   icon.texture=RelicCatalog.icon(id) if category=="items" else load(ArchaeologyCatalog.definition(id).icon) as Texture2D
    icon.custom_minimum_size=Vector2(48,48)
    icon.expand_mode=TextureRect.EXPAND_IGNORE_SIZE
    icon.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED

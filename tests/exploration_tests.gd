@@ -117,12 +117,16 @@ func run() -> void:
  var keys: int=game.keys
  game.travel_to(10)
  check(game.layout.current==10 and game.keys==keys-1,"Secret door consumes a key")
- check(game.pickups.size()==1 and int(RelicCatalog.definition(game.pickups[0].data.id).rarity)<4,"First-floor secret has valid table loot without guaranteed legendary")
- game.pickups[0].data.chest=false
- game.pickups[0].claim()
+ var combat_loot: Array=game.pickups.filter(func(p): return p.data.get("reward_kind","relic")=="relic")
+ check(combat_loot.size()==1 and int(RelicCatalog.definition(combat_loot[0].data.id).rarity)<4,"First-floor secret preserves valid combat loot without guaranteed legendary")
+ check(game.pickups.filter(func(p): return p is ArchaeologyPickup).size()==1,"Secret also contains one separate archaeological cache")
+ for pickup: RelicPickup in game.pickups:
+  pickup.data.chest=false
+  check(pickup.claim(),"Each secret reward uses the same accepted claim path")
+ var keys_after_rewards: int=game.keys
  game.travel_to(neighbor)
  game.travel_to(10)
- check(game.keys==keys-1 and game.pickups.is_empty(),"Secret lock and loot cannot be farmed")
+ check(game.keys==keys_after_rewards and game.pickups.is_empty(),"Secret lock and both reward kinds cannot be farmed")
  # Locked coffer rejection/unlocking uses the same proximity path as real touch movement.
  var chest: RelicPickup=game.spawn_pickup({"id":"crystal","position":Vector2(480,300),"chest":true,"locked":true,"collected":false})
  game.keys=0

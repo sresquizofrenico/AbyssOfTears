@@ -1,7 +1,7 @@
 class_name RoomContent
 extends RefCounted
 
-static func prepare(layout: FloorLayout, owned: Dictionary={}) -> void:
+static func prepare(layout: FloorLayout, owned: Dictionary={}, artifacts: Array=[]) -> void:
  var room: Dictionary=layout.rooms[layout.current]
  if not layout.expanded or room.get("prepared",false): return
  room.prepared=true
@@ -33,3 +33,6 @@ static func prepare(layout: FloorLayout, owned: Dictionary={}) -> void:
    room.props.append({"kind":"trap","position":Vector2(480,200)})
   if room.kind=="combat" and layout.current%3==2:
    room.pickups.append({"id":RelicCatalog.roll(rng,layout.floor_index,"chest"),"position":Vector2(760,274),"chest":true,"locked":true,"collected":false})
+ if room.kind in ["secret","special"]:
+  var artifact:=ArchaeologyCatalog.roll(rng,layout.floor_index,room.kind,artifacts)
+  if not artifact.is_empty(): room.pickups.append({"id":artifact,"reward_kind":"artifact","position":Vector2(710,340),"chest":true,"collected":false})

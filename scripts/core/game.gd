@@ -367,7 +367,7 @@ func start_game(keep_progress: bool = false) -> void:
  player.died.connect(func(): finish(false))
  world.add_child(player)
  if dungeon_mode:
-  RoomContent.prepare(layout,player.relics.owned)
+  RoomContent.prepare(layout,player.relics.owned,progress.data.journal.artifacts)
   populate_room()
  elif trial_kind!="":
   spawn_trial_stage()
@@ -1091,7 +1091,7 @@ func build_relic_ui() -> void:
  ui.add_child(diagnostics)
 
 func spawn_pickup(data: Dictionary) -> RelicPickup:
- var pickup := RelicPickup.new()
+ var pickup: RelicPickup=ArchaeologyPickup.new() if data.get("reward_kind","")=="artifact" else RelicPickup.new()
  pickup.data = data
  pickup.player = player
  pickup.position = safe_pickup_point(data.get("position",Vector2(480,274)))
@@ -1108,6 +1108,7 @@ func spawn_pickup(data: Dictionary) -> RelicPickup:
 func collect_relic(pickup: RelicPickup) -> bool:
  if state not in ["playing","shop"] or not is_instance_valid(player) or not player.active or pickup.player!=player or pickup.get_parent()!=world or not pickup.data.get("claiming",false) or pickup.data.get("collected",false) or not pickup.valid_reward(): return false
  var kind: String = pickup.data.get("reward_kind","relic")
+ if kind=="artifact": return collect_artifact(pickup)
  if kind in ["coins","heal","key"]:
   if kind=="heal" and player.stats.health>=player.stats.max_health: return false
   if kind=="key" and keys>=99: return false
@@ -1137,6 +1138,27 @@ func collect_relic(pickup: RelicPickup) -> bool:
  toast_label.text = definition.name + " · " + RelicCatalog.RARITIES[definition.rarity] + "\n" + (definition.description if added else "Máximo alcanzado: +%d óbolo" % int(Economy.config().duplicate_compensation))
  toast_timer = 2.8
  toast.show()
+ return true
+
+func collect_artifact(pickup: RelicPickup) -> bool:
+ if not dungeon_mode or lab_mode or state not in ["playing","shop"] or not pickup is ArchaeologyPickup or pickup.player!=player or pickup.get_parent()!=world or not pickup.data.get("claiming",false) or pickup.data.get("collected",false): return false
+ var id: String=pickup.data.id
+ var entry:=ArchaeologyCatalog.definition(id)
+ if entry.is_empty(): return false
+ var known: bool=progress.data.journal.artifacts.has(id)
+ if not known and not progress.discover({"artifacts":[id]}): return false
+ if not known:
+  match entry.effect:
+   "key": keys=mini(99,keys+1)
+   "hint": layout.reveal_secret()
+   "map":
+    for neighbor: int in layout.rooms[layout.current].links:
+     for nearby: int in layout.rooms[neighbor].links:
+      if not layout.room_hidden(nearby): layout.rooms[nearby].mapped=true
+  dungeon_map.queue_redraw()
+  update_keys()
+ player.pickup_pose=1.0
+ show_notice(entry.name+(" · Ya registrado" if known else " · Diario actualizado"),pickup.icon())
  return true
 
 func update_relic_ui(delta: float) -> void:

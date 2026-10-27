@@ -1,9 +1,9 @@
 class_name AbyssJournal
 extends RefCounted
 
-const CATEGORIES := ["floors","rooms","items","creatures","bosses","secrets","maps","events","machines"]
-const STORED := ["floors","rooms","creatures","bosses","secrets","maps","events","machines"]
-const TITLES := {"floors":"Pisos descubiertos","rooms":"Salas especiales","items":"Objetos recogidos","creatures":"Criaturas observadas","bosses":"Jefes encontrados","secrets":"Rutas secretas","maps":"Mapas completos","events":"Desafíos superados","machines":"Máquinas antiguas"}
+const CATEGORIES := ["floors","rooms","items","artifacts","creatures","bosses","secrets","maps","events","machines"]
+const STORED := ["floors","rooms","artifacts","creatures","bosses","secrets","maps","events","machines"]
+const TITLES := {"floors":"Pisos descubiertos","rooms":"Salas especiales","items":"Objetos recogidos","artifacts":"Arqueología","creatures":"Criaturas observadas","bosses":"Jefes encontrados","secrets":"Rutas secretas","maps":"Mapas completos","events":"Desafíos superados","machines":"Máquinas antiguas"}
 const FLOOR_IDS := ["salt_crypt","sunken_gardens","crystal_fault"]
 const ROOM_NAMES := {"treasure":"Cámara de tesoro","shop":"Tienda del abismo","special":"Sala de mecanismos","secret":"Cámara secreta","boss":"Cámara del custodio","descent":"Escalera de descenso"}
 const EVENTS := {"illusion_trial":"Prueba de Ilusiones","shader_trial":"La Prueba de Shader","ending":"El sello purificado"}
@@ -23,6 +23,7 @@ static func valid_id(category: String, id: String) -> bool:
   "floors","maps": return id in FLOOR_IDS
   "rooms": return ROOM_NAMES.has(id)
   "items": return not RelicCatalog.definition(id).is_empty()
+  "artifacts": return not ArchaeologyCatalog.definition(id).is_empty()
   "creatures":
    for entry: Dictionary in EnemyCatalog.DATA:
     if entry.id==id: return true
@@ -73,6 +74,7 @@ static func title(category: String, id: String) -> String:
   "floors","maps": return FloorLayout.BIOMES[FLOOR_IDS.find(id)]
   "rooms": return ROOM_NAMES.get(id,id)
   "items": return RelicCatalog.definition(id).get("name",id)
+  "artifacts": return ArchaeologyCatalog.definition(id).get("name",id)
   "creatures":
    for entry: Dictionary in EnemyCatalog.DATA:
     if entry.id==id: return entry.name
@@ -86,6 +88,7 @@ static func title(category: String, id: String) -> String:
 static func description(category: String, id: String) -> String:
  match category:
   "items": return RelicCatalog.definition(id).description
+  "artifacts": return ArchaeologyCatalog.definition(id).story
   "maps": return "Todas las habitaciones visitadas, incluida la cámara secreta. Cada piso cuenta una vez entre partidas."
   "floors": return "Piso visitado en una expedición."
   "rooms": return "Tipo de sala descubierto durante la exploración."
