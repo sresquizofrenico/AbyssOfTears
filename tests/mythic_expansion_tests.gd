@@ -43,7 +43,7 @@ func run() -> void:
  check(not migrated.is_empty() and migrated.version==progress.VERSION and migrated.counters.enemies==43 and migrated.unlocked.has("mira"),"Version-one JSON migrates without relocking previously earned characters")
  check(progress.import_code("AOT1."+Marshalls.utf8_to_base64(JSON.stringify(migration))) and progress.is_unlocked("mira"),"Old portable backups still restore")
  progress.data=progress.fresh()
- check(CharacterCatalog.DATA.size()==11 and CharacterCatalog.rarity_name("shader")=="Mítico","Eleven-character roster and independent Mythic character rarity")
+ check(CharacterCatalog.DATA.size()==20 and CharacterCatalog.rarity_name("shader")=="Mítico","Eleven-character roster and independent Mythic character rarity")
  check(not progress.shader_ready() and not progress.record("shader_trial","fake"),"Shader trial cannot bypass its six prerequisites")
  var distribution: Array[int]=[0,0,0,0,0,0]
  var ids: Dictionary={}

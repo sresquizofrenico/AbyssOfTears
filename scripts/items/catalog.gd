@@ -205,7 +205,7 @@ static func available(id: String) -> bool:
  var entry:=definition(id)
  if entry.get("unlock","")!="main_ending": return not entry.is_empty()
  var progress:=CharacterCatalog.progress_node()
- return progress!=null and progress.amount("endings")>0
+ return progress!=null and (progress.data.bonds.universal or progress.amount("endings")>0)
 
 static func valid_entry(entry: Variant) -> bool:
  if not entry is Dictionary: return false

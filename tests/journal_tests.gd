@@ -31,7 +31,7 @@ func run() -> void:
   legacy.counters.enemies=150
   legacy.counters.floors=3
   var migrated: Dictionary=progress.validate(JSON.parse_string(JSON.stringify(legacy)))
-  check(migrated.version==3 and migrated.items==["crystal"] and migrated.unlocked.has("mira"),"Older save migrates without losing items or characters")
+  check(migrated.version==progress.VERSION and migrated.items==["crystal"] and migrated.unlocked.has("mira"),"Older save migrates without losing items or characters")
   check(migrated.journal.bosses==["root_matron"],"Old verified boss IDs provide honest journal evidence")
   check(migrated.journal.creatures.is_empty() and migrated.journal.maps.is_empty() and migrated.journal.floors.is_empty(),"Aggregate old counters never fabricate species or maps")
   check(progress.import_code("AOT%d." % version+Marshalls.utf8_to_base64(JSON.stringify(legacy))),"Old backup code imports")
@@ -56,7 +56,7 @@ func run() -> void:
  check(not progress.discover({"creatures":["eye"]}) and progress.data==saved,"Failed save rolls back journal mutation")
  progress.storage_path=current_path
  var code: String=progress.export_code()
- check(code.begins_with("AOT3."),"New portable backup carries journal version")
+ check(code.begins_with("AOT4."),"New portable backup carries journal version")
  progress.discover({"creatures":["eye"]})
  check(progress.import_code(code) and progress.data.journal.creatures.has("eye"),"Restoring old backup preserves newer observations")
  var fresh_backup: String=progress.export_code()
@@ -175,7 +175,7 @@ func run() -> void:
  diary.page=24
  diary.refresh()
  check(diary.paging.text=="25 / 25" and diary.next.disabled,"All hundred entries can be reached")
- check(CharacterCatalog.DATA.size()==11 and not CharacterCatalog.playable("lyra") and not CharacterCatalog.playable("darian"),"Unimplemented characters are not advertised as playable")
+ check(CharacterCatalog.DATA.size()==20 and not CharacterCatalog.playable("lyra") and not CharacterCatalog.playable("darian"),"Unimplemented characters are not advertised as playable")
  game.queue_free()
  await process_frame
  await preload("res://tests/audio_test_cleanup.gd").drain(self)

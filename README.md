@@ -1,3 +1,21 @@
+## Los nueve vínculos y códigos · 0.12.0
+
+**Menú principal → CÓDIGOS → `ABISMO-TOTAL` → APLICAR** desbloquea
+permanentemente los veinte personajes de esta versión, incluido Shader.
+Nueve héroes nuevos: Lyra, Kairon, Nami, Yura, Aria, Beren, Celine, Dalia y Elora.
+Activas y pasivas propias, máquinas, antídotos, acertijos, carreras, Teatro,
+pruebas tácticas, resistencia y Constelación Familiar para un jugador.
+Acceso a desafíos desde **Opciones → Modos y pruebas → Vínculos del Abismo**.
+
+Se mantienen tres pisos y cien objetos; Darian y los doce viajeros anteriores
+siguen pendientes. El código no equipa objetos ni falsifica logros del diario.
+[Descargar APK público](https://github.com/sresquizofrenico/AbyssOfTears/releases/tag/v0.12.0-public)
+· [Cambios e instalación](docs/releases/0.12.0.md)
+· [Auditoría y pruebas](docs/nine-bonds-implementation-0.12.md).
+Antes de actualizar, copia tu respaldo desde **Opciones → Progreso**.
+AOT4 importa respaldos AOT1–3. APK de prueba de 32.23 MB sin relleno;
+el mínimo anterior de 100 MB y la medición física en ZTE siguen pendientes.
+
 ## Diario del Abismo y arqueología · 0.11.0
 
 Diario persistente desde **Opciones → Diario y créditos** o **Pausa → Diario del Abismo**.

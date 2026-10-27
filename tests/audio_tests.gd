@@ -206,7 +206,7 @@ func run() -> void:
  game.show_main_menu()
  game._process(0)
  check(audio.current_track=="menu","Menu return restores title theme")
- check(CharacterCatalog.DATA.size()==11 and RelicCatalog.DATA.size()==100 and EnemyCatalog.DATA.size()==20,"Existing content preserved without fictitious travelers")
+ check(CharacterCatalog.DATA.size()==20 and RelicCatalog.DATA.size()==100 and EnemyCatalog.DATA.size()==20,"Existing content preserved without fictitious travelers")
  game.queue_free()
  await process_frame
  await create_timer(0.4).timeout

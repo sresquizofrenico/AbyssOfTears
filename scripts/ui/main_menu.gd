@@ -48,6 +48,7 @@ func _ready() -> void:
  box.add_child(make_label("BITÁCORA DEL FARO",16))
  add_button(box,"NUEVA PARTIDA","new_game")
  add_button(box,"OPCIONES","options")
+ add_button(box,"CÓDIGOS","codes")
  add_button(box,"SALIR","exit")
  if OS.has_feature("web"):
   disabled_actions.append("exit")
@@ -75,7 +76,7 @@ func make_label(text: String, font_size: int) -> Label:
  return label
 
 func add_button(box: VBoxContainer, text: String, action: String) -> void:
- var button := Button.new()
+ var button := AbyssTouchButton.new()
  button.text = text
  button.custom_minimum_size = Vector2(260,44)
  button.add_theme_font_size_override("font_size",16)
@@ -117,8 +118,8 @@ func layout_menu() -> void:
  subtitle.position=Vector2(24+insets.x,155+insets.y)
  subtitle.size=Vector2(left_width-48,28)
  hint.position=Vector2(24+insets.x,size.y-32-insets.w)
- button_panel.position=Vector2(size.x-340-insets.z,maxf(24,(size.y-270)*0.5)+insets.y)
- button_panel.size=Vector2(316,270)
+ button_panel.position=Vector2(size.x-340-insets.z,maxf(24,(size.y-316)*0.5)+insets.y)
+ button_panel.size=Vector2(316,316)
 
 func refresh_visuals() -> void:
  title.modulate.a=intro.title_alpha()

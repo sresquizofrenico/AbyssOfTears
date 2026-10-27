@@ -2,14 +2,14 @@ extends Node
 
 signal character_unlocked(id: String)
 signal save_failed(error: Error)
-const VERSION := 3
+const VERSION := 4
 const COUNTERS := ["enemies","bosses","minibosses","floors","wanderer_floors","clean_streak","best_clean_streak","secrets","endings","elemental_bosses","elites","hard_clean","illusion_trials","shader_trials"]
 var storage_path := "user://progress.json"
 var data: Dictionary = fresh()
 var recovered := false
 
 func fresh() -> Dictionary:
- var value := {"version":VERSION,"serial":0,"counters":{},"items":[],"events":{},"unlocked":["neris"],"pending":[],"boss_types":[],"journal":AbyssJournal.fresh()}
+ var value := {"version":VERSION,"serial":0,"counters":{},"items":[],"events":{},"unlocked":["neris"],"pending":[],"boss_types":[],"journal":AbyssJournal.fresh(),"bonds":BondProgress.fresh()}
  for key in COUNTERS: value.counters[key]=0
  return value
 
@@ -19,7 +19,7 @@ func _ready() -> void:
 func validate(value: Variant) -> Dictionary:
  if not value is Dictionary: return {}
  var version: Variant=value.get("version")
- if not (version is int or version is float) or not is_finite(float(version)) or (float(version)!=1.0 and float(version)!=2.0 and float(version)!=float(VERSION)): return {}
+ if not (version is int or version is float) or not is_finite(float(version)) or (float(version)!=1.0 and float(version)!=2.0 and float(version)!=3.0 and float(version)!=float(VERSION)): return {}
  var clean := fresh()
  for key in ["serial"]:
   var number = value.get(key,0)
@@ -45,6 +45,9 @@ func validate(value: Variant) -> Dictionary:
  var journal:=AbyssJournal.validate(value.get("journal",{}))
  if journal.is_empty(): return {}
  clean.journal=journal
+ var bonds:=BondProgress.validate(value.get("bonds",{}))
+ if bonds.is_empty(): return {}
+ clean.bonds=bonds
  # Old boss_types are evidence of actual victories; aggregate kill/floor totals
  # cannot identify species or visited maps and must not fabricate those entries.
  for id in clean.boss_types:
@@ -82,9 +85,14 @@ func save_progress() -> Error:
  return DirAccess.rename_absolute(storage_path+".tmp",storage_path)
 
 func is_unlocked(id: String) -> bool:
- return id=="neris" or data.unlocked.has(id)
+ return not CharacterCatalog.definition(id).is_empty() and (id=="neris" or data.unlocked.has(id) or data.bonds.universal)
 
 func amount(counter: String) -> int:
+ if counter.begins_with("bonds_"):
+  var met:=0
+  for rule: Dictionary in BondProgress.requirements(counter.substr(6),data):
+   if rule.current>=rule.target: met+=1
+  return met
  if counter=="illusion_path": return int(int(data.counters.secrets)>0)+int(int(data.counters.illusion_trials)>0)
  if counter=="shader_path":
   var completed:=int(int(data.counters.shader_trials)>0)
@@ -128,6 +136,7 @@ func discover(found: Dictionary) -> bool:
    if not data.journal[category].has(id) and data.journal[category].size()<AbyssJournal.LIMIT:
     data.journal[category].append(id)
     changed=true
+ if changed: evaluate()
  return commit(previous) if changed else false
 
 # Events are unique within a persistent run serial, consumed before counters change.
@@ -182,11 +191,11 @@ func export_code() -> String:
  var backup:=data.duplicate(true)
  backup.events.clear()
  backup.counters.clean_streak=0
- return "AOT3."+Marshalls.utf8_to_base64(JSON.stringify(backup))
+ return "AOT4."+Marshalls.utf8_to_base64(JSON.stringify(backup))
 
 func import_code(code: String) -> bool:
  code=code.strip_edges()
- if (not code.begins_with("AOT1.") and not code.begins_with("AOT2.") and not code.begins_with("AOT3.")) or code.length()>1500000: return false
+ if (not code.begins_with("AOT1.") and not code.begins_with("AOT2.") and not code.begins_with("AOT3.") and not code.begins_with("AOT4.")) or code.length()>1500000: return false
  var parser:=JSON.new()
  if parser.parse(Marshalls.base64_to_utf8(code.substr(5)))!=OK: return false
  var incoming:=validate(parser.data)
@@ -201,6 +210,11 @@ func import_code(code: String) -> bool:
  for category: String in AbyssJournal.STORED:
   for id: String in incoming.journal[category]:
    if not data.journal[category].has(id) and data.journal[category].size()<AbyssJournal.LIMIT: data.journal[category].append(id)
+ for category: String in BondProgress.SETS:
+  for id: String in incoming.bonds.sets[category]:
+   if not data.bonds.sets[category].has(id): data.bonds.sets[category].append(id)
+ for flag: String in BondProgress.FLAGS: data.bonds[flag]=data.bonds[flag] or incoming.bonds[flag]
+ data.bonds.antidotes=maxi(int(data.bonds.antidotes),int(incoming.bonds.antidotes))
  data.serial=maxi(int(data.serial),int(incoming.serial))
  evaluate()
  return commit(previous)
@@ -218,3 +232,31 @@ func shader_ready() -> bool:
  for requirement: Dictionary in shader_requirements():
   if requirement.current<requirement.target: return false
  return true
+
+func record_bond(category: String, id: String, token: String="") -> bool:
+ if category=="engineering_done" and (data.bonds.sets.machines.size()<4 or data.bonds.sets.components.size()<6): return false
+ if category=="future_final" and (not data.bonds.future_boss or data.bonds.sets.fragments.size()<5 or data.bonds.sets.prediction.size()<3): return false
+ if category=="no_heal" and data.bonds.sets.endurance.is_empty(): return false
+ var previous:=data.duplicate(true)
+ if category in BondProgress.SETS:
+  if not BondProgress.valid_id(category,id) or data.bonds.sets[category].has(id): return false
+  data.bonds.sets[category].append(id)
+ elif category in ["future_boss","future_final","no_heal","family_done","engineering_done"]:
+  if data.bonds[category]: return false
+  data.bonds[category]=true
+ elif category=="antidote":
+  var key: String="bond_antidote:"+token
+  if token.is_empty() or token.length()>100 or data.events.has(key) or data.events.size()>=4096: return false
+  data.events[key]=true
+  data.bonds.antidotes=mini(100000,int(data.bonds.antidotes)+1)
+ else: return false
+ evaluate()
+ return commit(previous)
+
+func redeem(code: String) -> String:
+ if code.length()>64 or code.strip_edges().to_upper().replace("-","").replace(" ","")!="ABISMOTOTAL": return "Código no reconocido"
+ if data.bonds.universal: return "El acceso completo ya está activado"
+ var previous:=data.duplicate(true)
+ data.bonds.universal=true
+ if not commit(previous): return "No se pudo guardar el código. Inténtalo de nuevo"
+ return "Acceso completo activado: todos los personajes y objetos disponibles"

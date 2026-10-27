@@ -22,7 +22,7 @@ func run() -> void:
  progress.storage_path="user://character-test.json"
  progress.data=progress.fresh()
  var settings_before:=FileAccess.get_file_as_string("user://settings.json") if FileAccess.file_exists("user://settings.json") else ""
- check(CharacterCatalog.DATA.size()==11,"Eleven distinct original definitions")
+ check(CharacterCatalog.DATA.size()==20,"Eleven distinct original definitions")
  var ids: Dictionary={}
  for entry: Dictionary in CharacterCatalog.DATA:
   check(not ids.has(entry.id),"Character IDs unique")
@@ -40,7 +40,7 @@ func run() -> void:
  game.show_character_selection()
  await process_frame
  var selection: CharacterSelection=game.panel
- for i in range(11):
+ for i in range(CharacterCatalog.DATA.size()):
   check(selection.index==i,"Navigation visits every catalog entry")
   check(selection.begin_button.disabled==(i!=0),"Locked characters cannot begin")
   if i>0:

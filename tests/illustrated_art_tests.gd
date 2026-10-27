@@ -73,7 +73,7 @@ func run() -> void:
  game.player.take_damage(999)
  check(game.state=="defeat","Illustrated player retains defeat transition")
  game.show_main_menu()
- check(game.panel.buttons.size()==3,"Simplified animated main menu retained")
+ check(game.panel.buttons.size()==4,"Simplified animated main menu retained")
  game.queue_free()
  await process_frame
  print("ILLUSTRATED ART RESULT: %d checks, %d failures" % [checks,failures])

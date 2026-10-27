@@ -20,6 +20,7 @@ var dash_direction := Vector2.DOWN
 var heal_budget := 0.0
 var mixture := 0
 var character_color:=Color("83dcf0")
+var bond_arena: Node
 var quality:=1
 var character_state:=CharacterRules.fresh()
 var latest_hit_source: String="projectile"
@@ -72,6 +73,8 @@ func _physics_process(delta: float) -> void:
  immunity = maxf(0, immunity - delta)
  velocity = movement_input() * stats.speed
  if (character_id=="neris" and ability_active>0) or (character_id=="nyra" and character_state.dash>0): velocity=dash_direction*520.0
+ if character_id in ["beren","dalia"] and character_state.bond_dash>0: velocity=dash_direction*540.0
+ if character_id=="kairon" and character_state.beam_pending: velocity*=0.55
  move_and_slide()
  var direction := attack_input()
  if direction != Vector2.ZERO:
@@ -86,8 +89,12 @@ func try_shoot(direction: Vector2) -> bool:
  shot.emit(position + direction * 21.0, direction, stats)
  return true
 
+func environment_protected() -> bool:
+ return is_instance_valid(bond_arena) and bond_arena.environment_protected()
+
 func take_damage(amount: float, source: String="projectile") -> void:
  if not active: return
+ if source in ["acid","lightning","heat","cold"] and environment_protected(): return
  if immunity>0:
   CharacterRules.evaded(self)
   return
@@ -123,6 +130,7 @@ func _draw() -> void:
  if spawn_pose>0: jump-=sin(spawn_pose*PI*2)*7
  if ability_active>0: pose="present"
  if character_id=="shader": ShaderArt.paint(self,clock,velocity.length()>1,pose,facing,Vector2(0,bob+jump),tilt,1.0,2 if awakened>0 else 1 if character_state.panic or determination>=100 else 0)
+ elif character_id in BondCatalog.IDS: BondArt.paint(self,character_id,body_texture,clock*animation_rate,velocity.length()>1,pose,facing,Vector2(0,bob+jump),tilt,1.0)
  else: IllustratedNeris.paint(self,clock*animation_rate,velocity.length()>1,pose,facing,Vector2(0,bob+jump),tilt,1.0,Color.WHITE,body_texture)
  if cooldown > stats.attack_interval*0.7:
   draw_circle(facing*24,5,Color(0.7,1,0.9,0.7))
@@ -149,6 +157,7 @@ func _draw() -> void:
   draw_set_transform(Vector2.ZERO)
 
  CharacterVFX.paint(self)
+ NineBonds.paint(self)
 
 func draw_ellipse_shadow() -> void:
  draw_texture_rect(IllustratedNeris.SHADOW,Rect2(-29,9,58,23),false)
@@ -158,6 +167,8 @@ func _ready() -> void:
 
 func configure_character(id: String) -> void:
  character_id=id
+ var progress:=CharacterCatalog.progress_node()
+ if progress and progress.data.bonds.family_done: character_state.family_ward=1.0
  character_color=Color(CharacterCatalog.definition(id).color)
  animation_rate=float(CharacterCatalog.definition(id).animation_rate)
  body_texture=CharacterCatalog.texture(id)
@@ -166,7 +177,7 @@ func activate_ability() -> bool:
  if not active or ability_remaining>0 or not CharacterCatalog.playable(character_id) or (character_id=="lumi" and character_state.healing_left<=0): return false
  var entry:=CharacterCatalog.definition(character_id)
  ability_remaining=float(entry.cooldown)*(1.0-clampf(relics.effects.value("cooldown"),0,0.35))
- ability_active=float(entry.duration)
+ ability_active=float(entry.duration)*(1.2 if NineBonds.resonance(self) else 1.0)
  ability_age=0.0
  skill_origin=position
  dash_direction=movement_input().normalized() if movement_input()!=Vector2.ZERO else facing
@@ -190,7 +201,7 @@ func tick_ability(delta: float) -> void:
  CharacterRules.tick(self,delta,was_active)
 
 func pursuit_point() -> Vector2:
- if character_id=="nyra" and ability_active>0: return skill_origin
+ if character_id in ["nyra","aria"] and ability_active>0: return skill_origin
  if character_id=="mira" and character_state.shadow_timer>0: return position+Vector2(44,0)
  return position
 

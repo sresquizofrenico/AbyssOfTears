@@ -30,7 +30,7 @@ func run() -> void:
  var selection: CharacterSelection=game.panel
  await process_frame
  check(selection.heading.text.contains("Neris"),"Real character name displayed")
- check(selection.entries.size()==11 and selection.left_button.visible and selection.right_button.visible,"All eleven characters are browsable from first launch")
+ check(selection.entries.size()==20 and selection.left_button.visible and selection.right_button.visible,"All twenty characters are browsable from first launch")
  check(not selection.begin_button.disabled,"Neris starts unlocked")
  var stats: ActorStats=CharacterCatalog.initial_stats("neris")
  check(stats.health==6 and stats.damage==1 and stats.speed==185 and is_equal_approx(stats.attack_interval,1.0/2.8),"Catalog preserves existing real base stats")
