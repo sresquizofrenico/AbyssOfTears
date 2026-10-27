@@ -11,6 +11,11 @@ import subprocess
 import tempfile
 import zipfile
 
+if __package__:
+    from .verify_audio_assets import verify_audio_archive
+else:
+    from verify_audio_assets import verify_audio_archive
+
 
 def prepare(apk, report_path, root, tag, output):
     report = json.loads(report_path.read_text())
@@ -24,6 +29,7 @@ def prepare(apk, report_path, root, tag, output):
     with zipfile.ZipFile(apk) as archive:
         if archive.testzip():
             raise ValueError('Corrupted APK')
+        verify_audio_archive(archive, root)
         for name in ['AndroidManifest.xml', 'lib/arm64-v8a/libgodot_android.so']:
             if name not in archive.namelist():
                 raise ValueError(f'Missing APK resource: {name}')

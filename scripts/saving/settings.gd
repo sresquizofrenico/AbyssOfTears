@@ -1,7 +1,7 @@
 extends Node
 
 const PATH := "user://settings.json"
-const DEFAULTS := {"version": 1, "quality": 1, "control_scale": 1.0, "control_opacity": 0.75, "diagnostics": false, "stats_view": 0,"move_deadzone":0.12,"floating_joystick":false,"fire_style":0,"left_handed":false}
+const DEFAULTS := {"version": 1, "quality": 1, "control_scale": 1.0, "control_opacity": 0.75, "diagnostics": false, "stats_view": 0,"move_deadzone":0.12,"floating_joystick":false,"fire_style":0,"left_handed":false,"music_volume":0.55,"sfx_volume":0.8}
 var values: Dictionary = DEFAULTS.duplicate()
 
 func _ready() -> void:
@@ -24,6 +24,9 @@ func validate(data: Variant) -> Dictionary:
   var v = data.get(key)
   if (v is float or v is int) and is_finite(float(v)):
    clean[key] = clampf(float(v), 0.8 if key == "control_scale" else 0.3, 1.25 if key == "control_scale" else 1.0)
+ for key in ["music_volume","sfx_volume"]:
+  var v: Variant=data.get(key)
+  if (v is float or v is int) and is_finite(float(v)): clean[key]=clampf(float(v),0,1)
  return clean
 
 func load_settings() -> void:

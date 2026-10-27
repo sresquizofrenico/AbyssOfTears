@@ -1,0 +1,11 @@
+Abyss of Tears — Original audio, 0.10.0
+
+The score, motifs, arrangements, synthesis and effects in assets/audio were
+created for this project using tools/compose_soundtrack.py. No third-party
+audio samples, songs or game recordings are included.
+
+These compositions, recordings and their source are distributed under the
+project MIT license (see LICENSE). Godot has its separate MIT notices.
+
+The first collection covers the existing three-floor campaign; tracks for
+the proposed twelve-floor expansion remain to be composed and integrated.

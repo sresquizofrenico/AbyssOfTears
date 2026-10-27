@@ -3,6 +3,7 @@ extends Node2D
 
 signal unlock_requested(pickup: RelicPickup)
 signal claimed(pickup: RelicPickup)
+signal opened
 const GLOW = preload("res://assets/illustrated/glow.svg")
 const KEY = preload("res://assets/relics/key.svg")
 const COINS = preload("res://assets/relics/coins.svg")
@@ -57,6 +58,7 @@ func open_chest() -> bool:
  data.opened=true
  cooldown=0.35
  open_age=0
+ opened.emit()
  queue_redraw()
  return true
 

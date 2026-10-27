@@ -1,0 +1,51 @@
+extends SceneTree
+var checks:=0
+var failures:=0
+
+func _initialize() -> void: run.call_deferred()
+
+func measure(capture: AudioEffectCapture, name: String) -> void:
+ # The mixer is a separate thread. Wait for actual samples, not an assumed
+ # amount of rendering time: busy runners can deliver the first block late.
+ var deadline:=Time.get_ticks_msec()+2500
+ var frames:=0
+ var peak:=0.0
+ while Time.get_ticks_msec()<deadline and (frames<256 or peak<=0.0001):
+  await create_timer(0.025).timeout
+  var samples:=capture.get_buffer(capture.get_frames_available())
+  frames+=samples.size()
+  for sample: Vector2 in samples: peak=maxf(peak,maxf(absf(sample.x),absf(sample.y)))
+ checks+=1
+ if frames<256 or peak<=0.0001 or peak>=0.98:
+  failures+=1
+  push_error("TEST FAILED: non-silent unclipped mixer output %s (frames=%d, peak=%f)" % [name,frames,peak])
+
+func run() -> void:
+ var director=root.get_node("Soundscape")
+ var settings=root.get_node("Settings")
+ var original: Dictionary=settings.values.duplicate(true)
+ settings.values.music_volume=1.0
+ settings.values.sfx_volume=1.0
+ director.apply_settings()
+ for bus in ["AbyssMusic","AbyssSFX"]:
+  var index:=AudioServer.get_bus_index(bus)
+  var capture:=AudioEffectCapture.new()
+  capture.buffer_length=1
+  AudioServer.add_bus_effect(index,capture)
+  if bus=="AbyssMusic":
+   for id: String in AbyssAudioCatalog.tracks():
+    director.set_context(id)
+    director._process(0.8)
+    capture.clear_buffer()
+    await measure(capture,id)
+  else:
+   for id: String in AbyssAudioCatalog.EFFECTS:
+    capture.clear_buffer()
+    director.play_effect(id)
+    await measure(capture,id)
+  AudioServer.remove_bus_effect(index,0)
+ settings.values=original
+ director.apply_settings()
+ await preload("res://tests/audio_test_cleanup.gd").drain(self)
+ print("AUDIO MIXER RESULT: %d checks, %d failures" % [checks,failures])
+ quit(1 if failures else 0)

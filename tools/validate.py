@@ -50,5 +50,7 @@ with tempfile.TemporaryDirectory(prefix='abyss-tests-') as user_dir:
     run(['--script', 'res://tests/mythic_expansion_tests.gd'], env)
     run(['--script', 'res://tests/character_passive_tests.gd'], env)
     run(['--script', 'res://tests/control_accessibility_tests.gd'], env)
+    run(['--script', 'res://tests/audio_tests.gd'], env)
+    run(['--script', 'res://tests/audio_mixer_tests.gd'], env)
 subprocess.run([sys.executable, '-m', 'unittest', 'discover', '-s', 'tests', '-p', 'test_public_release.py'], cwd=ROOT, check=True)
 print('All project validations passed.')
