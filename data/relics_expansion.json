@@ -1,0 +1,3148 @@
+{
+  "version": 1,
+  "items": [
+    {
+      "id": "sharp_stone",
+      "name": "Piedra Afilada",
+      "rarity": 0,
+      "description": "Daño +0,12; velocidad de proyectil -15.",
+      "modifiers": {
+        "damage": 0.12,
+        "projectile_speed": -15
+      },
+      "effects": [],
+      "category": "pasivo",
+      "max_stack": 1,
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        0,
+        0,
+        96,
+        96
+      ],
+      "condition": "always",
+      "price_profile": 0,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    },
+    {
+      "id": "light_boots",
+      "name": "Botas Ligeras",
+      "rarity": 0,
+      "description": "Velocidad +12; alcance -20.",
+      "modifiers": {
+        "speed": 12,
+        "attack_range": -20
+      },
+      "effects": [],
+      "category": "pasivo",
+      "max_stack": 1,
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        96,
+        0,
+        96,
+        96
+      ],
+      "condition": "always",
+      "price_profile": 0,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    },
+    {
+      "id": "broken_lens",
+      "name": "Lente Rota",
+      "rarity": 0,
+      "description": "Alcance +65; proyectiles -12 px/s.",
+      "modifiers": {
+        "attack_range": 65,
+        "projectile_speed": -12
+      },
+      "effects": [],
+      "category": "pasivo",
+      "max_stack": 1,
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        192,
+        0,
+        96,
+        96
+      ],
+      "condition": "always",
+      "price_profile": 0,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    },
+    {
+      "id": "old_spring",
+      "name": "Resorte Viejo",
+      "rarity": 0,
+      "description": "Intervalo -0,018 s; daño -0,04.",
+      "modifiers": {
+        "attack_interval": -0.018,
+        "damage": -0.04
+      },
+      "effects": [],
+      "category": "pasivo",
+      "max_stack": 1,
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        288,
+        0,
+        96,
+        96
+      ],
+      "condition": "always",
+      "price_profile": 0,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    },
+    {
+      "id": "worn_charm",
+      "name": "Amuleto Gastado",
+      "rarity": 0,
+      "description": "Suerte +1: mejora levemente las activaciones probabilísticas.",
+      "modifiers": {
+        "luck": 1
+      },
+      "effects": [],
+      "category": "pasivo",
+      "max_stack": 1,
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        384,
+        0,
+        96,
+        96
+      ],
+      "condition": "always",
+      "price_profile": 0,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    },
+    {
+      "id": "copper_plate",
+      "name": "Placa de Cobre",
+      "rarity": 0,
+      "description": "Defensa +0,10; velocidad -5.",
+      "modifiers": {
+        "defense": 0.1,
+        "speed": -5
+      },
+      "effects": [],
+      "category": "pasivo",
+      "max_stack": 1,
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        480,
+        0,
+        96,
+        96
+      ],
+      "condition": "always",
+      "price_profile": 0,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    },
+    {
+      "id": "vital_shard",
+      "name": "Fragmento Vital",
+      "rarity": 0,
+      "description": "Vida máxima +0,5 y cura 0,5 al recoger.",
+      "modifiers": {
+        "max_health": 0.5
+      },
+      "effects": [
+        {
+          "hook": "pickup",
+          "op": "heal",
+          "value": 0.5
+        }
+      ],
+      "category": "pasivo",
+      "max_stack": 1,
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        576,
+        0,
+        96,
+        96
+      ],
+      "condition": "always",
+      "price_profile": 0,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    },
+    {
+      "id": "agile_gloves",
+      "name": "Guantes Ágiles",
+      "rarity": 0,
+      "description": "Tras usar una habilidad: velocidad +18 durante 2 s.",
+      "modifiers": {},
+      "effects": [
+        {
+          "hook": "ability",
+          "op": "buff",
+          "modifiers": {
+            "speed": 18
+          },
+          "duration": 2
+        }
+      ],
+      "category": "pasivo",
+      "max_stack": 1,
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        672,
+        0,
+        96,
+        96
+      ],
+      "condition": "always",
+      "price_profile": 0,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    },
+    {
+      "id": "marked_coin",
+      "name": "Moneda Marcada",
+      "rarity": 0,
+      "description": "Cada cuatro salas de combate, una moneda. Máximo tres por partida.",
+      "modifiers": {},
+      "effects": [
+        {
+          "hook": "room",
+          "op": "coin",
+          "every": 4,
+          "budget": 3
+        }
+      ],
+      "category": "pasivo",
+      "max_stack": 1,
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        768,
+        0,
+        96,
+        96
+      ],
+      "condition": "always",
+      "price_profile": 0,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    },
+    {
+      "id": "opaque_crystal",
+      "name": "Cristal Opaco",
+      "rarity": 0,
+      "description": "Proyectiles +45 px/s; alcance +15.",
+      "modifiers": {
+        "projectile_speed": 45,
+        "attack_range": 15
+      },
+      "effects": [],
+      "category": "pasivo",
+      "max_stack": 1,
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        864,
+        0,
+        96,
+        96
+      ],
+      "condition": "always",
+      "price_profile": 0,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    },
+    {
+      "id": "linen_band",
+      "name": "Venda de Lino",
+      "rarity": 0,
+      "description": "Cura 1 al recoger; no aumenta la vida máxima.",
+      "modifiers": {},
+      "effects": [
+        {
+          "hook": "pickup",
+          "op": "heal",
+          "value": 1
+        }
+      ],
+      "category": "consumible",
+      "max_stack": 3,
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        0,
+        96,
+        96,
+        96
+      ],
+      "condition": "always",
+      "price_profile": 0,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    },
+    {
+      "id": "tin_whistle",
+      "name": "Silbato de Estaño",
+      "rarity": 0,
+      "description": "Cada quinto disparo empuja al enemigo alcanzado.",
+      "modifiers": {},
+      "effects": [
+        {
+          "hook": "shot",
+          "op": "push",
+          "value": 24,
+          "every": 5
+        }
+      ],
+      "category": "pasivo",
+      "max_stack": 1,
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        96,
+        96,
+        96,
+        96
+      ],
+      "condition": "always",
+      "price_profile": 0,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    },
+    {
+      "id": "patient_pin",
+      "name": "Broche Paciente",
+      "rarity": 0,
+      "description": "Sin moverte: daño +0,16. Se pierde al caminar.",
+      "modifiers": {},
+      "effects": [
+        {
+          "hook": "tick",
+          "op": "conditional",
+          "when": "still",
+          "modifiers": {
+            "damage": 0.16
+          }
+        }
+      ],
+      "category": "pasivo",
+      "max_stack": 1,
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        192,
+        96,
+        96,
+        96
+      ],
+      "condition": "always",
+      "price_profile": 0,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    },
+    {
+      "id": "runner_knot",
+      "name": "Nudo del Corredor",
+      "rarity": 0,
+      "description": "Mientras caminas: intervalo -0,02 s.",
+      "modifiers": {},
+      "effects": [
+        {
+          "hook": "tick",
+          "op": "conditional",
+          "when": "moving",
+          "modifiers": {
+            "attack_interval": -0.02
+          }
+        }
+      ],
+      "category": "pasivo",
+      "max_stack": 1,
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        288,
+        96,
+        96,
+        96
+      ],
+      "condition": "always",
+      "price_profile": 0,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    },
+    {
+      "id": "salt_pouch",
+      "name": "Saquito de Sal",
+      "rarity": 0,
+      "description": "Al recibir daño: velocidad +25 durante 1,5 s.",
+      "modifiers": {},
+      "effects": [
+        {
+          "hook": "hurt",
+          "op": "buff",
+          "modifiers": {
+            "speed": 25
+          },
+          "duration": 1.5
+        }
+      ],
+      "category": "pasivo",
+      "max_stack": 1,
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        384,
+        96,
+        96,
+        96
+      ],
+      "condition": "always",
+      "price_profile": 0,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    },
+    {
+      "id": "reed_arrow",
+      "name": "Flecha de Junco",
+      "rarity": 0,
+      "description": "Cada cuarto disparo: daño +20% y velocidad +20%.",
+      "modifiers": {},
+      "effects": [
+        {
+          "hook": "shot",
+          "op": "power",
+          "value": 0.2,
+          "every": 4
+        },
+        {
+          "hook": "shot",
+          "op": "velocity",
+          "value": 0.2,
+          "every": 4
+        }
+      ],
+      "category": "pasivo",
+      "max_stack": 1,
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        480,
+        96,
+        96,
+        96
+      ],
+      "condition": "always",
+      "price_profile": 0,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    },
+    {
+      "id": "brass_button",
+      "name": "Botón de Latón",
+      "rarity": 0,
+      "description": "Con toda la vida: defensa +0,15.",
+      "modifiers": {},
+      "effects": [
+        {
+          "hook": "tick",
+          "op": "conditional",
+          "when": "full",
+          "modifiers": {
+            "defense": 0.15
+          }
+        }
+      ],
+      "category": "pasivo",
+      "max_stack": 1,
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        576,
+        96,
+        96,
+        96
+      ],
+      "condition": "always",
+      "price_profile": 0,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    },
+    {
+      "id": "ember_thread",
+      "name": "Hilo de Brasa",
+      "rarity": 0,
+      "description": "Cada sexto disparo aplica una quemadura breve.",
+      "modifiers": {},
+      "effects": [
+        {
+          "hook": "shot",
+          "op": "element",
+          "element": "fire",
+          "every": 6
+        }
+      ],
+      "category": "pasivo",
+      "max_stack": 1,
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        672,
+        96,
+        96,
+        96
+      ],
+      "condition": "always",
+      "price_profile": 0,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    },
+    {
+      "id": "cold_marble",
+      "name": "Canica Fría",
+      "rarity": 0,
+      "description": "Cada sexto disparo ralentiza.",
+      "modifiers": {},
+      "effects": [
+        {
+          "hook": "shot",
+          "op": "element",
+          "element": "ice",
+          "every": 6
+        }
+      ],
+      "category": "pasivo",
+      "max_stack": 1,
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        768,
+        96,
+        96,
+        96
+      ],
+      "condition": "always",
+      "price_profile": 0,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    },
+    {
+      "id": "bitter_leaf",
+      "name": "Hoja Amarga",
+      "rarity": 0,
+      "description": "Cada sexto disparo envenena durante 3 s.",
+      "modifiers": {},
+      "effects": [
+        {
+          "hook": "shot",
+          "op": "element",
+          "element": "poison",
+          "every": 6
+        }
+      ],
+      "category": "pasivo",
+      "max_stack": 1,
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        864,
+        96,
+        96,
+        96
+      ],
+      "condition": "always",
+      "price_profile": 0,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    },
+    {
+      "id": "steady_grip",
+      "name": "Empuñadura Firme",
+      "rarity": 0,
+      "description": "Cada tercer disparo gana 100 px de alcance.",
+      "modifiers": {},
+      "effects": [
+        {
+          "hook": "shot",
+          "op": "reach",
+          "value": 100,
+          "every": 3
+        }
+      ],
+      "category": "pasivo",
+      "max_stack": 1,
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        0,
+        192,
+        96,
+        96
+      ],
+      "condition": "always",
+      "price_profile": 0,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    },
+    {
+      "id": "traveler_patch",
+      "name": "Parche del Viajero",
+      "rarity": 0,
+      "description": "Al limpiar una sala: velocidad +20 durante 3 s.",
+      "modifiers": {},
+      "effects": [
+        {
+          "hook": "room",
+          "op": "buff",
+          "modifiers": {
+            "speed": 20
+          },
+          "duration": 3
+        }
+      ],
+      "category": "pasivo",
+      "max_stack": 1,
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        96,
+        192,
+        96,
+        96
+      ],
+      "condition": "always",
+      "price_profile": 0,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    },
+    {
+      "id": "silver_stitch",
+      "name": "Puntada de Plata",
+      "rarity": 0,
+      "description": "Al recibir daño: reduce 1 s de recarga de habilidad.",
+      "modifiers": {},
+      "effects": [
+        {
+          "hook": "hurt",
+          "op": "recharge",
+          "value": 1
+        }
+      ],
+      "category": "pasivo",
+      "max_stack": 1,
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        192,
+        192,
+        96,
+        96
+      ],
+      "condition": "always",
+      "price_profile": 0,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    },
+    {
+      "id": "dew_bead",
+      "name": "Cuenta de Rocío",
+      "rarity": 0,
+      "description": "Cura 0,5 cada tres salas limpias. Máximo cuatro veces.",
+      "modifiers": {},
+      "effects": [
+        {
+          "hook": "room",
+          "op": "heal",
+          "value": 0.5,
+          "every": 3,
+          "budget": 4
+        }
+      ],
+      "category": "pasivo",
+      "max_stack": 1,
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        288,
+        192,
+        96,
+        96
+      ],
+      "condition": "always",
+      "price_profile": 0,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    },
+    {
+      "id": "small_compass",
+      "name": "Aguja del Camino",
+      "rarity": 0,
+      "description": "Disparos con alcance +30 y un 12% de guía suave.",
+      "modifiers": {
+        "attack_range": 30
+      },
+      "effects": [
+        {
+          "hook": "shot",
+          "op": "homing",
+          "chance": 0.12,
+          "value": 1
+        }
+      ],
+      "category": "pasivo",
+      "max_stack": 1,
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        384,
+        192,
+        96,
+        96
+      ],
+      "condition": "always",
+      "price_profile": 0,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    },
+    {
+      "id": "wax_seal",
+      "name": "Sello de Cera",
+      "rarity": 0,
+      "description": "Al usar habilidad: defensa +0,15 durante 2 s.",
+      "modifiers": {},
+      "effects": [
+        {
+          "hook": "ability",
+          "op": "buff",
+          "modifiers": {
+            "defense": 0.15
+          },
+          "duration": 2
+        }
+      ],
+      "category": "pasivo",
+      "max_stack": 1,
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        480,
+        192,
+        96,
+        96
+      ],
+      "condition": "always",
+      "price_profile": 0,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    },
+    {
+      "id": "last_match",
+      "name": "Última Cerilla",
+      "rarity": 0,
+      "description": "Con vida baja: daño +0,20; sin curación gratis.",
+      "modifiers": {},
+      "effects": [
+        {
+          "hook": "tick",
+          "op": "conditional",
+          "when": "low",
+          "modifiers": {
+            "damage": 0.2
+          }
+        }
+      ],
+      "category": "pasivo",
+      "max_stack": 1,
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        576,
+        192,
+        96,
+        96
+      ],
+      "condition": "always",
+      "price_profile": 0,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    },
+    {
+      "id": "elastic_core",
+      "name": "Núcleo Elástico",
+      "rarity": 1,
+      "description": "Un 30% de disparos puede rebotar una vez.",
+      "modifiers": {},
+      "effects": [
+        {
+          "hook": "shot",
+          "op": "bounce",
+          "value": 1,
+          "chance": 0.3
+        }
+      ],
+      "category": "pasivo",
+      "max_stack": 1,
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        672,
+        192,
+        96,
+        96
+      ],
+      "condition": "always",
+      "price_profile": 1,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    },
+    {
+      "id": "frost_fang",
+      "name": "Colmillo Helado",
+      "rarity": 1,
+      "description": "Un 30% de disparos ralentiza.",
+      "modifiers": {},
+      "effects": [
+        {
+          "hook": "shot",
+          "op": "element",
+          "element": "ice",
+          "chance": 0.3
+        }
+      ],
+      "category": "pasivo",
+      "max_stack": 1,
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        768,
+        192,
+        96,
+        96
+      ],
+      "condition": "always",
+      "price_profile": 1,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    },
+    {
+      "id": "caged_ember",
+      "name": "Brasa Encerrada",
+      "rarity": 1,
+      "description": "Un 30% de disparos quema.",
+      "modifiers": {},
+      "effects": [
+        {
+          "hook": "shot",
+          "op": "element",
+          "element": "fire",
+          "chance": 0.3
+        }
+      ],
+      "category": "pasivo",
+      "max_stack": 1,
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        864,
+        192,
+        96,
+        96
+      ],
+      "condition": "always",
+      "price_profile": 1,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    },
+    {
+      "id": "old_coil",
+      "name": "Bobina Antigua",
+      "rarity": 1,
+      "description": "Cada cuarto disparo puede encadenar electricidad.",
+      "modifiers": {},
+      "effects": [
+        {
+          "hook": "shot",
+          "op": "element",
+          "element": "electric",
+          "every": 4
+        }
+      ],
+      "category": "pasivo",
+      "max_stack": 1,
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        0,
+        288,
+        96,
+        96
+      ],
+      "condition": "always",
+      "price_profile": 1,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    },
+    {
+      "id": "smoke_veil",
+      "name": "Velo de Humo",
+      "rarity": 1,
+      "description": "Al activar habilidad: evasión breve de 0,25 s.",
+      "modifiers": {},
+      "effects": [
+        {
+          "hook": "ability",
+          "op": "evade",
+          "value": 0.25
+        }
+      ],
+      "category": "pasivo",
+      "max_stack": 1,
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        96,
+        288,
+        96,
+        96
+      ],
+      "condition": "always",
+      "price_profile": 1,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    },
+    {
+      "id": "explorer_eye",
+      "name": "Ojo Explorador",
+      "rarity": 1,
+      "description": "Los disparos revelan paredes secretas desde 28 px más lejos.",
+      "modifiers": {},
+      "effects": [
+        {
+          "hook": "constant",
+          "op": "secret_radius",
+          "value": 28
+        }
+      ],
+      "category": "pasivo",
+      "max_stack": 1,
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        192,
+        288,
+        96,
+        96
+      ],
+      "condition": "always",
+      "price_profile": 1,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    },
+    {
+      "id": "magnetic_glove",
+      "name": "Guante Magnético",
+      "rarity": 1,
+      "description": "Radio de recogida +30 px. No compra productos gratis.",
+      "modifiers": {},
+      "effects": [
+        {
+          "hook": "constant",
+          "op": "pickup_radius",
+          "value": 30
+        }
+      ],
+      "category": "pasivo",
+      "max_stack": 1,
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        288,
+        288,
+        96,
+        96
+      ],
+      "condition": "always",
+      "price_profile": 1,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    },
+    {
+      "id": "root_shield",
+      "name": "Escudo de Raíces",
+      "rarity": 1,
+      "description": "Tras recibir daño: defensa +0,3 durante 3 s.",
+      "modifiers": {},
+      "effects": [
+        {
+          "hook": "hurt",
+          "op": "buff",
+          "modifiers": {
+            "defense": 0.3
+          },
+          "duration": 3
+        }
+      ],
+      "category": "pasivo",
+      "max_stack": 1,
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        384,
+        288,
+        96,
+        96
+      ],
+      "condition": "always",
+      "price_profile": 1,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    },
+    {
+      "id": "double_prism",
+      "name": "Prisma Doble",
+      "rarity": 1,
+      "description": "Cada tercer disparo añade un proyectil de daño reducido.",
+      "modifiers": {},
+      "effects": [
+        {
+          "hook": "shot",
+          "op": "extra",
+          "value": 1,
+          "every": 3
+        }
+      ],
+      "category": "pasivo",
+      "max_stack": 1,
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        480,
+        288,
+        96,
+        96
+      ],
+      "condition": "always",
+      "price_profile": 1,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    },
+    {
+      "id": "cracked_watch",
+      "name": "Reloj Agrietado",
+      "rarity": 1,
+      "description": "Recarga de habilidades 8% más rápida.",
+      "modifiers": {},
+      "effects": [
+        {
+          "hook": "constant",
+          "op": "cooldown",
+          "value": 0.08
+        }
+      ],
+      "category": "pasivo",
+      "max_stack": 1,
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        576,
+        288,
+        96,
+        96
+      ],
+      "condition": "always",
+      "price_profile": 1,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    },
+    {
+      "id": "toxic_seed",
+      "name": "Semilla Tóxica",
+      "rarity": 1,
+      "description": "Un 40% de disparos aplica veneno; no se acumula sin límite.",
+      "modifiers": {},
+      "effects": [
+        {
+          "hook": "shot",
+          "op": "element",
+          "element": "poison",
+          "chance": 0.4
+        }
+      ],
+      "category": "pasivo",
+      "max_stack": 1,
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        672,
+        288,
+        96,
+        96
+      ],
+      "condition": "always",
+      "price_profile": 1,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    },
+    {
+      "id": "reed_flute",
+      "name": "Flauta del Junco",
+      "rarity": 1,
+      "description": "Las bajas otorgan velocidad +22 durante 2 s.",
+      "modifiers": {},
+      "effects": [
+        {
+          "hook": "kill",
+          "op": "buff",
+          "modifiers": {
+            "speed": 22
+          },
+          "duration": 2
+        }
+      ],
+      "category": "pasivo",
+      "max_stack": 1,
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        768,
+        288,
+        96,
+        96
+      ],
+      "condition": "always",
+      "price_profile": 1,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    },
+    {
+      "id": "echo_bell",
+      "name": "Campana de Eco",
+      "rarity": 1,
+      "description": "Cada octavo disparo se divide al impactar; los fragmentos no se dividen.",
+      "modifiers": {},
+      "effects": [
+        {
+          "hook": "shot",
+          "op": "split",
+          "value": 1,
+          "every": 8
+        }
+      ],
+      "category": "pasivo",
+      "max_stack": 1,
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        864,
+        288,
+        96,
+        96
+      ],
+      "condition": "always",
+      "price_profile": 1,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    },
+    {
+      "id": "return_ring",
+      "name": "Anillo de Retorno",
+      "rarity": 1,
+      "description": "Cada cuarto proyectil regresa tras 0,3 s; duración finita.",
+      "modifiers": {},
+      "effects": [
+        {
+          "hook": "shot",
+          "op": "return",
+          "value": 1,
+          "every": 4
+        }
+      ],
+      "category": "pasivo",
+      "max_stack": 1,
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        0,
+        384,
+        96,
+        96
+      ],
+      "condition": "always",
+      "price_profile": 1,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    },
+    {
+      "id": "precise_nail",
+      "name": "Clavo Certero",
+      "rarity": 1,
+      "description": "Crítico +5%; los críticos hacen 1,5 veces el daño.",
+      "modifiers": {},
+      "effects": [
+        {
+          "hook": "constant",
+          "op": "critical",
+          "value": 0.05
+        }
+      ],
+      "category": "pasivo",
+      "max_stack": 1,
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        96,
+        384,
+        96,
+        96
+      ],
+      "condition": "always",
+      "price_profile": 1,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    },
+    {
+      "id": "soft_cloak",
+      "name": "Manto de Musgo",
+      "rarity": 1,
+      "description": "Protege un impacto cada 14 s.",
+      "modifiers": {},
+      "effects": [
+        {
+          "hook": "constant",
+          "op": "shield",
+          "value": 14
+        }
+      ],
+      "category": "pasivo",
+      "max_stack": 1,
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        192,
+        384,
+        96,
+        96
+      ],
+      "condition": "always",
+      "price_profile": 1,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    },
+    {
+      "id": "blue_flask",
+      "name": "Frasco Azul",
+      "rarity": 1,
+      "description": "Activo: cura hasta 1. Recarga 30 s; tres usos por partida.",
+      "modifiers": {},
+      "effects": [
+        {
+          "hook": "active",
+          "op": "heal",
+          "value": 1,
+          "budget": 3
+        }
+      ],
+      "category": "activo",
+      "max_stack": 1,
+      "cooldown": 30,
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        288,
+        384,
+        96,
+        96
+      ],
+      "condition": "always",
+      "price_profile": 1,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    },
+    {
+      "id": "pulse_stone",
+      "name": "Piedra de Pulso",
+      "rarity": 1,
+      "description": "Activo: empuja y daña 0,5 en un radio de 90. Recarga 12 s.",
+      "modifiers": {},
+      "effects": [
+        {
+          "hook": "active",
+          "op": "pulse",
+          "value": 0.5,
+          "radius": 90
+        }
+      ],
+      "category": "activo",
+      "max_stack": 1,
+      "cooldown": 12,
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        384,
+        384,
+        96,
+        96
+      ],
+      "condition": "always",
+      "price_profile": 1,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    },
+    {
+      "id": "silk_spool",
+      "name": "Carrete de Seda",
+      "rarity": 1,
+      "description": "Al limpiar sala: recarga de habilidad -2 s.",
+      "modifiers": {},
+      "effects": [
+        {
+          "hook": "room",
+          "op": "recharge",
+          "value": 2
+        }
+      ],
+      "category": "pasivo",
+      "max_stack": 1,
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        480,
+        384,
+        96,
+        96
+      ],
+      "condition": "always",
+      "price_profile": 1,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    },
+    {
+      "id": "moss_heart",
+      "name": "Corazón de Musgo",
+      "rarity": 1,
+      "description": "Regenera 0,25 cada 25 s. Máximo 2 de vida por partida.",
+      "modifiers": {},
+      "effects": [
+        {
+          "hook": "tick",
+          "op": "regen",
+          "value": 0.25,
+          "interval": 25,
+          "budget": 8
+        }
+      ],
+      "category": "pasivo",
+      "max_stack": 1,
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        576,
+        384,
+        96,
+        96
+      ],
+      "condition": "always",
+      "price_profile": 1,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    },
+    {
+      "id": "twin_shell",
+      "name": "Concha Gemela",
+      "rarity": 1,
+      "description": "Cada quinto disparo tiene dos rebotes, pero daño -10%.",
+      "modifiers": {},
+      "effects": [
+        {
+          "hook": "shot",
+          "op": "bounce",
+          "value": 2,
+          "every": 5
+        },
+        {
+          "hook": "shot",
+          "op": "power",
+          "value": -0.1,
+          "every": 5
+        }
+      ],
+      "category": "pasivo",
+      "max_stack": 1,
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        672,
+        384,
+        96,
+        96
+      ],
+      "condition": "always",
+      "price_profile": 1,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    },
+    {
+      "id": "dawn_pin",
+      "name": "Alfiler del Alba",
+      "rarity": 1,
+      "description": "Tras usar habilidad: daño +0,25 durante 2 s.",
+      "modifiers": {},
+      "effects": [
+        {
+          "hook": "ability",
+          "op": "buff",
+          "modifiers": {
+            "damage": 0.25
+          },
+          "duration": 2
+        }
+      ],
+      "category": "pasivo",
+      "max_stack": 1,
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        768,
+        384,
+        96,
+        96
+      ],
+      "condition": "always",
+      "price_profile": 1,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    },
+    {
+      "id": "spectral_lance",
+      "name": "Lanza Espectral",
+      "rarity": 2,
+      "description": "Un 50% de disparos atraviesa dos enemigos.",
+      "modifiers": {},
+      "effects": [
+        {
+          "hook": "shot",
+          "op": "pierce",
+          "value": 2,
+          "chance": 0.5
+        }
+      ],
+      "category": "pasivo",
+      "max_stack": 1,
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        864,
+        384,
+        96,
+        96
+      ],
+      "condition": "always",
+      "price_profile": 2,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    },
+    {
+      "id": "storm_eye",
+      "name": "Ojo de Tormenta",
+      "rarity": 2,
+      "description": "Cada segundo disparo encadena electricidad.",
+      "modifiers": {},
+      "effects": [
+        {
+          "hook": "shot",
+          "op": "element",
+          "element": "electric",
+          "every": 2
+        }
+      ],
+      "category": "pasivo",
+      "max_stack": 1,
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        0,
+        480,
+        96,
+        96
+      ],
+      "condition": "always",
+      "price_profile": 2,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    },
+    {
+      "id": "astral_echo",
+      "name": "Eco Astral",
+      "rarity": 2,
+      "description": "Cada cuarto disparo añade dos proyectiles oblicuos.",
+      "modifiers": {},
+      "effects": [
+        {
+          "hook": "shot",
+          "op": "fan",
+          "value": 2,
+          "every": 4
+        }
+      ],
+      "category": "pasivo",
+      "max_stack": 1,
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        96,
+        480,
+        96,
+        96
+      ],
+      "condition": "always",
+      "price_profile": 2,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    },
+    {
+      "id": "lunar_fragment",
+      "name": "Fragmento Lunar",
+      "rarity": 2,
+      "description": "Con poca vida: defensa +0,35 y alcance +50 permanente.",
+      "modifiers": {
+        "attack_range": 50
+      },
+      "effects": [
+        {
+          "hook": "tick",
+          "op": "conditional",
+          "when": "low",
+          "modifiers": {
+            "defense": 0.35
+          }
+        }
+      ],
+      "category": "pasivo",
+      "max_stack": 1,
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        192,
+        480,
+        96,
+        96
+      ],
+      "condition": "always",
+      "price_profile": 2,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    },
+    {
+      "id": "fire_blood",
+      "name": "Sangre de Fuego",
+      "rarity": 2,
+      "description": "Los impactos queman; los enemigos ardiendo reciben +0,2 por impacto.",
+      "modifiers": {},
+      "effects": [
+        {
+          "hook": "shot",
+          "op": "element",
+          "element": "fire"
+        },
+        {
+          "hook": "hit",
+          "op": "burn_bonus",
+          "value": 0.2
+        }
+      ],
+      "category": "pasivo",
+      "max_stack": 1,
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        288,
+        480,
+        96,
+        96
+      ],
+      "condition": "always",
+      "price_profile": 2,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    },
+    {
+      "id": "void_mask",
+      "name": "Máscara del Vacío",
+      "rarity": 2,
+      "description": "Activo: velocidad de disparo y daño mejorados 3 s. Recarga 18 s.",
+      "modifiers": {},
+      "effects": [
+        {
+          "hook": "active",
+          "op": "buff",
+          "modifiers": {
+            "damage": 0.3,
+            "attack_interval": -0.03
+          },
+          "duration": 3
+        }
+      ],
+      "category": "activo",
+      "max_stack": 1,
+      "cooldown": 18,
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        384,
+        480,
+        96,
+        96
+      ],
+      "condition": "always",
+      "price_profile": 2,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    },
+    {
+      "id": "ice_core",
+      "name": "Núcleo de Hielo",
+      "rarity": 2,
+      "description": "Enfría con cada impacto; el tercer golpe congela brevemente a normales.",
+      "modifiers": {},
+      "effects": [
+        {
+          "hook": "hit",
+          "op": "chill",
+          "value": 1
+        }
+      ],
+      "category": "pasivo",
+      "max_stack": 1,
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        480,
+        480,
+        96,
+        96
+      ],
+      "condition": "always",
+      "price_profile": 2,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    },
+    {
+      "id": "unstable_mirror",
+      "name": "Espejo Inestable",
+      "rarity": 2,
+      "description": "Un 25% de ataques añade otro proyectil de daño reducido.",
+      "modifiers": {},
+      "effects": [
+        {
+          "hook": "shot",
+          "op": "extra",
+          "value": 1,
+          "chance": 0.25
+        }
+      ],
+      "category": "pasivo",
+      "max_stack": 1,
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        576,
+        480,
+        96,
+        96
+      ],
+      "condition": "always",
+      "price_profile": 2,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    },
+    {
+      "id": "gravity_orb",
+      "name": "Orbe Gravitacional",
+      "rarity": 2,
+      "description": "Los impactos atraen ligeramente al objetivo hacia el jugador.",
+      "modifiers": {},
+      "effects": [
+        {
+          "hook": "hit",
+          "op": "pull",
+          "value": 12
+        }
+      ],
+      "category": "pasivo",
+      "max_stack": 1,
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        672,
+        480,
+        96,
+        96
+      ],
+      "condition": "always",
+      "price_profile": 2,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    },
+    {
+      "id": "umbral_mark",
+      "name": "Sello Umbrío",
+      "rarity": 2,
+      "description": "Marca durante 3 s: los siguientes impactos hacen 15% más daño.",
+      "modifiers": {},
+      "effects": [
+        {
+          "hook": "shot",
+          "op": "mark",
+          "value": 1
+        }
+      ],
+      "category": "pasivo",
+      "max_stack": 1,
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        768,
+        480,
+        96,
+        96
+      ],
+      "condition": "always",
+      "price_profile": 2,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    },
+    {
+      "id": "hunters_badge",
+      "name": "Insignia del Cazador",
+      "rarity": 2,
+      "description": "Alcanzar desde lejos añade 25% de daño.",
+      "modifiers": {},
+      "effects": [
+        {
+          "hook": "shot",
+          "op": "far",
+          "value": 0.25
+        }
+      ],
+      "category": "pasivo",
+      "max_stack": 1,
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        864,
+        480,
+        96,
+        96
+      ],
+      "condition": "always",
+      "price_profile": 2,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    },
+    {
+      "id": "thorn_guard",
+      "name": "Guarda de Espinas",
+      "rarity": 2,
+      "description": "Tras recibir daño: onda de 0,7 en radio 100.",
+      "modifiers": {},
+      "effects": [
+        {
+          "hook": "hurt",
+          "op": "pulse",
+          "value": 0.7,
+          "radius": 100
+        }
+      ],
+      "category": "pasivo",
+      "max_stack": 1,
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        0,
+        576,
+        96,
+        96
+      ],
+      "condition": "always",
+      "price_profile": 2,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    },
+    {
+      "id": "silver_hourglass",
+      "name": "Reloj de Plata",
+      "rarity": 2,
+      "description": "Activo: ralentiza proyectiles enemigos 50% durante 3 s. Recarga 20 s.",
+      "modifiers": {},
+      "effects": [
+        {
+          "hook": "active",
+          "op": "time",
+          "value": 0.5,
+          "duration": 3
+        }
+      ],
+      "category": "activo",
+      "max_stack": 1,
+      "cooldown": 20,
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        96,
+        576,
+        96,
+        96
+      ],
+      "condition": "always",
+      "price_profile": 2,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    },
+    {
+      "id": "blood_vial",
+      "name": "Vial Carmesí",
+      "rarity": 2,
+      "description": "Cada doce bajas cura 0,5. Máximo tres curas.",
+      "modifiers": {},
+      "effects": [
+        {
+          "hook": "kill",
+          "op": "heal",
+          "value": 0.5,
+          "every": 12,
+          "budget": 3
+        }
+      ],
+      "category": "pasivo",
+      "max_stack": 1,
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        192,
+        576,
+        96,
+        96
+      ],
+      "condition": "always",
+      "price_profile": 2,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    },
+    {
+      "id": "glass_arrow",
+      "name": "Flecha de Vidrio",
+      "rarity": 2,
+      "description": "Cada tercer disparo explota en radio 45 con daño secundario limitado.",
+      "modifiers": {},
+      "effects": [
+        {
+          "hook": "shot",
+          "op": "explode",
+          "value": 0.35,
+          "every": 3
+        }
+      ],
+      "category": "pasivo",
+      "max_stack": 1,
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        288,
+        576,
+        96,
+        96
+      ],
+      "condition": "always",
+      "price_profile": 2,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    },
+    {
+      "id": "storm_heart",
+      "name": "Corazón de Tormenta",
+      "rarity": 3,
+      "description": "Electricidad en todos los ataques; cada sexto añade veneno.",
+      "modifiers": {},
+      "effects": [
+        {
+          "hook": "shot",
+          "op": "element",
+          "element": "electric"
+        },
+        {
+          "hook": "shot",
+          "op": "element",
+          "element": "poison",
+          "every": 6
+        }
+      ],
+      "category": "pasivo",
+      "max_stack": 1,
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        384,
+        576,
+        96,
+        96
+      ],
+      "condition": "always",
+      "price_profile": 3,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    },
+    {
+      "id": "astral_crown",
+      "name": "Corona Astral",
+      "rarity": 3,
+      "description": "Daño +0,25 y alcance +90; cada quinto ataque se guía.",
+      "modifiers": {
+        "damage": 0.25,
+        "attack_range": 90
+      },
+      "effects": [
+        {
+          "hook": "shot",
+          "op": "homing",
+          "value": 1,
+          "every": 5
+        }
+      ],
+      "category": "pasivo",
+      "max_stack": 1,
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        480,
+        576,
+        96,
+        96
+      ],
+      "condition": "always",
+      "price_profile": 3,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    },
+    {
+      "id": "eternal_flame",
+      "name": "Llama Eterna",
+      "rarity": 3,
+      "description": "Quemadura en todos los ataques y daño adicional limitado contra ardiendo.",
+      "modifiers": {},
+      "effects": [
+        {
+          "hook": "shot",
+          "op": "element",
+          "element": "fire"
+        },
+        {
+          "hook": "hit",
+          "op": "burn_bonus",
+          "value": 0.35
+        }
+      ],
+      "category": "pasivo",
+      "max_stack": 1,
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        576,
+        576,
+        96,
+        96
+      ],
+      "condition": "always",
+      "price_profile": 3,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    },
+    {
+      "id": "abyss_mirror",
+      "name": "Espejo del Abismo",
+      "rarity": 3,
+      "description": "Tras usar habilidad: copia ofensiva durante 3 s.",
+      "modifiers": {},
+      "effects": [
+        {
+          "hook": "ability",
+          "op": "echo",
+          "duration": 3,
+          "value": 0.45
+        }
+      ],
+      "category": "pasivo",
+      "max_stack": 1,
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        672,
+        576,
+        96,
+        96
+      ],
+      "condition": "always",
+      "price_profile": 3,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    },
+    {
+      "id": "ash_clock",
+      "name": "Reloj de Ceniza",
+      "rarity": 3,
+      "description": "Al recibir daño: ralentiza proyectiles enemigos durante 2 s.",
+      "modifiers": {},
+      "effects": [
+        {
+          "hook": "hurt",
+          "op": "time",
+          "value": 0.5,
+          "duration": 2
+        }
+      ],
+      "category": "pasivo",
+      "max_stack": 1,
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        768,
+        576,
+        96,
+        96
+      ],
+      "condition": "always",
+      "price_profile": 3,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    },
+    {
+      "id": "guardian_core",
+      "name": "Núcleo del Guardián",
+      "rarity": 3,
+      "description": "Escudo periódico cada 6 s; velocidad -8.",
+      "modifiers": {
+        "speed": -8
+      },
+      "effects": [
+        {
+          "hook": "constant",
+          "op": "shield",
+          "value": 6
+        }
+      ],
+      "category": "pasivo",
+      "max_stack": 1,
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        864,
+        576,
+        96,
+        96
+      ],
+      "condition": "always",
+      "price_profile": 3,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    },
+    {
+      "id": "many_echoes",
+      "name": "Prisma de Mil Ecos",
+      "rarity": 3,
+      "description": "Cada quinto ataque genera un abanico; fragmentos secundarios no se duplican.",
+      "modifiers": {},
+      "effects": [
+        {
+          "hook": "shot",
+          "op": "fan",
+          "value": 2,
+          "every": 5
+        },
+        {
+          "hook": "shot",
+          "op": "split",
+          "value": 1,
+          "every": 5
+        }
+      ],
+      "category": "pasivo",
+      "max_stack": 1,
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        0,
+        672,
+        96,
+        96
+      ],
+      "condition": "always",
+      "price_profile": 3,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    },
+    {
+      "id": "immortal_root",
+      "name": "Raíz Inmortal",
+      "rarity": 3,
+      "description": "Cura 1 cada dos salas limpias, máximo cinco veces.",
+      "modifiers": {},
+      "effects": [
+        {
+          "hook": "room",
+          "op": "heal",
+          "value": 1,
+          "every": 2,
+          "budget": 5
+        }
+      ],
+      "category": "pasivo",
+      "max_stack": 1,
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        96,
+        672,
+        96,
+        96
+      ],
+      "condition": "always",
+      "price_profile": 3,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    },
+    {
+      "id": "hunter_eye",
+      "name": "Ojo del Cazador",
+      "rarity": 3,
+      "description": "Crítico +12%; proyectiles con guía leve.",
+      "modifiers": {},
+      "effects": [
+        {
+          "hook": "constant",
+          "op": "critical",
+          "value": 0.12
+        },
+        {
+          "hook": "shot",
+          "op": "homing",
+          "value": 1
+        }
+      ],
+      "category": "pasivo",
+      "max_stack": 1,
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        192,
+        672,
+        96,
+        96
+      ],
+      "condition": "always",
+      "price_profile": 3,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    },
+    {
+      "id": "eclipse_shard",
+      "name": "Fragmento del Eclipse",
+      "rarity": 3,
+      "description": "Alterna disparos de quemadura y hielo cada dos ataques.",
+      "modifiers": {},
+      "effects": [
+        {
+          "hook": "shot",
+          "op": "element",
+          "element": "fire",
+          "every": 2
+        },
+        {
+          "hook": "shot",
+          "op": "element",
+          "element": "ice",
+          "every": 2,
+          "offset": 1
+        }
+      ],
+      "category": "pasivo",
+      "max_stack": 1,
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        288,
+        672,
+        96,
+        96
+      ],
+      "condition": "always",
+      "price_profile": 3,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    },
+    {
+      "id": "thunder_book",
+      "name": "Libro del Trueno",
+      "rarity": 3,
+      "description": "Activo: onda eléctrica en radio 145. Recarga 22 s.",
+      "modifiers": {},
+      "effects": [
+        {
+          "hook": "active",
+          "op": "pulse",
+          "value": 1.2,
+          "radius": 145,
+          "element": "electric"
+        }
+      ],
+      "category": "activo",
+      "max_stack": 1,
+      "cooldown": 22,
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        384,
+        672,
+        96,
+        96
+      ],
+      "condition": "always",
+      "price_profile": 3,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    },
+    {
+      "id": "eclipse_soul",
+      "name": "Alma del Eclipse",
+      "rarity": 4,
+      "description": "Alterna daño reforzado y defensa por ciclos de 5 s.",
+      "modifiers": {},
+      "effects": [
+        {
+          "hook": "tick",
+          "op": "cycle",
+          "duration": 5,
+          "modifiers": {
+            "damage": 0.45
+          },
+          "alternate": {
+            "defense": 0.4
+          }
+        }
+      ],
+      "category": "pasivo",
+      "max_stack": 1,
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        480,
+        672,
+        96,
+        96
+      ],
+      "condition": "always",
+      "price_profile": 4,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    },
+    {
+      "id": "abyss_heart",
+      "name": "Corazón del Abismo",
+      "rarity": 4,
+      "description": "Con poca vida: daño +0,65. Defensa -0,2 permanente.",
+      "modifiers": {
+        "defense": -0.2
+      },
+      "effects": [
+        {
+          "hook": "tick",
+          "op": "conditional",
+          "when": "low",
+          "modifiers": {
+            "damage": 0.65
+          }
+        }
+      ],
+      "category": "pasivo",
+      "max_stack": 1,
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        576,
+        672,
+        96,
+        96
+      ],
+      "condition": "always",
+      "price_profile": 4,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    },
+    {
+      "id": "void_crown",
+      "name": "Corona del Vacío",
+      "rarity": 4,
+      "description": "Abanico permanente y un rebote; daño individual reducido.",
+      "modifiers": {},
+      "effects": [
+        {
+          "hook": "shot",
+          "op": "fan",
+          "value": 2
+        },
+        {
+          "hook": "shot",
+          "op": "bounce",
+          "value": 1
+        },
+        {
+          "hook": "shot",
+          "op": "power",
+          "value": -0.15
+        }
+      ],
+      "category": "pasivo",
+      "max_stack": 1,
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        672,
+        672,
+        96,
+        96
+      ],
+      "condition": "always",
+      "price_profile": 4,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    },
+    {
+      "id": "astral_tear",
+      "name": "Lágrima Astral",
+      "rarity": 4,
+      "description": "Cada tercer ataque se divide y causa pequeñas explosiones; secundarios sin recursión.",
+      "modifiers": {},
+      "effects": [
+        {
+          "hook": "shot",
+          "op": "split",
+          "value": 1,
+          "every": 3
+        },
+        {
+          "hook": "shot",
+          "op": "explode",
+          "value": 0.3,
+          "every": 3
+        }
+      ],
+      "category": "pasivo",
+      "max_stack": 1,
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        768,
+        672,
+        96,
+        96
+      ],
+      "condition": "always",
+      "price_profile": 4,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    },
+    {
+      "id": "eternity_core",
+      "name": "Núcleo de la Eternidad",
+      "rarity": 4,
+      "description": "Cada diez bajas: recarga -4 s y defensa +0,3 durante 3 s.",
+      "modifiers": {},
+      "effects": [
+        {
+          "hook": "kill",
+          "op": "recharge",
+          "value": 4,
+          "every": 10
+        },
+        {
+          "hook": "kill",
+          "op": "buff",
+          "modifiers": {
+            "defense": 0.3
+          },
+          "duration": 3,
+          "every": 10
+        }
+      ],
+      "category": "pasivo",
+      "max_stack": 1,
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        864,
+        672,
+        96,
+        96
+      ],
+      "condition": "always",
+      "price_profile": 4,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    },
+    {
+      "id": "primordial_mirror",
+      "name": "Espejo Primordial",
+      "rarity": 4,
+      "description": "Activo: copia ofensiva de 5 s. Recarga 25 s.",
+      "modifiers": {},
+      "effects": [
+        {
+          "hook": "active",
+          "op": "echo",
+          "duration": 5,
+          "value": 0.6
+        }
+      ],
+      "category": "activo",
+      "max_stack": 1,
+      "cooldown": 25,
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        0,
+        768,
+        96,
+        96
+      ],
+      "condition": "always",
+      "price_profile": 4,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    },
+    {
+      "id": "depths_eye",
+      "name": "Ojo de las Profundidades",
+      "rarity": 4,
+      "description": "Detecta secretos más lejos; ataques lejanos reforzados y críticos +8%.",
+      "modifiers": {},
+      "effects": [
+        {
+          "hook": "constant",
+          "op": "secret_radius",
+          "value": 50
+        },
+        {
+          "hook": "shot",
+          "op": "far",
+          "value": 0.3
+        },
+        {
+          "hook": "constant",
+          "op": "critical",
+          "value": 0.08
+        }
+      ],
+      "category": "pasivo",
+      "max_stack": 1,
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        96,
+        768,
+        96,
+        96
+      ],
+      "condition": "always",
+      "price_profile": 4,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    },
+    {
+      "id": "ancient_seal",
+      "name": "Sello de los Antiguos",
+      "rarity": 4,
+      "description": "Tras usar habilidad: escudo periódico de 4 s y defensa +0,5 durante 3 s.",
+      "modifiers": {},
+      "effects": [
+        {
+          "hook": "constant",
+          "op": "shield",
+          "value": 12
+        },
+        {
+          "hook": "ability",
+          "op": "buff",
+          "modifiers": {
+            "defense": 0.5
+          },
+          "duration": 3
+        }
+      ],
+      "category": "pasivo",
+      "max_stack": 1,
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        192,
+        768,
+        96,
+        96
+      ],
+      "condition": "always",
+      "price_profile": 4,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    },
+    {
+      "id": "determination_heart",
+      "name": "Corazón de la Determinación",
+      "rarity": 5,
+      "description": "Al superar un encuentro difícil: poder durante 6 s y +10 de Determinación para Shader. Una vez por sala.",
+      "modifiers": {},
+      "effects": [
+        {
+          "hook": "challenge",
+          "op": "buff",
+          "modifiers": {
+            "damage": 0.5,
+            "speed": 20
+          },
+          "duration": 6
+        },
+        {
+          "hook": "challenge",
+          "op": "determination",
+          "value": 10
+        }
+      ],
+      "category": "pasivo",
+      "max_stack": 1,
+      "unlock": "main_ending",
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        288,
+        768,
+        96,
+        96
+      ],
+      "condition": "main_ending",
+      "price_profile": 5,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    },
+    {
+      "id": "origin_fragment",
+      "name": "Fragmento del Origen",
+      "rarity": 5,
+      "description": "Patrón de tres proyectiles, perforación y alternancia de fuego/hielo; máximo de disparos compartido.",
+      "modifiers": {},
+      "effects": [
+        {
+          "hook": "shot",
+          "op": "fan",
+          "value": 2
+        },
+        {
+          "hook": "shot",
+          "op": "pierce",
+          "value": 1
+        },
+        {
+          "hook": "shot",
+          "op": "element",
+          "element": "fire",
+          "every": 2
+        },
+        {
+          "hook": "shot",
+          "op": "element",
+          "element": "ice",
+          "every": 2,
+          "offset": 1
+        }
+      ],
+      "category": "pasivo",
+      "max_stack": 1,
+      "unlock": "main_ending",
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        384,
+        768,
+        96,
+        96
+      ],
+      "condition": "main_ending",
+      "price_profile": 5,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    },
+    {
+      "id": "last_horizon",
+      "name": "Corona del Último Horizonte",
+      "rarity": 5,
+      "description": "Tras activar habilidad: poder y protección de 4 s; copia ofensiva de 2 s. No se acumula consigo misma.",
+      "modifiers": {},
+      "effects": [
+        {
+          "hook": "ability",
+          "op": "buff",
+          "modifiers": {
+            "damage": 0.45,
+            "defense": 0.4
+          },
+          "duration": 4
+        },
+        {
+          "hook": "ability",
+          "op": "echo",
+          "duration": 2,
+          "value": 0.5
+        }
+      ],
+      "category": "pasivo",
+      "max_stack": 1,
+      "unlock": "main_ending",
+      "icon": "res://assets/relics/expansion_atlas.svg",
+      "icon_region": [
+        480,
+        768,
+        96,
+        96
+      ],
+      "condition": "main_ending",
+      "price_profile": 5,
+      "compatibility": "composable_bounded",
+      "appearance_sources": [
+        "base",
+        "treasure",
+        "chest",
+        "shop",
+        "secret",
+        "boss"
+      ]
+    }
+  ]
+}

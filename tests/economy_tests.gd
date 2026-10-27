@@ -10,12 +10,15 @@ func check(value: bool, message: String) -> void:
 func _initialize() -> void: run.call_deferred()
 func run() -> void:
  var original:=Economy.config().duplicate(true)
+ var progress:=CharacterCatalog.progress_node()
+ var previous_ending: int=progress.amount("endings")
+ progress.data.counters.endings=1
  check(Economy.validate_config(original).is_empty(),"Shipped JSON balance is valid")
  var bad:=original.duplicate(true)
  bad.enemy_drop_chance.normal=-1
  check(not Economy.validate_config(bad).is_empty(),"Negative drop rate rejected")
  bad=original.duplicate(true)
- bad.rarity.base[0]=[0,0,0,0,0]
+ bad.rarity.base[0]=[0,0,0,0,0,0]
  check(not Economy.validate_config(bad).is_empty(),"Empty rarity distribution rejected")
  bad=original.duplicate(true)
  bad.prices[0][0]=[9,6]
@@ -48,14 +51,14 @@ func run() -> void:
  check(absf(elite/50000.0-0.15)<0.007,"Prepared elite drop API uses configured 15 percent")
  check(dark>0 and dark<100,"Dark obols are exceptionally rare")
  for floor_index in range(6):
-  var counts: Array[int]=[0,0,0,0,0]
+  var counts: Array[int]=[0,0,0,0,0,0]
   for i in range(10000): counts[int(RelicCatalog.definition(RelicCatalog.roll(rng,floor_index)).rarity)]+=1
   var expected: Array=original.rarity.base[floor_index]
-  for rarity in range(5):
+  for rarity in range(6):
    check(absf(counts[rarity]/10000.0-float(expected[rarity])/100.0)<0.025,"Base rarity frequencies match configured floor table")
    if float(expected[rarity])==0: check(counts[rarity]==0,"Zero-weight rarity never appears")
  for floor_index in range(5):
-  for rarity in range(5):
+  for rarity in range(6):
    var limits: Array=original.prices[floor_index][rarity]
    for i in range(15):
     var price:=Economy.price_for(rarity,floor_index,rng)
@@ -63,7 +66,7 @@ func run() -> void:
  check(Economy.price_for(4,100,rng)<=160,"Future floor price escalation is bounded")
  for context in ["treasure","shop","chest","secret","boss"]:
   for floor_index in range(3):
-   var counts: Array[int]=[0,0,0,0,0]
+   var counts: Array[int]=[0,0,0,0,0,0]
    for i in range(1000): counts[int(RelicCatalog.definition(RelicCatalog.roll(rng,floor_index,context)).rarity)]+=1
    check(counts.reduce(func(a,b): return a+b,0)==1000,"Independent context table produces valid functional relic IDs")
  # Changing the real cached data changes production functions, not a parallel test model.
@@ -71,7 +74,7 @@ func run() -> void:
  check(Economy.enemy_coin(rng,0)==0,"Zero configured enemy chance disables drop")
  Economy.loaded.enemy_drop_chance.normal=1.0
  check(Economy.enemy_coin(rng,0)>0 and Economy.enemy_coin(rng,0,true)==0,"Guaranteed gate still excludes summoned creatures")
- Economy.loaded.rarity.base[0]=[0,0,100,0,0]
+ Economy.loaded.rarity.base[0]=[0,0,100,0,0,0]
  check(int(RelicCatalog.definition(RelicCatalog.roll(rng,0)).rarity)==2,"Edited rarity table influences actual catalog roll")
  Economy.loaded.prices[0][0]=[31,31]
  check(Economy.price_for(0,0,rng)==31,"Changing shop price data changes actual price function")
@@ -175,5 +178,6 @@ func run() -> void:
  check(float(simulation[0].both_affordable)<0.65,"First-floor budget does not routinely buy both relics")
  check(float(simulation[0].purchases)>0.4 and float(simulation[0].purchases)<1.8,"Simulation permits occasional purchases without trivial full stock")
  print("ECONOMY SIMULATION TEST ",JSON.stringify(simulation))
+ progress.data.counters.endings=previous_ending
  print("ECONOMY RESULT: %d checks, %d failures" % [checks,failures])
  quit(1 if failures else 0)

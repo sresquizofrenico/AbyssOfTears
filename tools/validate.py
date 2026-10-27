@@ -29,7 +29,8 @@ with tempfile.TemporaryDirectory(prefix='abyss-tests-') as user_dir:
         if '.godot' in path.parts or path.suffix not in ('.tscn', '.gd', '.godot', '.cfg'):
             continue
         for resource in re.findall(r'res://[^"\s)]+', path.read_text()):
-            if not (ROOT / resource[6:]).is_file():
+            target = ROOT / resource[6:]
+            if not (target.is_dir() if resource.endswith('/') else target.is_file()):
                 raise SystemExit(f'Missing resource {resource} referenced by {path}')
     run(['--editor', '--import', '--quit'], env)
     run(['--quit-after', '120'], env)
@@ -46,4 +47,6 @@ with tempfile.TemporaryDirectory(prefix='abyss-tests-') as user_dir:
     run(['--script', 'res://tests/room_structure_tests.gd'], env)
     run(['--script', 'res://tests/economy_tests.gd'], env)
     run(['--script', 'res://tests/character_progress_tests.gd'], env)
+    run(['--script', 'res://tests/mythic_expansion_tests.gd'], env)
+    run(['--script', 'res://tests/character_passive_tests.gd'], env)
 print('All project validations passed.')

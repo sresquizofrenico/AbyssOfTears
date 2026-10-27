@@ -25,11 +25,11 @@ func _physics_process(delta: float) -> void:
  age += delta
  if not is_instance_valid(player): queue_free(); return
  if age >= 0.8 and player.position.distance_to(position) < radius:
-  if kind in ["acid","lightning","explosion"]: player.take_damage(1)
+  if kind in ["acid","lightning","explosion"]: player.take_damage(1,"hazard")
   if kind == "curse" and not activated:
    activated = true
    original_speed = player.stats.speed
-   player.stats.speed *= 0.7
+   player.stats.set_temporary("curse",{"speed":-player.stats._speed*0.3})
  if age >= (1.15 if kind in ["lightning","explosion"] else duration):
   restore()
   queue_free()
@@ -37,7 +37,7 @@ func _physics_process(delta: float) -> void:
 
 func restore() -> void:
  if activated and is_instance_valid(player):
-  player.stats.speed = clampf(player.stats.speed+original_speed*0.3,40,400)
+  player.stats.clear_temporary("curse")
   activated = false
 
 func _exit_tree() -> void:

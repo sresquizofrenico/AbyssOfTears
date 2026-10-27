@@ -1,0 +1,14 @@
+{
+ "device": "cloud Linux, not ZTE 8050",
+ "observations": [
+  {
+   "enemies": 2,
+   "physics_ms": 12.456,
+   "projectiles": 2,
+   "scene": "shader_combat",
+   "static_bytes": 39016638,
+   "texture_bytes": 27880703.0
+  }
+ ],
+ "renderer": "Compatibility, Mesa llvmpipe"
+}

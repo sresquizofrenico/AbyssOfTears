@@ -19,6 +19,13 @@ var skill_origin := Vector2.ZERO
 var dash_direction := Vector2.DOWN
 var heal_budget := 0.0
 var mixture := 0
+var character_color:=Color("83dcf0")
+var quality:=1
+var character_state:=CharacterRules.fresh()
+var latest_hit_source: String="projectile"
+var evasion_window := 0.0
+var determination := 0.0
+var awakened := 0.0
 var spawn_pose := 0.5
 var relics := RelicInventory.new()
 var pickup_pose := 0.0
@@ -58,11 +65,13 @@ func _physics_process(delta: float) -> void:
  clock += delta
  tick_ability(delta)
  relics.tick(delta)
+ relics.effects.tick(delta,self)
+ evasion_window=maxf(0,evasion_window-delta)
  pickup_pose = maxf(0,pickup_pose-delta)
  cooldown = maxf(0, cooldown - delta)
  immunity = maxf(0, immunity - delta)
  velocity = movement_input() * stats.speed
- if character_id=="neris" and ability_active>0: velocity=dash_direction*520.0
+ if (character_id=="neris" and ability_active>0) or (character_id=="nyra" and character_state.dash>0): velocity=dash_direction*520.0
  move_and_slide()
  var direction := attack_input()
  if direction != Vector2.ZERO:
@@ -71,21 +80,26 @@ func _physics_process(delta: float) -> void:
  queue_redraw()
 
 func try_shoot(direction: Vector2) -> bool:
- if cooldown > 0.0 or not active or direction == Vector2.ZERO:
+ if cooldown > 0.0 or not active or direction == Vector2.ZERO or (character_id=="kael" and ability_active>0 and ability_age<0.8):
   return false
  cooldown = stats.attack_interval
  shot.emit(position + direction * 21.0, direction, stats)
  return true
 
-func take_damage(amount: float) -> void:
- if not active or immunity > 0.0:
+func take_damage(amount: float, source: String="projectile") -> void:
+ if not active: return
+ if immunity>0:
+  CharacterRules.evaded(self)
   return
- if character_id=="orin" and ability_active>0: return
+ amount=CharacterRules.reduce_damage(self,amount,source)
+ if amount<=0: return
+ latest_hit_source=source
  if relics.block_hit():
   immunity = 0.3
   queue_redraw()
   return
  stats.apply_damage(amount)
+ CharacterRules.hurt(self)
  damaged.emit()
  immunity = 1.1
  health_changed.emit(stats.health, stats.max_health)
@@ -108,7 +122,8 @@ func _draw() -> void:
  elif cooldown>stats.attack_interval*0.7: pose="attack"
  if spawn_pose>0: jump-=sin(spawn_pose*PI*2)*7
  if ability_active>0: pose="present"
- IllustratedNeris.paint(self,clock*animation_rate,velocity.length()>1,pose,facing,Vector2(0,bob+jump),tilt,1.0,Color.WHITE,body_texture)
+ if character_id=="shader": ShaderArt.paint(self,clock,velocity.length()>1,pose,facing,Vector2(0,bob+jump),tilt,1.0,2 if awakened>0 else 1 if character_state.panic or determination>=100 else 0)
+ else: IllustratedNeris.paint(self,clock*animation_rate,velocity.length()>1,pose,facing,Vector2(0,bob+jump),tilt,1.0,Color.WHITE,body_texture)
  if cooldown > stats.attack_interval*0.7:
   draw_circle(facing*24,5,Color(0.7,1,0.9,0.7))
  if pickup_pose>0:
@@ -120,17 +135,20 @@ func _draw() -> void:
   var point := relics.orbital_point(position)-position
   draw_circle(point,8,Color("b9d9ec"))
   draw_arc(point,12,0,TAU,16,Color(0.7,0.9,1,0.35),2)
- if relics.mirror_active() or (character_id=="mira" and ability_active>0):
-  IllustratedNeris.paint(self,clock*animation_rate,velocity.length()>1,pose,facing,Vector2(44,bob),tilt,1.0,Color(0.55,0.8,1,0.4),body_texture)
+ if relics.mirror_active() or relics.effects.echo_time>0 or (character_id=="mira" and (ability_active>0 or character_state.shadow_timer>0)):
+  if character_id=="shader": ShaderArt.paint(self,clock,velocity.length()>1,pose,facing,Vector2(44,bob),tilt,1.0,0,Color(0.55,0.8,1,0.4))
+  else: IllustratedNeris.paint(self,clock*animation_rate,velocity.length()>1,pose,facing,Vector2(44,bob),tilt,1.0,Color(0.55,0.8,1,0.4),body_texture)
 
  if ability_active>0:
-  var color:=Color(CharacterCatalog.definition(character_id).color)
+  var color:=character_color
   draw_arc(Vector2(0,-9),31+sin(clock*9)*3,0,TAU,24,Color(color,0.7),2,true)
  if character_id in ["nyra","lumi"] and ability_active>0:
   draw_set_transform(skill_origin-position,0,Vector2.ONE)
   if character_id=="nyra": IllustratedNeris.paint(self,clock*animation_rate,false,"rest",facing,Vector2.ZERO,0,1.0,Color(0.35,0.2,0.55,0.55),body_texture)
   else: draw_arc(Vector2.ZERO,72,0,TAU,32,Color(1,0.9,0.55,0.8),3,true)
   draw_set_transform(Vector2.ZERO)
+
+ CharacterVFX.paint(self)
 
 func draw_ellipse_shadow() -> void:
  draw_texture_rect(IllustratedNeris.SHADOW,Rect2(-29,9,58,23),false)
@@ -140,21 +158,19 @@ func _ready() -> void:
 
 func configure_character(id: String) -> void:
  character_id=id
+ character_color=Color(CharacterCatalog.definition(id).color)
  animation_rate=float(CharacterCatalog.definition(id).animation_rate)
  body_texture=CharacterCatalog.texture(id)
 
 func activate_ability() -> bool:
- if not active or ability_remaining>0 or not CharacterCatalog.playable(character_id): return false
+ if not active or ability_remaining>0 or not CharacterCatalog.playable(character_id) or (character_id=="lumi" and character_state.healing_left<=0): return false
  var entry:=CharacterCatalog.definition(character_id)
- ability_remaining=float(entry.cooldown)
+ ability_remaining=float(entry.cooldown)*(1.0-clampf(relics.effects.value("cooldown"),0,0.35))
  ability_active=float(entry.duration)
  ability_age=0.0
  skill_origin=position
  dash_direction=movement_input().normalized() if movement_input()!=Vector2.ZERO else facing
- if character_id=="neris": immunity=maxf(immunity,0.24)
- if character_id=="lumi": heal_budget=1.5
- if character_id=="vex": mixture=posmod(mixture+1,3)
- if character_id=="nox": stats.set_temporary("character",{"damage":0.45,"attack_interval":-0.05})
+ CharacterRules.activate(self)
  ability_used.emit()
  queue_redraw()
  return true
@@ -169,19 +185,17 @@ func tick_ability(delta: float) -> void:
   var healing:=minf(heal_budget,minf(delta*0.5,stats.max_health-stats.health))
   stats.health+=healing
   heal_budget-=healing
+  character_state.healing_left=maxf(0,float(character_state.healing_left)-healing)
   if healing>0: health_changed.emit(stats.health,stats.max_health)
- if character_id=="nox" and was_active and ability_active<=0:
-  stats.set_temporary("character",{"damage":-0.15,"speed":-40.0})
-  fatigue=2.0
- elif fatigue>0:
-  fatigue=maxf(0,fatigue-delta)
-  if fatigue<=0: stats.clear_temporary("character")
+ CharacterRules.tick(self,delta,was_active)
 
 func pursuit_point() -> Vector2:
- return skill_origin if character_id=="nyra" and ability_active>0 else position
+ if character_id=="nyra" and ability_active>0: return skill_origin
+ if character_id=="mira" and character_state.shadow_timer>0: return position+Vector2(44,0)
+ return position
 
 func ability_snapshot() -> Dictionary:
- return {"remaining":ability_remaining,"active":ability_active,"fatigue":fatigue,"age":ability_age,"origin":skill_origin,"direction":dash_direction,"heal":heal_budget,"mixture":mixture}
+ return {"remaining":ability_remaining,"active":ability_active,"fatigue":fatigue,"age":ability_age,"origin":skill_origin,"direction":dash_direction,"heal":heal_budget,"mixture":mixture,"character_state":character_state.duplicate(true),"determination":determination,"awakened":awakened,"evasion":evasion_window}
 
 func restore_ability(value: Dictionary) -> void:
  ability_remaining=value.remaining
@@ -192,3 +206,10 @@ func restore_ability(value: Dictionary) -> void:
  dash_direction=value.direction
  heal_budget=value.heal
  mixture=value.mixture
+ character_state=value.get("character_state",CharacterRules.fresh()).duplicate(true)
+ determination=float(value.get("determination",0))
+ awakened=float(value.get("awakened",0))
+ evasion_window=float(value.get("evasion",0))
+
+func add_determination(amount: float) -> void:
+ if character_id=="shader": determination=clampf(determination+maxf(0,amount),0,100)

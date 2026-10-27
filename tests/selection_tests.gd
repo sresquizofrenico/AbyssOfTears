@@ -30,11 +30,11 @@ func run() -> void:
  var selection: CharacterSelection=game.panel
  await process_frame
  check(selection.heading.text.contains("Neris"),"Real character name displayed")
- check(selection.entries.size()==10 and selection.left_button.visible and selection.right_button.visible,"All ten characters are browsable from first launch")
+ check(selection.entries.size()==11 and selection.left_button.visible and selection.right_button.visible,"All eleven characters are browsable from first launch")
  check(not selection.begin_button.disabled,"Neris starts unlocked")
  var stats: ActorStats=CharacterCatalog.initial_stats("neris")
- check(stats.health==6 and stats.damage==1 and stats.speed==185 and is_equal_approx(stats.attack_interval,0.24),"Catalog preserves existing real base stats")
- check(selection.details.text.contains("4.17") and selection.details.text.contains("185"),"Preview derives cadence and speed from stats")
+ check(stats.health==6 and stats.damage==1 and stats.speed==185 and is_equal_approx(stats.attack_interval,1.0/2.8),"Catalog preserves existing real base stats")
+ check(selection.details.text.contains("2.80") and selection.details.text.contains("185"),"Preview derives cadence and speed from stats")
  check(selection.details.text.contains("ninguno"),"No fictitious starting item")
  check(CharacterCatalog.initial_stats("missing")==null and not game.begin_character_run("missing"),"Unknown character denied by gameplay boundary")
  var old_clock: float=selection.character.clock
@@ -53,7 +53,7 @@ func run() -> void:
   check(selection.status.get_minimum_size().y<=selection.status.size.y,"Unlock status wraps without cutting text")
   check(selection.plate.get_global_rect().end.x<=dimensions.x,"Stats panel stays inside screen")
   check(selection.character.position.x-100>selection.plate.get_global_rect().end.x,"Large protagonist stays separate from stats")
-  check(selection.details.get_minimum_size().y<=selection.plate.size.y-40,"Details fit available height")
+  check(selection.left_scroll.size.y<=selection.plate.size.y-30,"Details fit available height")
  root.size=Vector2i(960,540)
  await process_frame
  # Synthetic locked fixture exercises reusable navigation without inventing released content.

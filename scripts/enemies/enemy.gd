@@ -13,6 +13,15 @@ var facing := Vector2.DOWN
 var once := false
 var weak := false
 var slowed := 0.0
+var poisoned := 0.0
+var poison_tick := 0.0
+var marked := 0.0
+var frozen := 0.0
+var chill_stacks := 0
+var slow_strength := 0.4
+var reaction_cooldown := 0.0
+var rank := "normal"
+var elite_timer := 4.5
 var burning := 0.0
 var burn_tick := 0.0
 var destination := Vector2.ZERO
@@ -34,12 +43,17 @@ var dead := false
 
 func _ready() -> void:
  texture_filter=CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
- definition = EnemyCatalog.DATA[kind]
+ definition = EnemyCatalog.DATA[kind].duplicate(true)
  health = float(definition.health) * (0.5 if weak else 1.0)
  max_health = health
  speed = definition.speed
  if kind == 5: collision_mask = 0
  attack_timer = float(definition.interval)
+ if rank in ["elite","miniboss"]:
+  health*=2.0 if rank=="elite" else 4.0
+  max_health=health
+  hit_radius=24 if rank=="elite" else 28
+  definition.resistance=minf(0.5,float(definition.resistance)+0.08)
 
 func _physics_process(delta: float) -> void:
  if dead or not is_instance_valid(target) or not target.active: return
@@ -49,7 +63,8 @@ func _physics_process(delta: float) -> void:
  var direction := difference.normalized()
  facing = direction if velocity.length() > 1 else facing
  velocity = direction * speed
- telegraph = attack_timer < 0.65
+ elite_timer-=delta
+ telegraph = attack_timer < 0.65 or (rank in ["elite","miniboss"] and elite_timer<0.65)
  match kind:
   0: record("pursue")
   1:
@@ -86,14 +101,24 @@ func _physics_process(delta: float) -> void:
     once = true
     summon.emit(15, position + Vector2(35,0), true)
     record("duplicate")
- if slowed>0: velocity *= 0.6
+ if slowed>0: velocity *= 1.0-slow_strength
  move_and_slide()
  # Ghosts cross pillars but never cross the outer arena boundary.
  position = position.clamp(Vector2(59,85), Vector2(901,463))
  if attack_timer <= 0:
   attack_timer = float(definition.interval)
   perform_attack(direction)
- if target.position.distance_to(position) < 30 and float(definition.damage)>0: target.take_damage(float(definition.damage))
+ if rank in ["elite","miniboss"] and elite_timer<=0:
+  elite_timer=4.5 if rank=="elite" else 3.5
+  if rank=="elite":
+   for angle in [-0.32,0.0,0.32]: shot.emit(position+direction*25,direction.rotated(angle))
+  else:
+   for i in range(8):
+    var ray:=Vector2.from_angle(direction.angle()+i*TAU/8)
+    if absf(wrapf(ray.angle()-direction.angle(),-PI,PI))<0.6: continue
+    shot.emit(position+ray*30,ray)
+  record("rank_attack")
+ if target.position.distance_to(position) < 30 and float(definition.damage)>0: target.take_damage(float(definition.damage),"contact")
  queue_redraw()
 
 func perform_attack(direction: Vector2) -> void:
@@ -138,9 +163,17 @@ func _draw() -> void:
  var scale_y := 1.0 + sin(clock*5)*0.035
  draw_set_transform(Vector2(0,bob),sin(clock*3)*0.04,Vector2(1,scale_y))
  var tint := Color(1.5,1.5,1.5) if flash>0 else Color.WHITE
- draw_texture_rect(EnemyArt.TEXTURES[kind],Rect2(-27,-32,54,54),false,tint)
+ var extent:=Vector2(54,54)*(1.4 if rank=="miniboss" else 1.1 if rank=="elite" else 1.0)
+ draw_texture_rect(EnemyArt.TEXTURES[kind],Rect2(-extent*0.5-Vector2(0,5),extent),false,tint)
  draw_set_transform(Vector2.ZERO)
+ if rank in ["elite","miniboss"]:
+  draw_arc(Vector2(0,-7),32 if rank=="elite" else 40,clock,clock+PI*1.5,24,Color("ddb78b") if rank=="elite" else Color("cb9bdc"),2)
+  for i in range(3):
+   var at:=Vector2.from_angle(i*TAU/3+clock*0.4)*34-Vector2(0,7)
+   draw_line(at-Vector2(3,0),at+Vector2(3,0),Color("e4b8d8"),3)
  if burning>0: draw_circle(Vector2(0,15),7,Color(1,0.5,0.2,0.7))
+ if poisoned>0: draw_circle(Vector2(-12,10),5,Color("a4d46c"))
+ if marked>0: draw_arc(Vector2(0,-9),20,clock,clock+PI,12,Color("dfacf4"),2)
  if slowed>0: draw_arc(Vector2.ZERO,27,0,TAU,20,Color("a1e4f5"),2)
  if kind == 6: draw_arc(Vector2.ZERO,25,facing.angle()-0.8,facing.angle()+0.8,12,Color("e3ebcd"),5)
  if telegraph: draw_arc(Vector2.ZERO,29,0,TAU,24,Color("ffcf91"),2)
@@ -154,11 +187,29 @@ func _draw() -> void:
 func step_conditions(delta: float) -> bool:
  clock += delta
  slowed = maxf(0,slowed-delta)
+ if slowed<=0: chill_stacks=0; slow_strength=0.4
+ poisoned=maxf(0,poisoned-delta)
+ marked=maxf(0,marked-delta)
+ frozen=maxf(0,frozen-delta)
+ reaction_cooldown=maxf(0,reaction_cooldown-delta)
+ poison_tick-=delta
+ if poisoned>0 and poison_tick<=0:
+  poison_tick=0.75
+  take_damage(0.22)
+  if dead: return false
  burning = maxf(0,burning-delta)
  burn_tick -= delta
  if burning > 0 and burn_tick <= 0:
   burn_tick = 0.6
-  take_damage(0.3)
+  take_damage(0.15 if kind==14 else 0.3)
   if dead: return false
  flash = maxf(0, flash - delta)
- return not dead
+ return not dead and frozen<=0
+
+func apply_chill() -> void:
+ chill_stacks=mini(3,chill_stacks+1)
+ slowed=3.0
+ slow_strength=minf(0.6,0.15*chill_stacks)
+ if chill_stacks>=3 and rank=="normal" and reaction_cooldown<=0:
+  frozen=0.35
+  reaction_cooldown=2.0

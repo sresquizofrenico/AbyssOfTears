@@ -5,10 +5,10 @@ signal pause_requested
 signal doors_requested
 signal preference_failed
 
-const ICONS = {"life":preload("res://assets/ui/life.svg"),"coins":preload("res://assets/relics/coins.svg"),"keys":preload("res://assets/relics/key.svg"),"shadows":preload("res://assets/ui/shadows.svg"),"damage":preload("res://assets/ui/damage.svg"),"speed":preload("res://assets/ui/speed.svg"),"cadence":preload("res://assets/ui/cadence.svg"),"range":preload("res://assets/ui/range.svg"),"luck":preload("res://assets/ui/luck.svg"),"defense":preload("res://assets/ui/defense.svg"),"projectile":preload("res://assets/ui/projectile.svg")}
-const STAT_KEYS = ["damage","cadence","speed","range","luck","defense","projectile"]
-const NAMES = {"damage":"Daño","cadence":"Cadencia","speed":"Movimiento","range":"Alcance","luck":"Suerte","defense":"Defensa","projectile":"Vel. proyectil"}
-const UNITS = {"damage":"","cadence":"/s","speed":"px/s","range":"px","luck":"","defense":"","projectile":"px/s"}
+const ICONS = {"life":preload("res://assets/ui/life.svg"),"coins":preload("res://assets/relics/coins.svg"),"keys":preload("res://assets/relics/key.svg"),"shadows":preload("res://assets/ui/shadows.svg"),"damage":preload("res://assets/ui/damage.svg"),"speed":preload("res://assets/ui/speed.svg"),"cadence":preload("res://assets/ui/cadence.svg"),"range":preload("res://assets/ui/range.svg"),"luck":preload("res://assets/ui/luck.svg"),"defense":preload("res://assets/ui/defense.svg"),"projectile":preload("res://assets/ui/projectile.svg"),"critical":preload("res://assets/ui/critical.svg")}
+const STAT_KEYS = ["damage","cadence","speed","range","luck","defense","projectile","critical"]
+const NAMES = {"damage":"Daño","cadence":"Cadencia","speed":"Movimiento","range":"Alcance","luck":"Suerte","defense":"Defensa","projectile":"Vel. proyectil","critical":"Crítico"}
+const UNITS = {"damage":"","cadence":"/s","speed":"px/s","range":"px","luck":"","defense":"","projectile":"px/s","critical":"%"}
 var health_label: Label
 var health_bar: ProgressBar
 var coins_label: Label
@@ -100,20 +100,20 @@ func _ready() -> void:
  style.border_color=Color("4d777d")
  style.set_border_width_all(1)
  style.set_corner_radius_all(10)
- style.set_content_margin_all(10)
+ style.set_content_margin_all(6)
  detail.add_theme_stylebox_override("panel",style)
  detail.mouse_filter=Control.MOUSE_FILTER_IGNORE
  add_child(detail)
  var box:=VBoxContainer.new()
  box.mouse_filter=Control.MOUSE_FILTER_IGNORE
- box.add_theme_constant_override("separation",4)
+ box.add_theme_constant_override("separation",1)
  detail.add_child(box)
  box.add_child(make_label("ESTADÍSTICAS REALES",14))
  for key: String in STAT_KEYS:
   var cell:=HBoxContainer.new()
   cell.mouse_filter=Control.MOUSE_FILTER_IGNORE
   cell.add_theme_constant_override("separation",6)
-  cell.add_child(icon(key,20))
+  cell.add_child(icon(key,18))
   var name_label:=make_label(NAMES[key],15)
   name_label.custom_minimum_size.x=92
   cell.add_child(name_label)
@@ -206,7 +206,7 @@ func short_number(value: float) -> String:
  return str(int(value)) if is_equal_approx(value,roundf(value)) else ("%.2f" % value).trim_suffix("0")
 
 func values_from(stats: ActorStats) -> Dictionary:
- return {"damage":stats.damage,"cadence":1.0/stats.attack_interval,"speed":stats.speed,"range":stats.attack_range,"luck":stats.luck,"defense":stats.defense,"projectile":stats.projectile_speed}
+ return {"damage":stats.damage,"cadence":1.0/stats.attack_interval,"speed":stats.speed,"range":stats.attack_range,"luck":stats.luck,"defense":stats.defense,"projectile":stats.projectile_speed,"critical":stats.critical_chance*100}
 
 func bind_stats(stats: ActorStats) -> void:
  previous.clear()

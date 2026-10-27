@@ -19,7 +19,7 @@ static func prepare(layout: FloorLayout, owned: Dictionary={}) -> void:
    if not ids.has(id) and int(owned.get(id,0))<int(RelicCatalog.definition(id).max_stack): ids.append(id)
   for definition: Dictionary in RelicCatalog.DATA:
    if ids.size()==2: break
-   if not ids.has(definition.id) and int(owned.get(definition.id,0))<int(definition.max_stack): ids.append(definition.id)
+   if Economy.context_allows(definition.id,layout.floor_index,"shop") and not ids.has(definition.id) and int(owned.get(definition.id,0))<int(definition.max_stack): ids.append(definition.id)
   for i in range(ids.size()):
    room.pickups.append({"id":ids[i],"position":Vector2(360+i*120,274),"price":Economy.item_price(ids[i],layout.floor_index,rng),"collected":false,"chest":false})
   room.pickups.append({"id":"crystal","position":Vector2(600,274),"reward_kind":"key","price":int(Economy.config().key_price),"collected":false,"chest":false})
