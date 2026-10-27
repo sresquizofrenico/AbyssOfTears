@@ -1,3 +1,18 @@
+## Descarga pública para Android · 0.9.1
+
+[**Descargar las versiones públicas de Abyss of Tears**](https://github.com/sresquizofrenico/AbyssOfTears/releases)
+
+En la publicación, abre **Assets → AbyssOfTears-Android.apk**. Es una prueba pública
+ARM64, gratuita y sin conexión; no necesitas Godot ni una computadora.
+
+Controles mejorados: disparo continuo al deslizar, joystick flotante opcional,
+modo zurdo, zona muerta y pantalla de práctica desde **Opciones → Controles táctiles**.
+[Detalles y validación](docs/controls-and-public-release-0.9.1.md).
+
+Antes de reinstalar, copia **Opciones → Progreso → Copiar código** a tus notas.
+La firma de depuración puede impedir actualizar directamente una instalación anterior.
+El arte definitivo y las pruebas físicas en ZTE siguen pendientes.
+
 ## Determinación y cien reliquias · 0.9.0
 
 Once personajes con Shader Mítico secreto, prueba de desbloqueo, activas y pasivas

@@ -29,6 +29,7 @@ var changes: Dictionary={}
 var previous: Dictionary={}
 var view := 0 # 0: three main stats, 1: expanded, 2: hidden
 var playing:=false
+var left_handed:=false
 var touch_buttons: Dictionary={}
 var last_control_scale:=1.0
 
@@ -185,7 +186,7 @@ func layout_hud(control_scale:=1.0) -> void:
  compact.position=Vector2(inset,50)
  wave_cell.position=Vector2(inset+270,50)
  # Optional glass panel leaves all four physical doorway positions clear.
- detail.position=Vector2((width-960)*0.5+175,(get_viewport().get_visible_rect().size.y-540)*0.5+118)
+ detail.position=Vector2((width-960)*0.5+(505 if left_handed else 175),(get_viewport().get_visible_rect().size.y-540)*0.5+118)
  detail.size=Vector2(280,218)
  last_control_scale=control_scale
 

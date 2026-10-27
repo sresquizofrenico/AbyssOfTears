@@ -64,6 +64,7 @@ var sparks: Array[Dictionary] = []
 var effects: Array[Dictionary] = []
 var effect_layer: Node2D
 var options_return := "menu"
+var controls_return: String="menu"
 var progress: Node
 var character_audio: AudioStreamPlayer
 var pickup_interaction: PickupInteraction
@@ -361,6 +362,7 @@ func start_game(keep_progress: bool = false) -> void:
  world.add_child(effect_layer)
  effect_layer.draw.connect(draw_effects)
  apply_controls()
+ sync_control_state()
  controls.set_enabled(true)
  hud.show()
  hud.bind_stats(player.stats)
@@ -396,9 +398,10 @@ func start_game(keep_progress: bool = false) -> void:
 
 func apply_controls() -> void:
  if is_instance_valid(player): player.quality=Settings.values.quality
- controls.scale_factor = Settings.values.control_scale
- controls.opacity = Settings.values.control_opacity
- controls.queue_redraw()
+ controls.configure(Settings.values)
+ hud.left_handed=controls.left_handed
+ hud.layout_hud(Settings.values.control_scale)
+ sync_control_exclusions()
 
 func update_health(current: float, maximum: float) -> void:
  hud.set_health(current,maximum)
@@ -464,14 +467,10 @@ func spawn_bullet(origin: Vector2, direction: Vector2, speed: float, damage: flo
 
 func _physics_process(delta: float) -> void:
  if state != "playing": return
- controls.item_visible=not player.relics.effects.active_id.is_empty()
- controls.item_cooldown=float(player.relics.effects.active_recharge.get(player.relics.effects.active_id,0))
- controls.awaken_visible=player.character_id=="shader"
- controls.determination=player.determination
- controls.ability_cooldown=player.ability_remaining
  if player.character_state.windup>0:
   player.character_state.windup=maxf(0,float(player.character_state.windup)-delta)
   if player.character_state.windup<=0: spawn_rupture()
+ sync_control_state()
  controls.queue_redraw()
  door_cooldown=maxf(0,door_cooldown-delta)
  hud.refresh_stats(player.stats,delta)
@@ -663,8 +662,7 @@ func show_options(previous: String) -> void:
    chamber.quality = value
    chamber.queue_redraw())
  box.add_child(quality)
- add_slider(box, "Tamaño de controles", "control_scale", 0.8, 1.25)
- add_slider(box, "Opacidad de controles", "control_opacity", 0.3, 1.0)
+ box.add_child(button("Controles táctiles",func(): show_control_options(previous)))
  var fps_toggle := CheckButton.new()
  fps_toggle.text = "Diagnóstico FPS"
  fps_toggle.button_pressed = Settings.values.get("diagnostics",false)
@@ -714,6 +712,8 @@ func _notification(what: int) -> void:
   if state == "menu" and panel is AnimatedMainMenu: panel.skip_intro()
   elif state in ["modes","credits","character_selection","progress_backup"]: show_main_menu()
   elif state=="seed": show_modes()
+  elif state=="control_options": show_options(controls_return)
+  elif state=="control_preview": show_control_options(controls_return)
   elif state == "playing": pause_game()
   elif state == "paused": resume_game()
 
@@ -722,6 +722,8 @@ func _unhandled_key_input(event: InputEvent) -> void:
   if state == "playing": pause_game()
   elif state == "paused": resume_game()
   elif state in ["character_selection","progress_backup"]: show_main_menu()
+  elif state=="control_options": show_options(controls_return)
+  elif state=="control_preview": show_control_options(controls_return)
 
 func show_credits() -> void:
  state = "credits"
@@ -1201,7 +1203,7 @@ func update_keys() -> void:
 func position_notice() -> void:
  if not is_instance_valid(toast): return
  var width:=get_viewport().get_visible_rect().size.x
- toast.position=Vector2((width-960)*0.5+540,118) if hud.detail.visible else Vector2(width*0.5-195,110)
+ toast.position=Vector2((width-960)*0.5+(120 if controls.left_handed else 540),118) if hud.detail.visible else Vector2(width*0.5-195,110)
 
 func show_notice(message: String, icon: Texture2D) -> void:
  position_notice()
@@ -1286,6 +1288,7 @@ func position_pickup_interaction() -> void:
  var panel_height:=145.0 if pickup_interaction.action.visible else 92.0
  pickup_interaction.position=Vector2(viewport_size.x*0.5-215,viewport_size.y-panel_height-15)
  pickup_interaction.size=Vector2(430,panel_height)
+ sync_control_exclusions()
 
 func update_pickup_interaction() -> void:
  var nearest: RelicPickup
@@ -1299,6 +1302,7 @@ func update_pickup_interaction() -> void:
  if nearest==null:
   pickup_interaction.hide()
   pickup_interaction.target=null
+  sync_control_exclusions()
  else:
   pickup_interaction.present(nearest)
   position_pickup_interaction()
@@ -1473,3 +1477,84 @@ func spawn_trial_stage() -> void:
   spawn_enemy(9,Vector2(740,250))
  else: spawn_guardian(2)
  update_counts()
+
+func sync_control_exclusions() -> void:
+ if not is_instance_valid(controls): return
+ controls.excluded_regions.clear()
+ if is_instance_valid(pickup_interaction) and pickup_interaction.visible: controls.excluded_regions.append(pickup_interaction.get_global_rect())
+ if is_instance_valid(hud):
+  for target: Button in [hud.pause_button,hud.stats_button,hud.doors_button]:
+   if target.is_visible_in_tree(): controls.excluded_regions.append(target.get_global_rect())
+
+func show_control_options(previous: String) -> void:
+ controls_return=previous
+ state="control_options"
+ var box:=menu("Controles táctiles","Desliza para ver todos los ajustes y pruébalos")
+ var scroll:=ScrollContainer.new()
+ scroll.custom_minimum_size=Vector2(570,280)
+ box.add_child(scroll)
+ var rows:=VBoxContainer.new()
+ rows.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+ rows.add_theme_constant_override("separation",10)
+ scroll.add_child(rows)
+ add_slider(rows,"Tamaño","control_scale",0.8,1.25)
+ add_slider(rows,"Opacidad","control_opacity",0.3,1.0)
+ var deadzone_label:=label("Zona muerta: %d%% · Evita movimientos involuntarios" % roundi(Settings.values.move_deadzone*100),16)
+ rows.add_child(deadzone_label)
+ var deadzone:=HSlider.new()
+ deadzone.min_value=0.08
+ deadzone.max_value=0.28
+ deadzone.step=0.01
+ deadzone.value=Settings.values.move_deadzone
+ deadzone.custom_minimum_size.y=40
+ deadzone.value_changed.connect(func(value: float):
+  Settings.values.move_deadzone=value
+  deadzone_label.text="Zona muerta: %d%% · Evita movimientos involuntarios" % roundi(value*100))
+ rows.add_child(deadzone)
+ for key: String in ["floating_joystick","left_handed"]:
+  var toggle:=CheckButton.new()
+  toggle.text="Joystick flotante" if key=="floating_joystick" else "Modo zurdo: movimiento a la derecha"
+  toggle.custom_minimum_size.y=44
+  toggle.button_pressed=Settings.values[key]
+  toggle.toggled.connect(func(value: bool): Settings.values[key]=value)
+  rows.add_child(toggle)
+ var fire:=OptionButton.new()
+ fire.add_item("Disparo: cruceta continua")
+ fire.add_item("Disparo: joystick en cuatro direcciones")
+ fire.selected=int(Settings.values.fire_style)
+ fire.custom_minimum_size.y=48
+ fire.item_selected.connect(func(index: int): Settings.values.fire_style=index)
+ rows.add_child(fire)
+ var status:=label("",14)
+ box.add_child(status)
+ var actions:=HBoxContainer.new()
+ actions.add_theme_constant_override("separation",10)
+ box.add_child(actions)
+ actions.add_child(button("Probar",func(): show_control_preview()))
+ actions.add_child(button("Restablecer",func():
+  for key: String in ["control_scale","control_opacity","move_deadzone","floating_joystick","left_handed","fire_style"]: Settings.values[key]=Settings.DEFAULTS[key]
+  show_control_options(controls_return)))
+ actions.add_child(button("Guardar",func():
+  if Settings.save_settings()!=OK:
+   status.text="No se pudo guardar. Inténtalo de nuevo."
+   return
+  apply_controls()
+  show_options(controls_return)))
+
+func show_control_preview() -> void:
+ state="control_preview"
+ clear_panel()
+ panel=PanelContainer.new()
+ ui.add_child(panel)
+ panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+ var preview:=ControlPractice.new()
+ panel.add_child(preview)
+ preview.back_requested.connect(func(): show_control_options(controls_return))
+
+func sync_control_state() -> void:
+ if not is_instance_valid(player): return
+ controls.item_visible=not player.relics.effects.active_id.is_empty()
+ controls.item_cooldown=float(player.relics.effects.active_recharge.get(player.relics.effects.active_id,0))
+ controls.awaken_visible=player.character_id=="shader"
+ controls.determination=player.determination
+ controls.ability_cooldown=player.ability_remaining

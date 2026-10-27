@@ -1,7 +1,7 @@
 extends Node
 
 const PATH := "user://settings.json"
-const DEFAULTS := {"version": 1, "quality": 1, "control_scale": 1.0, "control_opacity": 0.75, "diagnostics": false, "stats_view": 0}
+const DEFAULTS := {"version": 1, "quality": 1, "control_scale": 1.0, "control_opacity": 0.75, "diagnostics": false, "stats_view": 0,"move_deadzone":0.12,"floating_joystick":false,"fire_style":0,"left_handed":false}
 var values: Dictionary = DEFAULTS.duplicate()
 
 func _ready() -> void:
@@ -15,7 +15,11 @@ func validate(data: Variant) -> Dictionary:
   clean.quality = clampi(int(data.quality), 0, 2)
  if (data.get("stats_view") is int or data.get("stats_view") is float) and is_finite(float(data.stats_view)):
   clean.stats_view=clampi(int(data.stats_view),0,2)
- if data.get("diagnostics") is bool: clean.diagnostics = data.diagnostics
+ for key in ["diagnostics","floating_joystick","left_handed"]:
+  if data.get(key) is bool: clean[key]=data[key]
+ if (data.get("fire_style") is int or data.get("fire_style") is float) and is_finite(float(data.fire_style)): clean.fire_style=clampi(int(data.fire_style),0,1)
+ var deadzone: Variant=data.get("move_deadzone")
+ if (deadzone is int or deadzone is float) and is_finite(float(deadzone)): clean.move_deadzone=clampf(float(deadzone),0.08,0.28)
  for key in ["control_scale", "control_opacity"]:
   var v = data.get(key)
   if (v is float or v is int) and is_finite(float(v)):
