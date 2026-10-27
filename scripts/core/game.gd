@@ -24,6 +24,7 @@ const MAX_HAZARDS := 10
 var dungeon_mode := false
 var layout := FloorLayout.new()
 var dungeon_seed := 0
+var loot_rng:=RandomNumberGenerator.new()
 var transitioning := false
 var dungeon_map: DungeonMap
 var floor_label: Label
@@ -291,6 +292,7 @@ func start_game(keep_progress: bool = false) -> void:
  clear_panel()
  dispose_world()
  state = "playing"
+ if not keep_progress: loot_rng.seed=dungeon_seed+45271 if dungeon_mode else 45271
  coins = carried_coins
  keys = carried_keys
  door_cooldown = 0.0
@@ -301,6 +303,7 @@ func start_game(keep_progress: bool = false) -> void:
  chamber = CHAMBER.instantiate()
  chamber.quality = Settings.values.quality
  chamber.biome = layout.floor_index if dungeon_mode else 0
+ if dungeon_mode: chamber.blueprint=RoomBlueprint.create(dungeon_seed,layout.floor_index,layout.current,layout.rooms[layout.current].kind)
  world.add_child(chamber)
  player = PLAYER.instantiate()
  if carried != null: player.stats = carried
@@ -313,7 +316,7 @@ func start_game(keep_progress: bool = false) -> void:
  player.died.connect(func(): finish(false))
  world.add_child(player)
  if dungeon_mode:
-  RoomContent.prepare(layout)
+  RoomContent.prepare(layout,player.relics.owned)
   populate_room()
  elif expedition:
   spawn_wave()
@@ -470,9 +473,15 @@ func _physics_process(delta: float) -> void:
  if dungeon_mode and not transitioning and layout.rooms[layout.current].cleared:
   check_doors()
 
-func on_enemy_defeated(enemy: AbyssEnemy, point: Vector2, reward: int) -> void:
- enemies.erase(enemy)
- coins += reward
+func on_enemy_defeated(enemy: AbyssEnemy, point: Vector2, _reward: int) -> void:
+ if state!="playing" or not is_instance_valid(enemy) or not enemies.has(enemy) or not enemy.dead: return
+ enemies.erase(enemy) # Membership is consumed before any reentrant reward callback.
+ if not enemy is TideWarden:
+  var amount:=Economy.enemy_coin(loot_rng,enemy.kind,enemy.weak)
+  if amount>0:
+   var data:=Economy.coin_data(amount,point)
+   room_pickups.append(data)
+   spawn_pickup(data)
  if Settings.values.quality > 0 and effects.size() < 16:
   effects.append({"point": point, "life": 0.45, "kind":enemy.kind})
  update_counts()
@@ -650,6 +659,7 @@ func spawn_enemy(kind_id: int, point: Vector2, weak: bool = false) -> void:
  update_counts()
 
 func safe_point(point: Vector2) -> Vector2:
+ if not chamber.blueprint.is_empty(): return RoomBlueprint.safe_point(chamber.blueprint,point)
  point = point.clamp(Vector2(70,100),Vector2(890,450))
  for pillar: Vector2 in chamber.PILLARS:
   if point.distance_to(pillar) < 55: point = pillar + Vector2(0,60)
@@ -751,22 +761,11 @@ func reward_room() -> void:
  room.rewarded = true
  var rng := RandomNumberGenerator.new()
  rng.seed = dungeon_seed + layout.floor_index * 101 + layout.current
- coins += rng.randi_range(2,5) + layout.floor_index
  if room.kind == "descent": floor_label.text += " · Salida abierta: Puertas / Piso"
- if not room.has("pickups"): room.pickups = []
- if room.kind in ["treasure","boss"] or rng.randf() < float(RelicCatalog.DROP_SETTINGS.room_chance):
-  var data := {"id":RelicCatalog.roll(rng,layout.floor_index),"position":Vector2(480,274),"chest":room.kind != "treasure" and rng.randf()<float(RelicCatalog.DROP_SETTINGS.chest_chance),"collected":false}
-  if room.kind=="boss":
-   var rare: Array[String]=[]
-   for definition: Dictionary in RelicCatalog.DATA:
-    if int(definition.rarity)>=2: rare.append(definition.id)
-   data.id=rare[rng.randi_range(0,rare.size()-1)]
-   data.chest=false
-  if data.chest:
-   var content := rng.randf()
-   data.reward_kind = "coins" if content<float(RelicCatalog.DROP_SETTINGS.chest_coins) else "heal" if content<float(RelicCatalog.DROP_SETTINGS.chest_coins)+float(RelicCatalog.DROP_SETTINGS.chest_heal) else "relic"
+ if not room.has("pickups"): room.pickups=[]
+ for data: Dictionary in Economy.room_rewards(rng,layout.floor_index,room.kind):
   room.pickups.append(data)
-  if is_instance_valid(effect_layer) and room_pickups == room.pickups: spawn_pickup(data)
+  if is_instance_valid(effect_layer) and room_pickups==room.pickups: spawn_pickup(data)
  update_counts()
 
 func door_point(neighbor: int) -> Vector2:
@@ -874,12 +873,12 @@ func collect_relic(pickup: RelicPickup) -> bool:
   if kind=="heal" and player.stats.health>=player.stats.max_health: return false
   if kind=="key" and keys>=99: return false
   if kind=="key": keys=mini(99,keys+1); update_keys()
-  elif kind=="coins": coins += 5
+  elif kind=="coins": coins += Economy.amount(pickup.data)
   else: player.stats.health = minf(player.stats.max_health,player.stats.health+2)
   update_counts()
   update_health(player.stats.health,player.stats.max_health)
-  toast_icon.texture = RelicPickup.KEY if kind=="key" else RelicPickup.COINS if kind=="coins" else RelicPickup.HEAL
-  toast_label.text = "Llave del faro · Abre cerraduras opcionales" if kind=="key" else "Óbolos del faro · +5 monedas" if kind=="coins" else "Tónico de sal · Recupera hasta 2 de vida"
+  toast_icon.texture = RelicPickup.KEY if kind=="key" else pickup.icon() if kind=="coins" else RelicPickup.HEAL
+  toast_label.text = "Llave del faro · Abre cerraduras opcionales" if kind=="key" else pickup.display_name()+" · +%d monedas" % Economy.amount(pickup.data) if kind=="coins" else "Tónico de sal · Recupera hasta 2 de vida"
   toast_timer = 2.8
   toast.show()
   player.pickup_pose = 1.0
@@ -887,13 +886,13 @@ func collect_relic(pickup: RelicPickup) -> bool:
  var id: String = pickup.data.id
  var definition := RelicCatalog.definition(id)
  var added := player.relics.add(id,player.stats)
- if not added: coins += 3
+ if not added: coins += int(Economy.config().duplicate_compensation)
  player.pickup_pose = 1.0
  player.queue_redraw()
  update_health(player.stats.health,player.stats.max_health)
  update_counts()
  toast_icon.texture = RelicCatalog.icon(id)
- toast_label.text = definition.name + " · " + RelicCatalog.RARITIES[definition.rarity] + "\n" + (definition.description if added else "Máximo alcanzado: +3 óbolos")
+ toast_label.text = definition.name + " · " + RelicCatalog.RARITIES[definition.rarity] + "\n" + (definition.description if added else "Máximo alcanzado: +%d óbolo" % int(Economy.config().duplicate_compensation))
  toast_timer = 2.8
  toast.show()
  return true
@@ -995,6 +994,8 @@ func build_room_features() -> void:
   props.append(prop)
 
 func activate_prop(prop: RoomProp) -> void:
+ if state!="playing" or not is_instance_valid(prop) or prop.get_parent()!=world or not props.has(prop) or not prop.data.get("used",false) or prop.data.get("activation_handled",false): return
+ prop.data.activation_handled=true
  match prop.data.kind:
   "switch":
    layout.reveal_secret()
@@ -1005,7 +1006,12 @@ func activate_prop(prop: RoomProp) -> void:
    update_health(player.stats.health,player.stats.max_health)
    show_notice("Fuente de sal · +2 de vida",RelicPickup.HEAL)
   "barrel":
-   var data := {"id":"crystal","position":prop.position,"reward_kind":"key" if prop.data.drop_key else "coins","collected":false,"chest":false}
+   if prop.data.get("reward_delivered",false): return
+   prop.data.reward_delivered=true
+   var outcome:=int(prop.data.get("drop_type",2 if prop.data.get("drop_key",false) else 1))
+   if outcome==0: return
+   var data:=Economy.coin_data(int(prop.data.get("coin_amount",1)),prop.position)
+   if outcome==2: data.reward_kind="key"
    room_pickups.append(data)
    spawn_pickup(data)
 

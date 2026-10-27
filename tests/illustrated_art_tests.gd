@@ -62,10 +62,11 @@ func run() -> void:
   game.start_game()
   check(game.chamber.biome==floor_index,"Existing floor selects corresponding illustrated room")
   check(game.chamber.FLOORS[floor_index].get_size()==Vector2(1024,512),"Floor art is one bounded shared texture")
+  var collision_before: Array=[game.chamber.blocks(Vector2(320,200)),game.chamber.blocks(Vector2(480,274))]
   for quality in range(3):
    game.chamber.quality=quality
    game.chamber.queue_redraw()
-   check(game.chamber.blocks(Vector2(320,200)) and not game.chamber.blocks(Vector2(480,274)),"Graphics profiles retain identical collision geometry")
+   check([game.chamber.blocks(Vector2(320,200)),game.chamber.blocks(Vector2(480,274))]==collision_before,"Graphics profiles retain identical collision geometry")
  game.start_game()
  game.player.stats.health=1
  game.player.immunity=0

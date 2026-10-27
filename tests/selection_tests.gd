@@ -49,8 +49,10 @@ func run() -> void:
    var rect := button.get_global_rect()
    check(rect.size.y>=52 and rect.position.x>=0 and rect.end.x<=dimensions.x and rect.end.y<=dimensions.y,"Touch targets remain large and onscreen")
   check(not selection.begin_button.get_global_rect().intersects(selection.back_button.get_global_rect()),"Begin and back never overlap")
+  check(selection.status.get_global_rect().end.x<=dimensions.x,"Unlock status stays onscreen")
+  check(selection.status.get_minimum_size().y<=selection.status.size.y,"Unlock status wraps without cutting text")
   check(selection.plate.get_global_rect().end.x<=dimensions.x,"Stats panel stays inside screen")
-  check(selection.character.position.x+100<selection.plate.position.x,"Large protagonist stays separate from stats")
+  check(selection.character.position.x-100>selection.plate.get_global_rect().end.x,"Large protagonist stays separate from stats")
   check(selection.details.get_minimum_size().y<=selection.plate.size.y-40,"Details fit available height")
  root.size=Vector2i(960,540)
  await process_frame

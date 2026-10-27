@@ -51,16 +51,16 @@ func present(pickup: RelicPickup) -> void:
  if not is_instance_valid(target): hide(); return
  var price:=int(target.data.get("price",0))
  art.texture=target.icon()
- text.text=target.display_name()+(" · %d monedas" % price if price>0 else "")+"\n"+target.description()
+ text.text=target.display_name()+(" · "+target.rarity_label() if target.rarity_label()!="" else "")+(" · %d monedas" % price if price>0 else "")+"\n"+target.description()
  if price>0:
-  action.text="COMPRAR"
+  action.text="LÍMITE ALCANZADO" if target.at_stack_limit() else "COMPRAR"
   action.show()
  elif target.data.get("chest",false):
   action.text="ABRIR COFRE"+(" · 1 llave" if target.data.get("locked",false) else "")
   action.show()
  else:
   action.hide()
- action.disabled=not target.valid_reward() or (price<=0 and target.cooldown>0)
+ action.disabled=not target.valid_reward() or (price<=0 and target.cooldown>0) or (price>0 and target.at_stack_limit())
  if not action.visible or action.disabled: cancel_touch()
  show()
 

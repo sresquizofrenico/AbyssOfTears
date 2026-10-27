@@ -30,12 +30,12 @@ func run() -> void:
  root.size=Vector2i(960,540)
  root.add_child(game)
  await process_frame
- game.start_dungeon()
+ game.start_dungeon(12345)
  check(game.layout.floor_index==0 and game.enemies.is_empty(),"Start room safe")
  var map: FloorLayout = game.layout
  var neighbor: int = -1
  for candidate: int in map.rooms[0].links:
-  if map.door_visible(candidate):
+  if candidate<8 and map.door_visible(candidate):
    neighbor=candidate
    break
  check(neighbor>=0,"At least one initial door is visible")
