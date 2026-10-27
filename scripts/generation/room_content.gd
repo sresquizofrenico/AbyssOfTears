@@ -35,4 +35,4 @@ static func prepare(layout: FloorLayout, owned: Dictionary={}, artifacts: Array=
    room.pickups.append({"id":RelicCatalog.roll(rng,layout.floor_index,"chest"),"position":Vector2(760,274),"chest":true,"locked":true,"collected":false})
  if room.kind in ["secret","special"]:
   var artifact:=ArchaeologyCatalog.roll(rng,layout.floor_index,room.kind,artifacts)
-  if not artifact.is_empty(): room.pickups.append({"id":artifact,"reward_kind":"artifact","position":Vector2(710,340),"chest":true,"collected":false})
+  if not artifact.is_empty(): room.pickups.append({"id":artifact,"reward_kind":"artifact","position":Vector2(480,180),"chest":true,"collected":false})
