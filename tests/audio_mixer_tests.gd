@@ -41,6 +41,6 @@ func run() -> void:
   AudioServer.remove_bus_effect(index,0)
  settings.values=original
  director.apply_settings()
- await AudioTestCleanup.drain(self)
+ await preload("res://tests/audio_test_cleanup.gd").drain(self)
  print("AUDIO MIXER RESULT: %d checks, %d failures" % [checks,failures])
  quit(1 if failures else 0)

@@ -333,5 +333,5 @@ func run() -> void:
  progress.data=saved
  progress.storage_path=saved_path
  print("MYTHIC EXPANSION RESULT: %d checks, %d failures, %d recipe branches verified" % [checks,failures,verified.size()])
- await AudioTestCleanup.drain(self)
+ await preload("res://tests/audio_test_cleanup.gd").drain(self)
  quit(1 if failures else 0)

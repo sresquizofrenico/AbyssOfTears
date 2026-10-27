@@ -216,5 +216,5 @@ func run() -> void:
  progress.data=progress_before
  progress.storage_path=old_path
  print("AUDIO RESULT: %d checks, %d failures" % [checks,failures])
- await AudioTestCleanup.drain(self)
+ await preload("res://tests/audio_test_cleanup.gd").drain(self)
  quit(1 if failures else 0)

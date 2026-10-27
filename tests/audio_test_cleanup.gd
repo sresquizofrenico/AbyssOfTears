@@ -1,4 +1,3 @@
-class_name AudioTestCleanup
 extends RefCounted
 
 # Godot's mixer consumes stop commands asynchronously. Keep resource-leak checks
