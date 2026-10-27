@@ -1218,6 +1218,7 @@ func spawn_guardian(variant: int=-1) -> void:
  guardian.target=player
  guardian.peers=enemies
  guardian.shot.connect(spawn_enemy_bullet)
+ guardian.summon.connect(func(id: int, location: Vector2, small: bool): spawn_enemy(id,location,small))
  guardian.hazard.connect(spawn_hazard)
  guardian.defeated.connect(func(point: Vector2, reward: int): on_enemy_defeated(guardian,point,reward))
  guardian.health_report.connect(func(current: float, maximum: float, phase: int):

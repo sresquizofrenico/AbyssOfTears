@@ -213,7 +213,11 @@ func run() -> void:
   var boss: TideWarden=game.enemies.back()
   for pattern in range(3):
    boss.pattern=pattern
+   var previous_bullets: int=game.bullets.size()
+   var previous_hazards: int=game.hazards.size()
+   var previous_enemies: int=game.enemies.size()
    boss.perform_pattern()
+   check(game.bullets.size()>previous_bullets or game.hazards.size()>previous_hazards or game.enemies.size()>previous_enemies,"Boss pattern creates actual projectiles, hazards or summoned actors")
   check(boss.attacks==[1,1,1],"Each distinct boss executes its three patterns")
   boss.take_damage(10000)
  check(progress.data.boss_types.size()==3,"Three actual distinct boss IDs count toward Shader")
