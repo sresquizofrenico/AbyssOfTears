@@ -30,7 +30,7 @@ func run() -> void:
  var selection: CharacterSelection=game.panel
  await process_frame
  check(selection.heading.text.contains("Neris"),"Real character name displayed")
- check(not selection.left_button.visible and not selection.right_button.visible,"Single character has no unnecessary arrows")
+ check(selection.entries.size()==10 and selection.left_button.visible and selection.right_button.visible,"All ten characters are browsable from first launch")
  check(not selection.begin_button.disabled,"Neris starts unlocked")
  var stats: ActorStats=CharacterCatalog.initial_stats("neris")
  check(stats.health==6 and stats.damage==1 and stats.speed==185 and is_equal_approx(stats.attack_interval,0.24),"Catalog preserves existing real base stats")
@@ -57,12 +57,13 @@ func run() -> void:
  root.size=Vector2i(960,540)
  await process_frame
  # Synthetic locked fixture exercises reusable navigation without inventing released content.
+ selection.entries.resize(1)
  selection.entries.append({"id":"locked_fixture","name":"Silueta","unlocked":false,"requirement":"Requisito de prueba"})
  selection.refresh()
  check(selection.left_button.visible and selection.right_button.visible,"Arrows enabled when more than one entry exists")
  click(selection.right_button)
  check(selection.index==1 and selection.begin_button.disabled,"Right arrow selects locked silhouette and disables begin")
- check(selection.status.text=="Requisito de prueba" and selection.character.modulate.r<0.1,"Locked entry shows silhouette and unlock requirement")
+ check(selection.status.text.contains("Requisito de prueba") and selection.character.modulate.r<0.1,"Locked entry shows silhouette and unlock requirement")
  selection.start()
  check(not selection.pending,"Locked selection cannot start")
  click(selection.left_button)

@@ -45,7 +45,7 @@ func _physics_process(delta: float) -> void:
  if dead or not is_instance_valid(target) or not target.active: return
  if not step_conditions(delta): return
  attack_timer -= delta
- var difference := target.position - position
+ var difference := target.pursuit_point() - position
  var direction := difference.normalized()
  facing = direction if velocity.length() > 1 else facing
  velocity = direction * speed
@@ -93,7 +93,7 @@ func _physics_process(delta: float) -> void:
  if attack_timer <= 0:
   attack_timer = float(definition.interval)
   perform_attack(direction)
- if difference.length() < 30 and float(definition.damage)>0: target.take_damage(float(definition.damage))
+ if target.position.distance_to(position) < 30 and float(definition.damage)>0: target.take_damage(float(definition.damage))
  queue_redraw()
 
 func perform_attack(direction: Vector2) -> void:

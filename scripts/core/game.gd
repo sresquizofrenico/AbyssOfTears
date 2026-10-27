@@ -60,10 +60,23 @@ var sparks: Array[Dictionary] = []
 var effects: Array[Dictionary] = []
 var effect_layer: Node2D
 var options_return := "menu"
+var progress: Node
+var character_audio: AudioStreamPlayer
 var pickup_interaction: PickupInteraction
 
 func _ready() -> void:
  get_tree().quit_on_go_back = false
+ progress=CharacterCatalog.progress_node()
+ character_audio=AudioStreamPlayer.new()
+ character_audio.volume_db=-14
+ add_child(character_audio)
+ progress.character_unlocked.connect(func(id: String):
+  character_audio.stop()
+  character_audio.stream=CharacterSounds.unlock_sound()
+  character_audio.play()
+  if is_instance_valid(toast): show_notice("Nuevo viajero: "+str(CharacterCatalog.definition(id).name),preload("res://assets/ui/stats.svg")))
+ progress.save_failed.connect(func(_error: Error):
+  if is_instance_valid(toast): show_notice("No se pudo guardar el progreso",preload("res://assets/ui/stats.svg")))
  backdrop = MenuBackdrop.new()
  add_child(backdrop)
  var canvas := CanvasLayer.new()
@@ -74,6 +87,7 @@ func _ready() -> void:
  canvas.add_child(ui)
  controls = TouchControls.new()
  controls.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+ controls.ability_requested.connect(use_character_ability)
  ui.add_child(controls)
  get_viewport().size_changed.connect(resize_world)
  build_hud()
@@ -235,8 +249,7 @@ func show_character_selection() -> void:
 func begin_character_run(id: String) -> bool:
  if state != "character_selection" or not CharacterCatalog.playable(id): return false
  selected_character = id
- start_dungeon()
- return true
+ return start_dungeon()
 
 func show_modes() -> void:
  state = "modes"
@@ -283,6 +296,7 @@ func dispose_world() -> void:
 
 func start_game(keep_progress: bool = false) -> void:
  backdrop.hide()
+ var carried_ability: Dictionary = player.ability_snapshot() if keep_progress and is_instance_valid(player) else {}
  var carried_relics: RelicInventory = player.relics if keep_progress and is_instance_valid(player) else null
  var carried: ActorStats = player.stats if keep_progress and is_instance_valid(player) else null
  if is_instance_valid(toast): toast.hide()
@@ -308,11 +322,16 @@ func start_game(keep_progress: bool = false) -> void:
  player = PLAYER.instantiate()
  if carried != null: player.stats = carried
  else: player.stats = CharacterCatalog.initial_stats(selected_character)
+ player.configure_character(selected_character)
+ controls.ability_icon=CharacterCatalog.ability_icon(selected_character)
+ if not carried_ability.is_empty(): player.restore_ability(carried_ability)
  if carried_relics != null: player.relics = carried_relics
  player.position = Vector2(480, 390)
  player.controls = controls
  player.shot.connect(spawn_player_bullet)
  player.health_changed.connect(update_health)
+ player.damaged.connect(func():
+  if dungeon_mode: layout.rooms[layout.current].damaged=true)
  player.died.connect(func(): finish(false))
  world.add_child(player)
  if dungeon_mode:
@@ -382,7 +401,7 @@ func spawn_player_bullet(origin: Vector2, direction: Vector2, stats: ActorStats)
  var origins: Array[Vector2] = [origin]
  if inventory.has("double"): origins = [origin-direction.orthogonal()*7,origin+direction.orthogonal()*7]
  var echoes: Array[Vector2] = [Vector2.ZERO]
- if inventory.mirror_active(): echoes.append(Vector2(40,0))
+ if inventory.mirror_active() or (player.character_id=="mira" and player.ability_active>0): echoes.append(Vector2(40,0))
  for echo in echoes:
   for at in origins:
    for aim in directions:
@@ -393,7 +412,7 @@ func spawn_player_bullet(origin: Vector2, direction: Vector2, stats: ActorStats)
      bullet.pierce = 1 if inventory.has("pierce") else 0
      bullet.bounces = 1 if inventory.has("bounce") else 0
      for element in ["fire","ice","electric"]:
-      if inventory.has(element): bullet.elements.append(element)
+      if inventory.has(element) or (player.character_id=="solen" and element=="fire") or (player.character_id=="vex" and player.ability_active>0 and element==["fire","ice","electric"][player.mixture]): bullet.elements.append(element)
 
 func spawn_enemy_bullet(origin: Vector2, direction: Vector2) -> void:
  spawn_bullet(origin, direction, 190.0, 1.0, 720.0, true)
@@ -412,6 +431,9 @@ func spawn_bullet(origin: Vector2, direction: Vector2, speed: float, damage: flo
 
 func _physics_process(delta: float) -> void:
  if state != "playing": return
+ controls.ability_cooldown=player.ability_remaining
+ controls.ability_name=CharacterCatalog.definition(player.character_id).ability
+ controls.queue_redraw()
  door_cooldown=maxf(0,door_cooldown-delta)
  hud.refresh_stats(player.stats,delta)
  position_notice()
@@ -476,6 +498,11 @@ func _physics_process(delta: float) -> void:
 func on_enemy_defeated(enemy: AbyssEnemy, point: Vector2, _reward: int) -> void:
  if state!="playing" or not is_instance_valid(enemy) or not enemies.has(enemy) or not enemy.dead: return
  enemies.erase(enemy) # Membership is consumed before any reentrant reward callback.
+ if dungeon_mode and not enemy.weak:
+  record_progress("enemy",str(enemy.get_instance_id()))
+  if enemy is TideWarden:
+   var elemental:=player.relics.has("fire") or player.relics.has("ice") or player.relics.has("electric")
+   record_progress("boss","guardian",{"elemental":elemental})
  if not enemy is TideWarden:
   var amount:=Economy.enemy_coin(loot_rng,enemy.kind,enemy.weak)
   if amount>0:
@@ -544,6 +571,9 @@ func resume_game() -> void:
 
 func finish(won: bool) -> void:
  if state != "playing": return
+ if won and dungeon_mode and layout.floor_index==2 and layout.boss_defeated():
+  record_progress("floor","completed",{"character":selected_character})
+  record_progress("ending","main")
  state = "victory" if won else "defeat"
  boss_panel.hide()
  player.process_mode = Node.PROCESS_MODE_ALWAYS
@@ -577,7 +607,7 @@ func show_options(previous: String) -> void:
  fps_toggle.button_pressed = Settings.values.get("diagnostics",false)
  fps_toggle.toggled.connect(func(value: bool): Settings.values.diagnostics = value)
  box.add_child(fps_toggle)
- box.add_child(label("Audio: aún no disponible en esta versión",14))
+ box.add_child(label("Sonidos de habilidades · música pendiente",14))
  if previous == "menu":
   var extras := HBoxContainer.new()
   extras.add_theme_constant_override("separation",12)
@@ -588,6 +618,7 @@ func show_options(previous: String) -> void:
   credits_button.custom_minimum_size.x = 150
   extras.add_child(modes_button)
   extras.add_child(credits_button)
+  extras.add_child(button("Progreso",func(): Settings.save_settings(); show_progress_backup()))
  var status := label("",14)
  box.add_child(status)
  box.add_child(button("Guardar y volver", func():
@@ -618,7 +649,7 @@ func _notification(what: int) -> void:
   pause_game()
  if what == NOTIFICATION_WM_GO_BACK_REQUEST:
   if state == "menu" and panel is AnimatedMainMenu: panel.skip_intro()
-  elif state in ["modes","credits","character_selection"]: show_main_menu()
+  elif state in ["modes","credits","character_selection","progress_backup"]: show_main_menu()
   elif state=="seed": show_modes()
   elif state == "playing": pause_game()
   elif state == "paused": resume_game()
@@ -627,7 +658,7 @@ func _unhandled_key_input(event: InputEvent) -> void:
  if event is InputEventKey and event.pressed and not event.echo and event.physical_keycode == KEY_ESCAPE:
   if state == "playing": pause_game()
   elif state == "paused": resume_game()
-  elif state == "character_selection": show_main_menu()
+  elif state in ["character_selection","progress_backup"]: show_main_menu()
 
 func show_credits() -> void:
  state = "credits"
@@ -709,6 +740,7 @@ func clear_wave() -> void:
    return
  if dungeon_mode:
   if not layout.rooms[layout.current].cleared:
+   record_progress("room","clear",{"clean":not layout.rooms[layout.current].get("damaged",false)})
    layout.rooms[layout.current].cleared = true
    reward_room()
    dungeon_map.queue_redraw()
@@ -731,12 +763,16 @@ func projectile_blocked(point: Vector2) -> bool:
   if is_instance_valid(node) and node.kind == "wall" and point.distance_to(node.position) < 27: return true
  return false
 
-func start_dungeon(chosen_seed: int = -1) -> void:
+func start_dungeon(chosen_seed: int = -1) -> bool:
+ if not progress.begin_run():
+  show_main_menu()
+  return false
  dungeon_mode = true
  expedition = false
  dungeon_seed = (int(randi()) & 2147483647) if chosen_seed<0 else chosen_seed
  layout.generate(dungeon_seed,0,true)
  start_game()
+ return true
 
 func populate_room() -> void:
  var room: Dictionary = layout.rooms[layout.current]
@@ -796,6 +832,7 @@ func travel_to(neighbor: int) -> void:
  if not layout.enter(neighbor):
   transitioning=false
   return
+ if layout.rooms[neighbor].kind=="secret": record_progress("secret","discovered")
  start_game(true)
 
 func show_doors() -> void:
@@ -826,6 +863,7 @@ func descend() -> void:
   state = "playing"
   finish(true)
   return
+ record_progress("floor","completed",{"character":selected_character})
  layout.generate(dungeon_seed,layout.floor_index+1,true)
  start_game(true)
 
@@ -874,7 +912,7 @@ func collect_relic(pickup: RelicPickup) -> bool:
   if kind=="key" and keys>=99: return false
   if kind=="key": keys=mini(99,keys+1); update_keys()
   elif kind=="coins": coins += Economy.amount(pickup.data)
-  else: player.stats.health = minf(player.stats.max_health,player.stats.health+2)
+  else: player.stats.health = minf(player.stats.max_health,player.stats.health+(1.0 if player.character_id=="nox" else 2.0))
   update_counts()
   update_health(player.stats.health,player.stats.max_health)
   toast_icon.texture = RelicPickup.KEY if kind=="key" else pickup.icon() if kind=="coins" else RelicPickup.HEAL
@@ -886,6 +924,7 @@ func collect_relic(pickup: RelicPickup) -> bool:
  var id: String = pickup.data.id
  var definition := RelicCatalog.definition(id)
  var added := player.relics.add(id,player.stats)
+ if added: record_progress("item",id,{"id":id})
  if not added: coins += int(Economy.config().duplicate_compensation)
  player.pickup_pose = 1.0
  player.queue_redraw()
@@ -1002,7 +1041,7 @@ func activate_prop(prop: RoomProp) -> void:
    dungeon_map.queue_redraw()
    show_notice("Una pared secreta ha quedado al descubierto",RelicPickup.KEY)
   "fountain":
-   player.stats.health=minf(player.stats.max_health,player.stats.health+2)
+   player.stats.health=minf(player.stats.max_health,player.stats.health+(1.0 if player.character_id=="nox" else 2.0))
    update_health(player.stats.health,player.stats.max_health)
    show_notice("Fuente de sal · +2 de vida",RelicPickup.HEAL)
   "barrel":
@@ -1199,3 +1238,59 @@ func start_seeded_run(text: String) -> bool:
  if value<0 or value>2147483647: return false
  start_dungeon(value)
  return true
+
+func record_progress(event: String, suffix: String, payload: Dictionary={}) -> bool:
+ if not dungeon_mode or state not in ["playing","doors","shop"]: return false
+ var token: String="%d:%d:%s" % [layout.floor_index,layout.current,suffix]
+ # Floor completion has one token per floor, regardless of the exit room.
+ if event=="floor": token="floor:%d" % layout.floor_index
+ return progress.record(event,token,payload)
+
+func use_character_ability() -> bool:
+ if state!="playing" or not is_instance_valid(player) or not player.activate_ability(): return false
+ character_audio.stop()
+ character_audio.stream=CharacterSounds.ability_sound(player.character_id)
+ character_audio.play()
+ var id: String=player.character_id
+ if id=="kael":
+  var before:=bullets.size()
+  spawn_bullet(player.position+player.facing*22,player.facing,player.stats.projectile_speed,player.stats.damage*3,player.stats.attack_range,false)
+  if bullets.size()>before:
+   var empowered: AbyssProjectile=bullets.back()
+   empowered.pierce=4
+   empowered.bounces=1 if player.relics.has("bounce") else 0
+   for element in ["fire","ice","electric"]:
+    if player.relics.has(element): empowered.elements.append(element)
+ elif id in ["eira","solen"]:
+  for enemy in enemies.duplicate():
+   if not is_instance_valid(enemy) or enemy.dead or enemy.position.distance_to(player.position)>145: continue
+   if id=="eira": enemy.slowed=maxf(enemy.slowed,3.0)
+   else:
+    enemy.burning=maxf(enemy.burning,3.0)
+    enemy.take_damage(player.stats.damage*1.2)
+  if effects.size()<16: effects.append({"point":player.position,"life":0.45,"kind":19 if id=="eira" else 14})
+ return true
+
+func show_progress_backup() -> void:
+ state="progress_backup"
+ var box:=menu("Recuerdos del abismo","Copia tus desbloqueos antes de reinstalar. No incluye una partida en curso.")
+ var field:=TextEdit.new()
+ field.custom_minimum_size=Vector2(610,135)
+ field.wrap_mode=TextEdit.LINE_WRAPPING_BOUNDARY
+ field.text=progress.export_code()
+ field.add_theme_font_size_override("font_size",14)
+ box.add_child(field)
+ var message:=label("",14)
+ message.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+ box.add_child(message)
+ box.add_child(button("Copiar código",func():
+  DisplayServer.clipboard_set(progress.export_code())
+  message.text="Código copiado. Guárdalo en tus notas fuera del juego."))
+ box.add_child(button("Restaurar código del cuadro",func():
+  message.text="Recuerdos restaurados; se conservan los logros actuales." if progress.import_code(field.text) else "Código inválido o no se pudo guardar. No se ha reemplazado el progreso."))
+ box.add_child(button("Volver",func(): show_options("menu")))
+
+func _exit_tree() -> void:
+ if is_instance_valid(character_audio):
+  character_audio.stop()
+  character_audio.stream=null

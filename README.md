@@ -1,3 +1,13 @@
+## Viajeros y recuerdos permanentes · 0.8.0 (prueba)
+
+Diez entradas de selección con siluetas, estadísticas y habilidades distintas.
+Neris conserva su identificador como El Errante. Progreso permanente con copia
+portátil desde **Opciones → Progreso**. Vex y Orin requieren contenido aún pendiente.
+[Auditoría](docs/characters-audit-0.8.md) · [Cambios, límites y pruebas](docs/characters-0.8.md).
+
+Esta entrega de prueba **no cumple todavía el mínimo de 100 MB**; el tamaño real
+se publica al exportar. No contiene relleno.
+
 ## Auditoría, economía y botín · 0.7.0
 
 Monedas físicas por probabilidad, precios por piso y tablas de rareza separadas.

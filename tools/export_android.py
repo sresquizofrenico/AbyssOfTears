@@ -75,3 +75,21 @@ if baseline_path.is_file():
     if os.environ.get('GITHUB_STEP_SUMMARY'):
         with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as summary:
             summary.write(report)
+
+# This is a measured preview build, never a claim that the 100 MB final target passed.
+size_bytes = output.stat().st_size
+minimum_bytes = 100_000_000
+meets_target = size_bytes >= minimum_bytes
+size_report = {"apk_bytes": size_bytes, "minimum_bytes": minimum_bytes,
+               "size_requirement_met": meets_target, "version": re.search(r'config/version="([^\"]+)"', (ROOT / "project.godot").read_text()).group(1)}
+(output.parent / 'apk-size.json').write_text(json.dumps(size_report, indent=2) + '\n')
+message = (f"### Objetivo de tamaño de la actualización de personajes\n\n"
+           f"APK real: {size_bytes:,} bytes ({size_bytes / 1_000_000:.2f} MB).\n\n"
+           f"Mínimo solicitado: 100 MB. Estado: {'CUMPLIDO' if meets_target else 'PENDIENTE; APK de prueba, actualización final incompleta'}.\n\n"
+           "No se incluyen archivos de relleno.\n")
+print(message)
+if os.environ.get('GITHUB_STEP_SUMMARY'):
+    with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as summary:
+        summary.write(message)
+if os.environ.get('REQUIRE_FINAL_CHARACTER_APK') == '1' and not meets_target:
+    raise SystemExit('Final character APK does not meet the measured 100 MB minimum')

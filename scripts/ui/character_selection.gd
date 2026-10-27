@@ -19,6 +19,11 @@ var pending := false
 var remaining := 0.0
 var slide: Tween
 var suspended := false
+var seal: UnlockSeal
+var counter_label: Label
+var stat_bars: Array[ProgressBar] = []
+var preview_unlocked := false
+var reveal_age := 0.0
 
 func _ready() -> void:
  var style := StyleBoxFlat.new()
@@ -27,7 +32,7 @@ func _ready() -> void:
  var canvas := Control.new()
  canvas.mouse_filter = Control.MOUSE_FILTER_IGNORE
  add_child(canvas)
- heading = make_label("",36)
+ heading = make_label("",27)
  canvas.add_child(heading)
  plate = Panel.new()
  var parchment := StyleBoxTexture.new()
@@ -48,9 +53,21 @@ func _ready() -> void:
   icon.size = Vector2(22,22)
   icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
   details.add_child(icon)
+ for i in range(7):
+  var bar:=ProgressBar.new()
+  bar.show_percentage=false
+  bar.max_value=100
+  bar.mouse_filter=Control.MOUSE_FILTER_IGNORE
+  bar.size=Vector2(46,4)
+  details.add_child(bar)
+  stat_bars.append(bar)
  status = make_label("",17)
  status.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
  canvas.add_child(status)
+ seal=UnlockSeal.new()
+ status.add_child(seal)
+ counter_label = make_label("",18)
+ canvas.add_child(counter_label)
  character = MenuCharacter.new()
  character.body_texture = IllustratedNeris.BODY
  canvas.add_child(character)
@@ -94,15 +111,41 @@ func refresh() -> void:
   begin_button.disabled = true
   return
  var entry: Dictionary = entries[index]
- var unlocked: bool = entry.get("unlocked",false) and CharacterCatalog.playable(entry.id)
- heading.text = entry.name
+ var unlocked: bool = entry.get("unlocked",true) and CharacterCatalog.playable(entry.id)
+ preview_unlocked=unlocked
+ heading.text = entry.name if unlocked else "Viajero sellado"
+ character.animation_rate=float(entry.get("animation_rate",1.0))
+ counter_label.text = "%d / %d" % [index+1,entries.size()]
+ character.body_texture = CharacterCatalog.texture(entry.id)
+ reveal_age=0.0
+ var progress := CharacterCatalog.progress_node()
+ if unlocked and progress and progress.data.pending.has(entry.id):
+  reveal_age=1.4
+  progress.acknowledge(entry.id)
  status.text = entry.get("requirement","") if not unlocked else "Disponible · El abismo espera tus pasos"
- character.modulate = Color.WHITE if unlocked else Color(0.08,0.09,0.13)
+ character.modulate = Color.WHITE if unlocked else Color(0,0,0,1)
  begin_button.disabled = not unlocked or pending
- var stats: ActorStats = CharacterCatalog.initial_stats(entry.id)
+ if not unlocked and progress and entry.get("target",0)>0:
+  status.text += "\nProgreso: %d / %d" % [mini(progress.amount(entry.counter),int(entry.target)),entry.target]
+ status.text = ("DESBLOQUEADO\n" if unlocked else "BLOQUEADO\n")+status.text
+ var stats: ActorStats = CharacterCatalog.preview_stats(entry.id)
  if stats != null and unlocked:
-  details.text = "VIDA       %d / %d\nDAÑO       %.2f\nMOV.       %.0f px/s\nCADENCIA   %.2f/s\nALCANCE    %.0f px\nSUERTE     %.2f\nDEFENSA    %.2f\n\n%s\n\nEquilibrado\nSin especialización inicial\nObjetos: ninguno" % [stats.health,stats.max_health,stats.damage,stats.speed,1.0/stats.attack_interval,stats.attack_range,stats.luck,stats.defense,entry.ability]
+  details.text = "VIDA       %d / %d\nDAÑO       %.2f\nMOV.       %.0f px/s\nCADENCIA   %.2f/s\nALCANCE    %.0f px\nSUERTE     %.2f\nDEFENSA    %.2f\n\n%s · %.0f s\n+ %s\n− %s\n%s · Objetos: ninguno" % [stats.health,stats.max_health,stats.damage,stats.speed,1.0/stats.attack_interval,stats.attack_range,stats.luck,stats.defense,entry.ability,entry.cooldown,entry.advantages,entry.drawbacks,entry.difficulty]
  else: details.text = "PERSONAJE BLOQUEADO\n\n" + entry.get("requirement","")
+ if not unlocked and entry.id in ["vex","orin"]:
+  details.text += "\n\nEl contenido necesario para completar este desafío llegará en otra entrega."
+ for bar in stat_bars: bar.visible=unlocked
+ for i in range(7): details.get_child(i).visible=unlocked
+ if stats and unlocked:
+  var values: Array=[stats.max_health/10.0,stats.damage/2.0,stats.speed/260.0,(1.0/stats.attack_interval)/6.0,stats.attack_range/700.0,(stats.luck+1)/3.0,(stats.defense+0.25)/1.0]
+  var baseline:=CharacterCatalog.preview_stats("neris")
+  var normals: Array=[baseline.max_health,baseline.damage,baseline.speed,1.0/baseline.attack_interval,baseline.attack_range,baseline.luck,baseline.defense]
+  var actual: Array=[stats.max_health,stats.damage,stats.speed,1.0/stats.attack_interval,stats.attack_range,stats.luck,stats.defense]
+  for i in range(7):
+   stat_bars[i].value=clampf(values[i]*100,0,100)
+   var fill:=StyleBoxFlat.new()
+   fill.bg_color=Color("74c69a") if actual[i]>normals[i] else Color("d7898d") if actual[i]<normals[i] else Color("9cabb4")
+   stat_bars[i].add_theme_stylebox_override("fill",fill)
  left_button.visible = entries.size()>1
  right_button.visible = entries.size()>1
 
@@ -126,11 +169,18 @@ func layout_selection() -> void:
  details.size=plate.size-Vector2(60,40)
  details.add_theme_font_size_override("font_size",15)
  var line_height:=details.get_theme_font("font").get_height(15)+details.get_theme_constant("line_spacing")
- for i in range(details.get_child_count()): details.get_child(i).position.y=i*line_height+2
+ for i in range(7):
+  details.get_child(i).position.y=i*line_height+2
+  stat_bars[i].position=Vector2(details.size.x-46,i*line_height+16)
  status.position=Vector2(size.x-218-inset*0.2,142)
- status.size=Vector2(190,130)
+ status.size=Vector2(190,160)
+ counter_label.position=Vector2(size.x*0.48,size.y-78)
+ counter_label.size=Vector2(120,30)
+ counter_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
  status.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
  status.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+ seal.position=Vector2(75,-52)
+ seal.size=Vector2(40,40)
  begin_button.position=Vector2(size.x-218-inset*0.2,size.y-192)
  begin_button.size=Vector2(190,58)
  back_button.position=Vector2(size.x-218-inset*0.2,size.y-116)
@@ -152,7 +202,7 @@ func select_offset(offset: int) -> void:
 func start() -> void:
  if pending or entries.is_empty(): return
  var entry: Dictionary = entries[index]
- if not entry.get("unlocked",false) or not CharacterCatalog.playable(entry.id): return
+ if not entry.get("unlocked",true) or not CharacterCatalog.playable(entry.id): return
  pending = true
  remaining = 0.42
  begin_button.disabled = true
@@ -164,7 +214,14 @@ func _process(delta: float) -> void:
  if suspended: return
  clock += delta
  character.clock += delta
- character.pose = "present" if pending else "rest"
+ reveal_age=maxf(0,reveal_age-delta)
+ if preview_unlocked:
+  character.modulate=Color(0,0,0,1).lerp(Color.WHITE,clampf(1.0-reveal_age/1.4,0,1)) if reveal_age>0 else Color.WHITE
+  character.scale=Vector2.ONE*(1.65+sin(reveal_age*PI/1.4)*0.08)
+ seal.visible=not preview_unlocked or reveal_age>0
+ seal.reveal=1.0-reveal_age/1.4 if reveal_age>0 else 0.0
+ seal.queue_redraw()
+ character.pose = "present" if pending or reveal_age>0 else "attack" if fmod(clock*character.animation_rate,7)>6.4 else "rest"
  character.look = Vector2(sin(clock*0.7)*0.5,0.4).normalized()
  character.queue_redraw()
  if pending:
@@ -183,6 +240,8 @@ func _notification(what: int) -> void:
 func _draw() -> void:
  # Shared original dungeon textures, one draw per surface, no light nodes.
  draw_texture_rect(MenuBackdrop.FLOOR,Rect2(Vector2.ZERO,size),false,Color(0.4,0.48,0.58))
+ if not preview_unlocked:
+  draw_circle(Vector2(size.x*0.54,size.y*0.53-45),105,Color(0.4,0.53,0.65,0.3))
  var center := Vector2(size.x*0.54,size.y*0.53+74)
  draw_set_transform(center,0,Vector2(1,0.3))
  draw_circle(Vector2.ZERO,130,Color(0.1,0.18,0.25,0.8))

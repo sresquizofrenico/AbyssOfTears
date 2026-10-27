@@ -1,6 +1,15 @@
 class_name TouchControls
 extends Control
 
+signal ability_requested
+var ability_cooldown := 0.0
+var ability_icon: Texture2D
+var ability_name := "Impulso Astral"
+var ability_finger := -1
+
+func ability_center() -> Vector2:
+ return Vector2(size.x-235,size.y-215)
+
 var move_vector := Vector2.ZERO
 var fire_vector := Vector2.ZERO
 var joystick_finger: int = -1
@@ -26,6 +35,7 @@ func attack_positions() -> Array[Vector2]:
 
 func release_all() -> void:
  joystick_finger = -1
+ ability_finger=-1
  fire_fingers.clear()
  move_vector = Vector2.ZERO
  fire_vector = Vector2.ZERO
@@ -42,12 +52,17 @@ func _input(event: InputEvent) -> void:
   return
  if event is InputEventScreenTouch:
   if event.pressed:
-   if joystick_finger == -1 and event.position.distance_to(joystick_center()) < 90.0 * scale_factor:
+   if event.position.distance_to(ability_center())<30*scale_factor:
+    if ability_finger==-1:
+     ability_finger=event.index
+     ability_requested.emit()
+   elif joystick_finger == -1 and event.position.distance_to(joystick_center()) < 90.0 * scale_factor:
     joystick_finger = event.index
     update_joystick(event.position)
    else:
     update_fire(event.index, event.position)
   else:
+   if event.index==ability_finger: ability_finger=-1
    if event.index == joystick_finger:
     joystick_finger = -1
     move_vector = Vector2.ZERO
@@ -58,9 +73,11 @@ func _input(event: InputEvent) -> void:
  elif event is InputEventScreenDrag:
   if event.index == joystick_finger:
    update_joystick(event.position)
-  else:
+  elif event.index!=ability_finger:
    update_fire(event.index, event.position)
   queue_redraw()
+ elif event is InputEventKey and event.pressed and not event.echo and event.physical_keycode==KEY_SPACE:
+  ability_requested.emit()
 
 func update_joystick(point: Vector2) -> void:
  joystick_position = (point - joystick_center()).limit_length(55.0 * scale_factor)
@@ -101,3 +118,15 @@ func _draw() -> void:
   draw_circle(p, 28.0 * scale_factor, color)
   var side := d.orthogonal()
   draw_colored_polygon(PackedVector2Array([p + d * 13, p - d * 7 + side * 9, p - d * 7 - side * 9]), Color(0.85, 1, 1, opacity))
+
+ # Independent third-finger ability target; no overlap with four firing buttons.
+ var center:=ability_center()
+ draw_circle(center,28*scale_factor,base)
+ draw_arc(center,28*scale_factor,0,TAU,32,edge,2)
+ var font:=ThemeDB.fallback_font
+ var caption: String=str(ceili(ability_cooldown)) if ability_cooldown>0 else "✦"
+ if ability_cooldown<=0 and ability_icon:
+  draw_texture_rect(ability_icon,Rect2(center-Vector2(17,17),Vector2(34,34)),false,Color(1,1,1,opacity))
+ else:
+  draw_string(font,center+Vector2(-font.get_string_size(caption,HORIZONTAL_ALIGNMENT_LEFT,-1,19).x/2,7),caption,HORIZONTAL_ALIGNMENT_LEFT,-1,19,edge)
+ draw_string(font,center+Vector2(-29,-35),"Habilidad",HORIZONTAL_ALIGNMENT_LEFT,-1,13,edge)
