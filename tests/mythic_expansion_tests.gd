@@ -40,7 +40,7 @@ func run() -> void:
  migration.unlocked.append("mira")
  migration.erase("boss_types")
  var migrated: Dictionary=progress.validate(JSON.parse_string(JSON.stringify(migration)))
- check(not migrated.is_empty() and migrated.version==2 and migrated.counters.enemies==43 and migrated.unlocked.has("mira"),"Version-one JSON migrates without relocking previously earned characters")
+ check(not migrated.is_empty() and migrated.version==progress.VERSION and migrated.counters.enemies==43 and migrated.unlocked.has("mira"),"Version-one JSON migrates without relocking previously earned characters")
  check(progress.import_code("AOT1."+Marshalls.utf8_to_base64(JSON.stringify(migration))) and progress.is_unlocked("mira"),"Old portable backups still restore")
  progress.data=progress.fresh()
  check(CharacterCatalog.DATA.size()==11 and CharacterCatalog.rarity_name("shader")=="Mítico","Eleven-character roster and independent Mythic character rarity")

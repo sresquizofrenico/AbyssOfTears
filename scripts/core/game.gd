@@ -68,6 +68,8 @@ var controls_return: String="menu"
 var progress: Node
 var character_audio: AudioStreamPlayer
 var pickup_interaction: PickupInteraction
+var diary_return: String="archive"
+var journal_queued:=false
 
 func _ready() -> void:
  get_tree().quit_on_go_back = false
@@ -411,6 +413,18 @@ func start_game(keep_progress: bool = false) -> void:
   if kind=="start": show_notice("Una llave espera en el pedestal",RelicPickup.KEY)
  update_keys()
  transitioning = false
+ observe_journal_room()
+
+func observe_journal_room() -> void:
+ journal_queued=false
+ if not dungeon_mode or lab_mode or state!="playing" or not is_instance_valid(world) or layout.rooms.is_empty(): return
+ layout.rooms[layout.current].visited=true
+ progress.discover(AbyssJournal.room_observations(layout,enemies))
+
+func queue_journal_observation() -> void:
+ if journal_queued or not dungeon_mode or lab_mode: return
+ journal_queued=true
+ observe_journal_room.call_deferred()
 
 func apply_controls() -> void:
  if is_instance_valid(player): player.quality=Settings.values.quality
@@ -639,6 +653,7 @@ func pause_game() -> void:
  var box := menu("Mareas en calma", "Semilla %d · Piso %d/3" % [dungeon_seed,layout.floor_index+1] if dungeon_mode else "Partida en pausa")
  box.add_child(button("Continuar", resume_game))
  box.add_child(button("Reliquias",show_inventory))
+ box.add_child(button("Diario del Abismo",func(): show_diary("paused")))
  if lab_mode: box.add_child(button("Reliquias: página %d/8 →" % (lab_page+1),func(): start_relic_room((lab_page+1)%8)))
  box.add_child(button("Prueba de carga (nueva)",start_benchmark))
  box.add_child(button("Opciones", func(): show_options("paused")))
@@ -692,9 +707,9 @@ func show_options(previous: String) -> void:
   extras.add_theme_constant_override("separation",12)
   box.add_child(extras)
   var modes_button := button("Modos y pruebas",func(): Settings.save_settings(); show_modes())
-  var credits_button := button("Créditos",func(): Settings.save_settings(); show_credits())
+  var credits_button := button("Diario y créditos",func(): Settings.save_settings(); show_archive())
   modes_button.custom_minimum_size.x = 190
-  credits_button.custom_minimum_size.x = 150
+  credits_button.custom_minimum_size.x = 210
   extras.add_child(modes_button)
   extras.add_child(credits_button)
   extras.add_child(button("Progreso",func(): Settings.save_settings(); show_progress_backup()))
@@ -754,7 +769,7 @@ func show_audio_options() -> void:
 func _process(_delta: float) -> void:
  if state=="closing": return
  # The director compares IDs before loading. No file I/O or tree searches per frame.
- var held:=is_instance_valid(world) and state in ["paused","inventory","doors","shop","options","control_options","control_preview","audio_options"]
+ var held:=is_instance_valid(world) and state in ["paused","inventory","doors","shop","options","control_options","control_preview","audio_options","diary"]
  var kind: String=layout.rooms[layout.current].kind if dungeon_mode and not layout.rooms.is_empty() else "trial" if trial_kind!="" else "combat"
  var playing_score: String=Soundscape.current_track if held else ""
  var score:=AbyssAudioCatalog.route(state,dungeon_mode,layout.floor_index,kind,not enemies.is_empty(),playing_score)
@@ -772,6 +787,8 @@ func _notification(what: int) -> void:
   elif state=="control_options": show_options(controls_return)
   elif state=="control_preview": show_control_options(controls_return)
   elif state=="audio_options": show_options(options_return)
+  elif state=="archive": show_options("menu")
+  elif state=="diary": close_diary()
   elif state == "playing": pause_game()
   elif state == "paused": resume_game()
 
@@ -783,6 +800,33 @@ func _unhandled_key_input(event: InputEvent) -> void:
   elif state=="control_options": show_options(controls_return)
   elif state=="control_preview": show_control_options(controls_return)
   elif state=="audio_options": show_options(options_return)
+  elif state=="archive": show_options("menu")
+  elif state=="diary": close_diary()
+
+func show_archive() -> void:
+ state="archive"
+ var box:=menu("Archivo del faro","Tus hallazgos permanecen entre expediciones")
+ box.add_child(button("Diario del Abismo",func(): show_diary("archive")))
+ box.add_child(button("Créditos",show_credits))
+ box.add_child(button("Volver",func(): show_options("menu")))
+
+func show_diary(previous: String="archive") -> void:
+ diary_return=previous
+ if is_instance_valid(world): set_world_active(false)
+ state="diary"
+ clear_panel()
+ var diary:=AbyssDiary.new()
+ diary.snapshot=progress.data.duplicate(true)
+ panel=diary
+ ui.add_child(diary)
+ diary.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+ diary.close_requested.connect(close_diary)
+
+func close_diary() -> void:
+ if diary_return=="paused" and is_instance_valid(world):
+  state="playing"
+  pause_game()
+ else: show_archive()
 
 func show_credits() -> void:
  state = "credits"
@@ -812,6 +856,7 @@ func spawn_enemy(kind_id: int, point: Vector2, weak: bool = false, rank: String=
  enemy.defeated.connect(func(location: Vector2, reward: int): on_enemy_defeated(enemy, location, reward))
  world.add_child(enemy)
  enemies.append(enemy)
+ queue_journal_observation()
  update_counts()
 
 func safe_point(point: Vector2) -> Vector2:
@@ -1292,6 +1337,7 @@ func spawn_guardian(variant: int=-1) -> void:
   boss_panel.visible=current>0)
  world.add_child(guardian)
  enemies.append(guardian)
+ queue_journal_observation()
  update_counts()
 
 func show_shop() -> void:
