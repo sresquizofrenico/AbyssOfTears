@@ -125,7 +125,7 @@ func run() -> void:
  var old_count: int = game.enemies.size()
  game.spawn_bullet(Vector2(480,330),Vector2.UP,600,1,100,false)
  for i in range(6): await physics_frame
- expect(game.enemies.size() == old_count-1 and game.coins > 0, "Projectile collision kills enemy and grants reward")
+ expect(game.enemies.size() == old_count-1 and game.coins == 0, "Projectile collision kills enemy without a guaranteed automatic payment")
  for enemy in game.enemies.duplicate(): enemy.take_damage(999)
  await process_frame
  expect(game.state == "victory", "Last enemy triggers victory")

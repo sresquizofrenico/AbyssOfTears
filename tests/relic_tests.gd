@@ -122,7 +122,7 @@ func run() -> void:
  for i in range(10000):
   var id := RelicCatalog.roll(rng)
   rarity_counts[int(RelicCatalog.definition(id).rarity)]+=1
- check(rarity_counts[0]>rarity_counts[4] and rarity_counts[4]>0,"Five rarity weights produce rare legendaries")
+ check(rarity_counts[0]>rarity_counts[1] and rarity_counts[3]==0 and rarity_counts[4]==0,"First-floor base loot excludes epic and legendary rewards")
  game.show_main_menu()
  game.start_game()
  var money: RelicPickup = game.spawn_pickup({"id":"crystal","position":Vector2(480,274),"reward_kind":"coins","collected":false})

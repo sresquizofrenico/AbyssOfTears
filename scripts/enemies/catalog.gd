@@ -1,6 +1,7 @@
 class_name EnemyCatalog
 extends RefCounted
 
+## Legacy reward metadata is retained for signal compatibility; Economy controls currency.
 const DATA: Array = [
  {
   "id": "shadow",

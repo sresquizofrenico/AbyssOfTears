@@ -1,7 +1,6 @@
 class_name RelicCatalog
 extends RefCounted
 
-const DROP_SETTINGS := {"room_chance":0.45,"chest_chance":0.5,"chest_coins":0.3,"chest_heal":0.2}
 const RARITIES := ["Común","Poco común","Raro","Épico","Legendario"]
 const DATA: Array = [
  {
@@ -161,16 +160,5 @@ static func definition(id: String) -> Dictionary:
 static func icon(id: String) -> Texture2D:
  if not textures.has(id): textures[id] = load(definition(id).icon)
  return textures[id]
-static func roll(rng: RandomNumberGenerator, floor_id: int = 0) -> String:
- var weights: Array[float] = []
- var total := 0.0
- for entry: Dictionary in DATA:
-  var weight: float = [50.0,28.0,14.0,6.0,2.0][int(entry.rarity)]
-  weight *= 1.0 + floor_id * float(entry.rarity) * 0.15
-  weights.append(weight)
-  total += weight
- var value := rng.randf() * total
- for i in range(DATA.size()):
-  value -= weights[i]
-  if value <= 0: return DATA[i].id
- return DATA[0].id
+static func roll(rng: RandomNumberGenerator, floor_id: int = 0, context: String="base") -> String:
+ return Economy.roll_relic(rng,floor_id,context)
