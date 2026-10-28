@@ -87,6 +87,8 @@ func _ready() -> void:
  counter_label = make_label("",18)
  canvas.add_child(counter_label)
  character = MenuCharacter.new()
+ character.selection_preview=true
+ character.look=Vector2.DOWN
  character.body_texture = IllustratedNeris.BODY
  canvas.add_child(character)
  begin_button = make_button("COMENZAR",start)
@@ -96,6 +98,7 @@ func _ready() -> void:
  right_button = make_button("›",func(): select_offset(1))
  for node in [begin_button,back_button,left_button,right_button]: canvas.add_child(node)
  resized.connect(layout_selection)
+ if GuestRoster.enabled() and entries.size()>20: index=20
  refresh()
  layout_selection()
 
@@ -141,6 +144,9 @@ func refresh() -> void:
   var atlas:=AtlasTexture.new()
   atlas.atlas=character.body_texture
   atlas.region=Rect2(45,0,300,270) if entry.id in BondCatalog.IDS else Rect2(80,40,224,220)
+  if not GuestRoster.definition(entry.id).is_empty():
+   var crop: Array=entry.portrait
+   atlas.region=Rect2(crop[0],crop[1],crop[2],crop[3])
   portrait.texture=atlas
  reveal_age=0.0
  var progress := CharacterCatalog.progress_node()
@@ -245,6 +251,8 @@ func start() -> void:
  var entry: Dictionary = entries[index]
  starting_trial=entry.id=="shader" and not CharacterCatalog.playable(entry.id) and CharacterCatalog.progress_node().shader_ready()
  if not starting_trial and (not entry.get("unlocked",true) or not CharacterCatalog.playable(entry.id)): return
+ if slide!=null and slide.is_valid(): slide.kill()
+ character.position=Vector2(size.x*0.54,size.y*0.53)
  pending = true
  remaining = 0.42
  begin_button.disabled = true
@@ -259,13 +267,14 @@ func _process(delta: float) -> void:
  reveal_age=maxf(0,reveal_age-delta)
  if preview_unlocked:
   character.modulate=Color(0,0,0,1).lerp(Color.WHITE,clampf(1.0-reveal_age/1.4,0,1)) if reveal_age>0 else Color.WHITE
-  character.scale=Vector2.ONE*(1.65+sin(reveal_age*PI/1.4)*0.08)
+  character.scale=Vector2.ONE*(1.65+sin(reveal_age*PI/1.4)*0.025)
  seal.visible=not preview_unlocked or reveal_age>0
  seal.reveal=1.0-reveal_age/1.4 if reveal_age>0 else 0.0
  seal.queue_redraw()
  portrait.modulate=character.modulate
- character.pose = "present" if pending or reveal_age>0 else "attack" if fmod(clock*character.animation_rate,7)>6.4 else "rest"
- character.look = Vector2(sin(clock*0.7)*0.5,0.4).normalized()
+ character.pose = "present" if pending or reveal_age>0 or fmod(clock,8)>7.4 else "rest"
+ character.look=Vector2(sin(clock*0.55)*0.12,1.0).normalized()
+ character.update_pose(delta)
  character.queue_redraw()
  if pending:
   remaining -= delta

@@ -1,3 +1,17 @@
+## Selección suave y ojos de Shader · 0.14.0
+
+Shader tiene ojos visibles en frente y perfiles. La selección mantiene el rostro
+al frente, suaviza los brazos y evita que dos animaciones muevan al personaje a la vez.
+Se conservan veinte personajes públicos, tres pisos, objetos, controles y AOT5.
+
+El prototipo con nueve personajes de referencia se entrega en un repositorio
+privado separado: sus recursos no están en este APK ni en el repositorio público.
+[Descargar APK público](https://github.com/sresquizofrenico/AbyssOfTears/releases/tag/v0.14.0-public)
+· [Notas de versión](docs/releases/0.14.0.md)
+· [Informe técnico](docs/selection-polish-0.14.md).
+
+Antes de actualizar, guarda **Opciones → Progreso → Copiar código** fuera del juego.
+
 ## Puertas y continuación de la expedición · 0.13.0
 
 **CONTINUAR PARTIDA** restaura la campaña, su habitación, vida, objetos, dinero,

@@ -75,7 +75,7 @@ static func valid(data: Variant) -> bool:
  if not data.ability.get("character_state") is Dictionary: ok=false
  else:
   for key in CharacterRules.fresh():
-   if not data.ability.character_state.has(key): ok=false
+   if not data.ability.character_state.has(key) and not str(key).begins_with("guest_"): ok=false
  p.free()
  if not RunCodec.number(data.ability.get("mixture")): ok=false
  elif data.ability.mixture<0 or data.ability.mixture>3: ok=false

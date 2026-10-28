@@ -23,3 +23,5 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 0.13: Nine rear-view character SVG illustrations and three floor murals are original project artwork, not extracted from anime or game references. Private text reference cards are excluded from public Android builds.
+
+0.14: Shader eye details in front/left/right views are original SVG artwork. Private fan-art character packs are excluded from public builds.

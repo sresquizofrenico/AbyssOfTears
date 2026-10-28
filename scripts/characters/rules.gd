@@ -5,6 +5,7 @@ static func fresh() -> Dictionary:
  var result: Dictionary={"special_floors":{},"passive_timer":0.0,"guard_timer":0.0,"guard_charge":false,"healing_left":4.5,"shadow_timer":0.0,"kill_timer":0.0,"kill_stacks":0,"hits":0,"dash":0.0,"windup":0.0,"shield_budget":0.0,"panic":false,"evasion_cooldown":0.0}
 
  result.merge(NineBonds.fresh())
+ result.merge(GuestRules.fresh())
  return result
 
 static func activate(player) -> void:

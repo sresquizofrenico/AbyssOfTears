@@ -476,7 +476,9 @@ func start_game(keep_progress: bool = false, checkpoint: Dictionary={}) -> void:
  if dungeon_mode:
   bonds.setup_field()
   if not carried_ability.is_empty():
-   if not layout.rooms[layout.current].get("bond_visited",false): NineBonds.new_room(player)
+   if not layout.rooms[layout.current].get("bond_visited",false):
+    NineBonds.new_room(player)
+    GuestRules.new_room(player)
   layout.rooms[layout.current].bond_visited=true
  if not checkpoint.is_empty(): RunSnapshot.actors_into(self,checkpoint)
  if dungeon_mode and checkpoint.is_empty() and not entry_transition.is_empty():
@@ -534,7 +536,7 @@ func spawn_player_bullet(origin: Vector2, direction: Vector2, stats: ActorStats)
  var precision_power:=1.25 if player.character_state.precision_charge else 1.0
  player.character_state.precision_charge=false
  var inventory := player.relics
- var packet:=inventory.effects.packet(player)
+ var packet:=GuestRules.packet(player,inventory.effects.packet(player))
  var directions: Array[Vector2] = [direction]
  if inventory.has("crown") or int(packet.fan)>0:
   directions.append(direction.rotated(-0.25))
@@ -1058,6 +1060,7 @@ func clear_wave() -> void:
    var hard: bool=layout.rooms[layout.current].get("hard",false)
    var clean: bool=not layout.rooms[layout.current].get("damaged",false)
    NineBonds.room(player,clean)
+   GuestRules.room(player,clean)
    record_progress("room","clear",{"clean":clean,"hard":hard})
    if hard:
     player.add_determination(10+(10 if clean else 0))
@@ -1267,7 +1270,7 @@ func collect_relic(pickup: RelicPickup) -> bool:
   if kind=="key" and keys>=99: return false
   if kind=="key": keys=mini(99,keys+1); update_keys()
   elif kind=="coins": coins += Economy.amount(pickup.data)
-  else: player.stats.health = minf(player.stats.max_health,player.stats.health+(1.0 if player.character_id=="nox" else 2.0))
+  else: player.stats.health = minf(player.stats.max_health,player.stats.health+(1.0 if player.character_id=="nox" else 2.0)+GuestRules.heal_bonus(player))
   update_counts()
   update_health(player.stats.health,player.stats.max_health)
   toast_icon.texture = RelicPickup.KEY if kind=="key" else pickup.icon() if kind=="coins" else RelicPickup.HEAL
@@ -1301,6 +1304,7 @@ func collect_artifact(pickup: RelicPickup) -> bool:
  if entry.is_empty(): return false
  var known: bool=progress.data.journal.artifacts.has(id)
  if not known and not progress.discover({"artifacts":[id]}): return false
+ GuestRules.artifact(player,known)
  if not known:
   match entry.effect:
    "key": keys=mini(99,keys+1)

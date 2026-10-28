@@ -228,7 +228,7 @@ func tick(delta: float) -> void:
 func tick_abilities(delta: float) -> void:
  var p=game.player
  var s: Dictionary=p.character_state
- if p.character_id=="kairon" and s.beam_pending and p.ability_age>=0.45:
+ if p.character_id=="kairon" and s.beam_pending and p.ability_age>=(1.0 if GuestRoster.role(p)=="automaton" else 0.45):
   s.beam_pending=false
   var end: Vector2=p.position+p.facing*700
   for step in range(1,141):

@@ -9,7 +9,7 @@ const LANTERN = preload("res://assets/illustrated/lantern.svg")
 
 # Shared layer animation: menu, selection and playable Neris use the same art.
 # Transform coordinates are purely visual; no collision or stats are changed.
-static func paint(node: CanvasItem, clock: float, moving: bool, pose: String, look: Vector2, origin:=Vector2.ZERO, tilt:=0.0, magnification:=1.0, tint:=Color.WHITE, body: Texture2D=BODY) -> void:
+static func paint(node: CanvasItem, clock: float, moving: bool, pose: String, look: Vector2, origin:=Vector2.ZERO, tilt:=0.0, magnification:=1.0, tint:=Color.WHITE, body: Texture2D=BODY, pose_weight: float=-1.0) -> void:
  var stride:=sin(clock*11)*3.0 if moving else 0.0
  var breath:=sin(clock*2.5)*0.45
  for side in [-1,1]:
@@ -17,8 +17,9 @@ static func paint(node: CanvasItem, clock: float, moving: bool, pose: String, lo
   node.draw_set_transform(boot_origin,tilt+stride*side*0.015,Vector2.ONE*magnification)
   node.draw_texture_rect(BOOT,Rect2(-6,-7,13,22),false,tint)
  var raised:=pose in ["present","victory","pickup"]
+ var lift:=clampf(pose_weight,0,1) if pose_weight>=0 else (1.0 if raised else 0.0)
  for side in [-1,1]:
-  var angle: float=side*(-0.55 if raised else 0.1)+stride*side*0.015
+  var angle: float=side*lerpf(0.1,-0.55,lift)+stride*side*0.015
   if pose in ["attack","light"]: angle += look.x*0.35
   node.draw_set_transform(origin+Vector2(side*17,-14+breath)*magnification,angle+tilt,Vector2(side,1)*magnification)
   node.draw_texture_rect(ARM,Rect2(-5,0,10,24),false,tint)
