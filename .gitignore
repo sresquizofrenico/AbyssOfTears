@@ -6,3 +6,6 @@ build/
 export_credentials.cfg
 __pycache__/
 *.pyc
+
+# Private fan-art prototype pack; never publish these resources.
+private_pack/

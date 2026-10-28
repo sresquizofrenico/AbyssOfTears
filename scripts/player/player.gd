@@ -8,6 +8,7 @@ signal damaged
 signal ability_used
 
 const BODY = IllustratedNeris.BODY
+var roster_id: String="neris"
 var character_id := "neris"
 var body_texture: Texture2D = BODY
 var animation_rate := 1.0
@@ -99,6 +100,7 @@ func take_damage(amount: float, source: String="projectile") -> void:
  if immunity>0:
   CharacterRules.evaded(self)
   return
+ amount=GuestRules.reduce(self,amount,source)
  amount=CharacterRules.reduce_damage(self,amount,source)
  if amount<=0: return
  latest_hit_source=source
@@ -130,7 +132,8 @@ func _draw() -> void:
  elif cooldown>stats.attack_interval*0.7: pose="attack"
  if spawn_pose>0: jump-=sin(spawn_pose*PI*2)*7
  if ability_active>0: pose="present"
- if character_id=="shader": ShaderArt.paint(self,clock,velocity.length()>1,pose,facing,Vector2(0,bob+jump),tilt,1.0,2 if awakened>0 else 1 if character_state.panic or determination>=100 else 0)
+ if not GuestRoster.definition(roster_id).is_empty(): GuestArt.paint(self,body_texture,clock,velocity.length()>1,pose,facing,Vector2(0,bob+jump),1.0)
+ elif character_id=="shader": ShaderArt.paint(self,clock,velocity.length()>1,pose,facing,Vector2(0,bob+jump),tilt,1.0,2 if awakened>0 else 1 if character_state.panic or determination>=100 else 0)
  elif character_id in BondCatalog.IDS: BondArt.paint(self,character_id,body_texture,clock*animation_rate,velocity.length()>1,pose,facing,Vector2(0,bob+jump),tilt,1.0)
  else: IllustratedNeris.paint(self,clock*animation_rate,velocity.length()>1,pose,facing,Vector2(0,bob+jump),tilt,1.0,Color.WHITE,body_texture)
  if cooldown > stats.attack_interval*0.7:
@@ -167,7 +170,8 @@ func _ready() -> void:
  texture_filter=CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 
 func configure_character(id: String) -> void:
- character_id=id
+ roster_id=id
+ character_id=GuestRoster.behavior(id)
  var progress:=CharacterCatalog.progress_node()
  if progress and progress.data.bonds.family_done: character_state.family_ward=1.0
  character_color=Color(CharacterCatalog.definition(id).color)
@@ -175,14 +179,15 @@ func configure_character(id: String) -> void:
  body_texture=CharacterCatalog.texture(id)
 
 func activate_ability() -> bool:
- if not active or ability_remaining>0 or not CharacterCatalog.playable(character_id) or (character_id=="lumi" and character_state.healing_left<=0): return false
- var entry:=CharacterCatalog.definition(character_id)
+ if not active or ability_remaining>0 or not CharacterCatalog.playable(roster_id) or (character_id=="lumi" and character_state.healing_left<=0): return false
+ var entry:=CharacterCatalog.definition(roster_id)
  ability_remaining=float(entry.cooldown)*(1.0-clampf(relics.effects.value("cooldown"),0,0.35))
  ability_active=float(entry.duration)*(1.2 if NineBonds.resonance(self) else 1.0)
  ability_age=0.0
  skill_origin=position
  dash_direction=movement_input().normalized() if movement_input()!=Vector2.ZERO else facing
  CharacterRules.activate(self)
+ GuestRules.activate(self)
  ability_used.emit()
  queue_redraw()
  return true
@@ -200,6 +205,7 @@ func tick_ability(delta: float) -> void:
   character_state.healing_left=maxf(0,float(character_state.healing_left)-healing)
   if healing>0: health_changed.emit(stats.health,stats.max_health)
  CharacterRules.tick(self,delta,was_active)
+ GuestRules.tick(self,delta)
 
 func pursuit_point() -> Vector2:
  if character_id in ["nyra","aria"] and ability_active>0: return skill_origin
@@ -218,7 +224,8 @@ func restore_ability(value: Dictionary) -> void:
  dash_direction=value.direction
  heal_budget=value.heal
  mixture=value.mixture
- character_state=value.get("character_state",CharacterRules.fresh()).duplicate(true)
+ character_state=CharacterRules.fresh()
+ character_state.merge(value.get("character_state",{}).duplicate(true),true)
  determination=float(value.get("determination",0))
  awakened=float(value.get("awakened",0))
  evasion_window=float(value.get("evasion",0))

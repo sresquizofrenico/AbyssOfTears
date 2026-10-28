@@ -39,8 +39,10 @@ if result.returncode or re.search(r'SCRIPT ERROR:|(?:^|\n)ERROR:|Export failed',
 if not output.exists() or output.stat().st_size < 1_000_000:
     raise SystemExit('Export did not produce a valid-size APK')
 with zipfile.ZipFile(output) as apk:
-    if any(n.startswith("assets/private/") for n in apk.namelist()):
+    if any(n.startswith(("assets/private/","assets/private_pack/")) or "anime_private_atlas" in n for n in apk.namelist()):
         raise SystemExit("Private reference cards leaked into public APK")
+    if b"abyss_private" in apk.read("assets/project.binary"):
+        raise SystemExit("Private feature flag found in public APK")
     if apk.testzip():
         raise SystemExit('Corrupt APK ZIP entries')
     print(f'Exported audio verified: {verify_audio_archive(apk, ROOT)} real imported resources')

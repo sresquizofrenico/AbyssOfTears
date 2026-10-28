@@ -30,6 +30,9 @@ func _ready() -> void:
  title.add_theme_constant_override("shadow_offset_y",3)
  content.add_child(title)
  subtitle = make_label("EL FARO RECUERDA TU NOMBRE",17)
+ if GuestRoster.enabled():
+  subtitle.text="PROTOTIPO PRIVADO · PERSONAJES DE REFERENCIA"
+  subtitle.add_theme_font_size_override("font_size",14)
  subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
  content.add_child(subtitle)
  hint = make_label("Toca para omitir la introducción",15)

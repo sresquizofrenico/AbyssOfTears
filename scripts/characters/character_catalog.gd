@@ -336,7 +336,7 @@ const LEGACY_DATA = [
  }
 ]
 
-static var DATA: Array = LEGACY_DATA + BondCatalog.DATA
+static var DATA: Array = LEGACY_DATA + BondCatalog.DATA + GuestRoster.entries()
 
 static func definition(id: String) -> Dictionary:
  for entry: Dictionary in DATA:
@@ -367,12 +367,14 @@ static func initial_stats(id: String) -> ActorStats:
  return preview_stats(id) if playable(id) else null
 
 static func texture(id: String) -> Texture2D:
+ if not GuestRoster.definition(id).is_empty(): return GuestRoster.texture(id)
  if id == "neris": return IllustratedNeris.BODY
  if definition(id).is_empty(): return IllustratedNeris.BODY
  # Only the displayed/played character is loaded, not ten large textures at startup.
  return load(definition(id).sprite) as Texture2D
 
 static func ability_icon(id: String) -> Texture2D:
+ if not GuestRoster.definition(id).is_empty(): return GuestRoster.texture(id)
  var entry:=definition(id)
  return load(entry.icon) as Texture2D if not entry.is_empty() else null
 

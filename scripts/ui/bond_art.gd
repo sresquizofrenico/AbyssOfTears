@@ -1,13 +1,14 @@
 class_name BondArt
 extends RefCounted
 # Original vector bodies with lightweight, per-character arm/prop signatures.
-static func paint(node: CanvasItem, id: String, body: Texture2D, clock: float, moving: bool, pose: String, look: Vector2, origin: Vector2, tilt: float, scale_factor: float, tint: Color=Color.WHITE) -> void:
+static func paint(node: CanvasItem, id: String, body: Texture2D, clock: float, moving: bool, pose: String, look: Vector2, origin: Vector2, tilt: float, scale_factor: float, tint: Color=Color.WHITE, pose_weight: float=-1.0) -> void:
  var color:=Color(CharacterCatalog.definition(id).color)
  var stride:=sin(clock*(14 if id in ["beren","dalia"] else 10))*3 if moving else 0.0
  var raised:=pose in ["present","victory","pickup"]
+ var lift:=clampf(pose_weight,0,1) if pose_weight>=0 else (1.0 if raised else 0.0)
  for side in [-1,1]:
   var at:=origin+Vector2(side*18,-10+stride*side*0.5)*scale_factor
-  var angle: float=side*(-0.7 if raised else 0.1)+tilt+stride*side*0.025
+  var angle: float=side*lerpf(0.1,-0.7,lift)+tilt+stride*side*0.025
   if pose=="attack": angle+=look.x*0.4
   node.draw_set_transform(at,angle,Vector2.ONE*scale_factor)
   var sleeve:=Color("a98962") if id=="kairon" else color.darkened(0.45)
