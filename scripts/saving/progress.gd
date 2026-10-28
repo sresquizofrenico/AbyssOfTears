@@ -197,7 +197,7 @@ func import_code(code: String) -> bool:
  code=code.strip_edges()
  if (not code.begins_with("AOT1.") and not code.begins_with("AOT2.") and not code.begins_with("AOT3.") and not code.begins_with("AOT4.")) or code.length()>1500000: return false
  var parser:=JSON.new()
- if parser.parse(Marshalls.base64_to_utf8(code.substr(5)))!=OK: return false
+ if parser.parse(RunCodec.decode_base64(code.substr(5)))!=OK: return false
  var incoming:=validate(parser.data)
  if incoming.is_empty(): return false
  var previous:=data.duplicate(true)

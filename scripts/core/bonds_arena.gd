@@ -337,6 +337,7 @@ func interact() -> void:
      game.show_notice("Necesitas %d muestras" % cost,BondPickup.ICONS.sample)
      return
     var token: String="%d:%s:%d:%d" % [game.progress.data.serial,mode,stage,crafted]
+    if mode=="field": token="%d:field:%d:%d:%d" % [game.run_serial,game.layout.floor_index,game.layout.current,crafted]
     if not game.progress.record_bond("antidote","",token): return
     p.character_state.samples-=cost
     p.character_state.antidotes=mini(3,int(p.character_state.antidotes)+1)
@@ -344,6 +345,7 @@ func interact() -> void:
     game.show_notice("Antídoto preparado · pulsa de nuevo para usar",BondPickup.ICONS.sample)
   "puzzle": show_puzzle()
   "analysis": game.show_bond_analysis()
+ game.queue_checkpoint()
 
 func show_puzzle() -> void:
  game.set_world_active(false)

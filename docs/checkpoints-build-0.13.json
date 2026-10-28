@@ -1,0 +1,13 @@
+{
+  "apk_bytes": 32486139,
+  "minimum_bytes": 100000000,
+  "size_requirement_met": false,
+  "version": "0.13.0",
+  "previous_apk_bytes": 32228550,
+  "byte_delta": 257589,
+  "godot_suite_executions": 26,
+  "publisher_tests": 14,
+  "physical_zte_tested": false,
+  "desktop_render": "Compatibility / Mesa llvmpipe",
+  "scope": "local export; final public build has its own apk-size.json"
+}

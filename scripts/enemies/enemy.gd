@@ -6,6 +6,7 @@ signal summon(kind_id: int, location: Vector2, weak: bool)
 signal hazard(location: Vector2, hazard_type: String)
 
 signal defeated(location: Vector2, reward: int)
+signal hurt(amount: float)
 
 @export_range(0, 19) var kind: int = 0
 var definition: Dictionary
@@ -145,7 +146,9 @@ func take_damage(amount: float, incoming := Vector2.ZERO) -> void:
  if kind == 6 and incoming != Vector2.ZERO and incoming.normalized().dot(facing) < -0.5:
   amount *= 0.3
   record("blocked_front")
+ var previous:=health
  health -= amount * (1.0 - float(definition.resistance))
+ hurt.emit(minf(previous,maxf(0,previous-health)))
  flash = 0.12
  if health <= 0.0:
   dead = true

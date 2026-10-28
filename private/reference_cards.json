@@ -1,0 +1,60 @@
+{
+  "mode": "private-reference-only",
+  "art_status": "No official images included; original placeholder art only. No licensed character pack implemented.",
+  "profiles": [
+    {
+      "id": "aria",
+      "reference_name": "Ichika Nakano",
+      "visual_brief": "Cabello rosado corto; ilusiones y distracción.",
+      "official_sprites": false
+    },
+    {
+      "id": "beren",
+      "reference_name": "Nino Nakano",
+      "visual_brief": "Cabello rosado y accesorios laterales; velocidad ofensiva y elementos.",
+      "official_sprites": false
+    },
+    {
+      "id": "celine",
+      "reference_name": "Miku Nakano",
+      "visual_brief": "Cabello castaño rojizo y auriculares; análisis y precisión.",
+      "official_sprites": false
+    },
+    {
+      "id": "dalia",
+      "reference_name": "Yotsuba Nakano",
+      "visual_brief": "Cabello naranja y cinta verde; velocidad y movilidad.",
+      "official_sprites": false
+    },
+    {
+      "id": "elora",
+      "reference_name": "Itsuki Nakano",
+      "visual_brief": "Cabello rojizo largo y accesorios de estrella; defensa y contraataque.",
+      "official_sprites": false
+    },
+    {
+      "id": "yura",
+      "reference_name": "Yuno Gasai",
+      "visual_brief": "Cabello rosa largo y estética escolar; visión, evasión inicial, registro de patrones y destino con recarga larga.",
+      "official_sprites": false
+    },
+    {
+      "id": "lyra",
+      "reference_name": "Riko",
+      "visual_brief": "Exploración, reliquias, cartografía y secretos.",
+      "official_sprites": false
+    },
+    {
+      "id": "kairon",
+      "reference_name": "Reg",
+      "visual_brief": "Rayo con preparación, resistencia y mecanismos.",
+      "official_sprites": false
+    },
+    {
+      "id": "nami",
+      "reference_name": "Nanachi",
+      "visual_brief": "Detección de peligro, antídotos, criaturas y esporas.",
+      "official_sprites": false
+    }
+  ]
+}

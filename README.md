@@ -1,3 +1,23 @@
+## Puertas y continuación de la expedición · 0.13.0
+
+**CONTINUAR PARTIDA** restaura la campaña, su habitación, vida, objetos, dinero,
+enemigos y recargas. Guardado automático periódico y por eventos, archivo temporal,
+respaldo y escritura de disco en segundo plano. Las cuatro entradas por puertas
+usan ahora la posición opuesta correcta, con marcador interior y transición suave.
+
+**Antes de reinstalar**, guarda el código de **Opciones → Progreso → Copiar código**.
+AOT5 incorpora la expedición; importa también el progreso anterior AOT1–AOT4.
+No incluye configuración ni desafíos independientes en curso.
+
+[Descargar APK público](https://github.com/sresquizofrenico/AbyssOfTears/releases/tag/v0.13.0-public)
+· [Cambios y límites](docs/releases/0.13.0.md)
+· [Auditoría](docs/checkpoints-audit-0.13.md)
+· [Guía visual](docs/art-direction-0.13.md).
+
+Veinte personajes conservados, nueve vistas traseras originales y tres murales.
+Arte provisional; doce pisos y arte anime final pendientes. El APK público usa
+personajes originales. **CÓDIGOS → ABISMO-TOTAL → APLICAR** sigue disponible.
+
 ## Los nueve vínculos y códigos · 0.12.0
 
 **Menú principal → CÓDIGOS → `ABISMO-TOTAL` → APLICAR** desbloquea

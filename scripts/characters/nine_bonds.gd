@@ -1,10 +1,13 @@
 class_name NineBonds
 extends RefCounted
 static func fresh() -> Dictionary:
- return {"bond_timer":0.0,"bond_dash":0.0,"beam_pending":false,"counter_pending":false,"blocked":0.0,"bond_shield":0.0,"family_ward":0.0,"near_ids":{},"evades":0,"precision_charge":false,"observed":{},"observation_time":{},"resist_type":"","resist_time":0.0,"trail_time":0.0,"low_guard":false,"field_budget":0.0,"field_pending":false,"ward_near":false,"component_stock":{},"samples":0,"antidotes":0,"antidote_time":0.0,"memory_floor":-1}
+ return {"fate_remaining":0.0,"bond_timer":0.0,"bond_dash":0.0,"beam_pending":false,"counter_pending":false,"blocked":0.0,"bond_shield":0.0,"family_ward":0.0,"near_ids":{},"evades":0,"precision_charge":false,"observed":{},"observation_time":{},"resist_type":"","resist_time":0.0,"trail_time":0.0,"low_guard":false,"field_budget":0.0,"field_pending":false,"ward_near":false,"component_stock":{},"samples":0,"antidotes":0,"antidote_time":0.0,"memory_floor":-1}
 static func activate(p) -> void:
  var s: Dictionary=p.character_state
  match p.character_id:
+  "yura":
+   p.immunity=maxf(p.immunity,0.15)
+   p.evasion_window=maxf(p.evasion_window,0.15)
   "kairon": s.beam_pending=true
   "nami": s.bond_shield=0.75
   "beren","dalia":
@@ -18,7 +21,7 @@ static func activate(p) -> void:
    s.counter_pending=true
 static func tick(p, delta: float, was_active: bool) -> void:
  var s: Dictionary=p.character_state
- for key in ["bond_timer","bond_dash","resist_time"]: s[key]=maxf(0,float(s[key])-delta)
+ for key in ["bond_timer","bond_dash","resist_time","fate_remaining"]: s[key]=maxf(0,float(s[key])-delta)
  if s.bond_timer<=0: p.stats.clear_temporary("bond_passive")
  if p.character_id=="elora":
   var ratio: float=p.stats.health/p.stats.max_health
@@ -41,6 +44,10 @@ static func reduce(p, amount: float, source: String) -> float:
    s.bond_shield-=blocked
    s.blocked+=blocked
    amount-=blocked
+ if p.character_id=="yura" and p.ability_active>0 and s.fate_remaining<=0 and amount>0 and maxf(0.25,amount-p.stats.defense)>=p.stats.health:
+  s.fate_remaining=90.0
+  p.immunity=maxf(p.immunity,0.3)
+  return 0.0
  return maxf(0,amount)
 static func near_miss(p, bullet: AbyssProjectile, distance: float) -> void:
  if p.character_id!="yura" or distance<18 or distance>=30 or p.velocity.length()<p.stats.speed*0.65: return

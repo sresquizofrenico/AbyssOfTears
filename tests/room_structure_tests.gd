@@ -79,10 +79,12 @@ func run() -> void:
  check(CharacterCatalog.DATA.size()==20 and selection.left_button.visible,"Expanded roster exposes character navigation")
  selection.start()
  selection._process(0.43)
- check(game.state=="playing" and game.layout.floor_index==0,"Redesigned selection starts real dungeon")
+ check(game.state=="replace_run","Selection protects existing expedition before replacement")
+ game.start_dungeon()
+ check(game.state=="playing" and game.layout.floor_index==0,"Confirmed selection starts real dungeon")
  game.show_main_menu()
  var menu: AnimatedMainMenu=game.panel
- check(menu.buttons.size()==4 and not menu.buttons.has("continue"),"Simple functional menu is conserved")
+ check(menu.buttons.size()==5 and menu.buttons.has("continue"),"Simple functional menu is conserved")
  game.queue_free()
  await process_frame
  print("ROOM STRUCTURE RESULT: %d checks, %d failures, %d variants, %d fallbacks" % [checks,failures,variants.size(),fallbacks])
