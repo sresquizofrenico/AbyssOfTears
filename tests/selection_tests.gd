@@ -91,7 +91,11 @@ func run() -> void:
  await process_frame
  selection.start()
  selection._process(0.43)
- check(game.player.stats.damage==1,"New selection resets previous run upgrades")
+ check(game.state=="replace_run","Starting a new run asks before replacing a checkpoint")
+ await process_frame
+ for candidate in game.panel.find_children("*","Button",true,false):
+  if candidate.text=="COMENZAR NUEVA": click(candidate); break
+ check(game.state=="playing" and game.player.stats.damage==1,"Confirmed new selection resets previous run upgrades")
  game.show_main_menu()
  game.show_options("menu")
  await process_frame

@@ -39,6 +39,8 @@ if result.returncode or re.search(r'SCRIPT ERROR:|(?:^|\n)ERROR:|Export failed',
 if not output.exists() or output.stat().st_size < 1_000_000:
     raise SystemExit('Export did not produce a valid-size APK')
 with zipfile.ZipFile(output) as apk:
+    if any(n.startswith("assets/private/") for n in apk.namelist()):
+        raise SystemExit("Private reference cards leaked into public APK")
     if apk.testzip():
         raise SystemExit('Corrupt APK ZIP entries')
     print(f'Exported audio verified: {verify_audio_archive(apk, ROOT)} real imported resources')

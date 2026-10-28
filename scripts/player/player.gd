@@ -77,6 +77,7 @@ func _physics_process(delta: float) -> void:
  if character_id=="kairon" and character_state.beam_pending: velocity*=0.55
  move_and_slide()
  var direction := attack_input()
+ if direction==Vector2.ZERO and velocity.length()>1: facing=velocity.normalized()
  if direction != Vector2.ZERO:
   facing = direction
   try_shoot(direction)

@@ -25,8 +25,14 @@ static func paint(node: CanvasItem, id: String, body: Texture2D, clock: float, m
     node.draw_line(Vector2(0,18),Vector2(0,25),Color("dce8b7")*tint,2)
    elif id=="elora": node.draw_arc(Vector2(0,18),9,-1.2,1.2,12,color*tint,3)
  node.draw_set_transform(origin,tilt+stride*0.004,Vector2.ONE*scale_factor)
- node.draw_texture_rect(body,Rect2(-24,-40,48,64),false,tint)
- if fmod(clock,4.9)>4.76 or pose=="defeat":
+ var backwards:=look.y< -0.5 and absf(look.y)>absf(look.x)
+ var side:=absf(look.x)>0.6
+ var texture:=rear_texture(id) if backwards else body
+ var width:=43.0 if side else 48.0
+ var rect:=Rect2(-width*0.5,-40,width,64)
+ if side and look.x<0: rect.position.x+=width; rect.size.x=-width
+ node.draw_texture_rect(texture,rect,false,tint)
+ if not backwards and (fmod(clock,4.9)>4.76 or pose=="defeat"):
   for x in [-5.5,5.5]: node.draw_line(Vector2(x-2.5,-18),Vector2(x+2.5,-18),Color("263746")*tint,1.7)
  if pose=="attack": node.draw_arc(look*24,5,0,TAU,12,color*tint,1)
  node.draw_set_transform(Vector2.ZERO)
@@ -41,3 +47,8 @@ static func arm_style(color: Color) -> StyleBoxFlat:
   style.set_corner_radius_all(3)
   styles[key]=style
  return styles[key]
+
+static var rear_textures: Dictionary={}
+static func rear_texture(id: String) -> Texture2D:
+ if not rear_textures.has(id): rear_textures[id]=load("res://assets/characters/"+id+"_back.svg")
+ return rear_textures[id]

@@ -2,6 +2,7 @@ extends Node2D
 
 const FLOOR = preload("res://assets/illustrated/floor_0.svg")
 const FLOORS = [FLOOR,preload("res://assets/illustrated/floor_1.svg"),preload("res://assets/illustrated/floor_2.svg")]
+const MURALS=[preload("res://assets/illustrated/floor_mural_0.svg"),preload("res://assets/illustrated/floor_mural_1.svg"),preload("res://assets/illustrated/floor_mural_2.svg")]
 var biome := 0
 const COLUMN = preload("res://assets/illustrated/column.svg")
 const WALL = preload("res://assets/illustrated/wall.svg")
@@ -60,6 +61,7 @@ func _draw() -> void:
  draw_rect(Rect2(22,48,916,452),Color("29374b"))
  draw_rect(BOUNDS,Color("101f30"))
  draw_texture_rect(FLOORS[clampi(biome,0,2)],BOUNDS,false)
+ draw_texture_rect(MURALS[clampi(biome,0,2)],BOUNDS,false)
  for x in range(24,936,64):
   draw_texture_rect(WALL,Rect2(x,45,64,24),false)
   draw_texture_rect(WALL,Rect2(x,480,64,20),false)

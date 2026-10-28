@@ -4,6 +4,7 @@ extends PanelContainer
 signal action_requested(action: String)
 var stage: MenuBackdrop
 var play_intro := true
+var has_continue:=false
 var intro := MenuIntro.new()
 var buttons: Dictionary = {}
 var title: Label
@@ -47,6 +48,7 @@ func _ready() -> void:
  button_panel.add_child(box)
  box.add_child(make_label("BITÁCORA DEL FARO",16))
  add_button(box,"NUEVA PARTIDA","new_game")
+ if has_continue: add_button(box,"CONTINUAR PARTIDA","continue")
  add_button(box,"OPCIONES","options")
  add_button(box,"CÓDIGOS","codes")
  add_button(box,"SALIR","exit")
@@ -118,8 +120,9 @@ func layout_menu() -> void:
  subtitle.position=Vector2(24+insets.x,155+insets.y)
  subtitle.size=Vector2(left_width-48,28)
  hint.position=Vector2(24+insets.x,size.y-32-insets.w)
- button_panel.position=Vector2(size.x-340-insets.z,maxf(24,(size.y-316)*0.5)+insets.y)
- button_panel.size=Vector2(316,316)
+ var height:=366.0 if has_continue else 316.0
+ button_panel.position=Vector2(size.x-340-insets.z,maxf(24,(size.y-height)*0.5)+insets.y)
+ button_panel.size=Vector2(316,height)
 
 func refresh_visuals() -> void:
  title.modulate.a=intro.title_alpha()

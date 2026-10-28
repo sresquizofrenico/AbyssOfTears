@@ -30,6 +30,9 @@ var layout := FloorLayout.new()
 var dungeon_seed := 0
 var loot_rng:=RandomNumberGenerator.new()
 var transitioning := false
+var entry_transition: Dictionary={}
+var transition_veil: ColorRect
+var transition_tween: Tween
 var dungeon_map: DungeonMap
 var floor_label: Label
 var navigation: Button
@@ -71,10 +74,20 @@ var pickup_interaction: PickupInteraction
 var diary_return: String="archive"
 var journal_queued:=false
 var bonds: BondsArena
+var run_serial:=0
+var next_enemy_uid:=1
+var restoring_run:=false
+var checkpoint_queued:=false
+var autosave_age:=0.0
+var save_icon: Label
+var save_icon_age:=0.0
+var door_open_amount:=0.0
+var damage_numbers: Array[Dictionary]=[]
 
 func _ready() -> void:
  get_tree().quit_on_go_back = false
  progress=CharacterCatalog.progress_node()
+ selected_character=Settings.values.selected_character
  character_audio=AudioStreamPlayer.new()
  character_audio.bus="AbyssSFX"
  character_audio.volume_db=-14
@@ -133,6 +146,15 @@ func _ready() -> void:
  boss_panel.add_child(boss_bar)
  ui.add_child(boss_panel)
  boss_panel.hide()
+ save_icon=label("◇ Guardando…",13)
+ save_icon.position=Vector2(630,48)
+ save_icon.mouse_filter=Control.MOUSE_FILTER_IGNORE
+ save_icon.hide()
+ ui.add_child(save_icon)
+ RunSave.saved.connect(func():
+  if is_instance_valid(save_icon): save_icon.text="◆ Guardado"; save_icon.show(); save_icon_age=1.3)
+ RunSave.failed.connect(func(_error: Error):
+  if is_instance_valid(save_icon): save_icon.text="⚠ Guardado fallido"; save_icon.show(); save_icon_age=6.0)
  show_main_menu()
 
 func resize_world() -> void:
@@ -214,6 +236,7 @@ func menu(title: String, subtitle: String) -> VBoxContainer:
  return box
 
 func show_main_menu() -> void:
+ save_now()
  backdrop.show()
  state = "menu"
  trial_kind=""
@@ -232,6 +255,7 @@ func show_main_menu() -> void:
  dispose_world()
  clear_panel()
  var main_menu: AnimatedMainMenu = MAIN_MENU.instantiate()
+ main_menu.has_continue=RunSave.available()
  main_menu.stage = backdrop
  main_menu.play_intro = not menu_intro_seen
  menu_intro_seen = true
@@ -245,6 +269,7 @@ func on_menu_action(action: String) -> void:
  Soundscape.play_effect("ui")
  match action:
   "new_game": show_character_selection()
+  "continue": continue_run()
   "options": show_options("menu")
   "codes": show_codes()
   "credits": show_credits()
@@ -253,6 +278,8 @@ func on_menu_action(action: String) -> void:
 
 func quit_game() -> void:
  if state=="closing": return
+ save_now(true)
+ Settings.save_settings()
  state="closing"
  controls.set_enabled(false)
  Soundscape.stop_all()
@@ -277,6 +304,14 @@ func show_character_selection() -> void:
 func begin_character_run(id: String) -> bool:
  if state != "character_selection" or not CharacterCatalog.playable(id): return false
  selected_character = id
+ Settings.values.selected_character=id
+ Settings.schedule_save()
+ if RunSave.available():
+  var box:=menu("¿Comenzar otra expedición?","Se reemplazará la partida en curso. Tus desbloqueos se conservan.")
+  state="replace_run"
+  box.add_child(button("COMENZAR NUEVA",func(): start_dungeon()))
+  box.add_child(button("VOLVER",show_character_selection))
+  return true
  return start_dungeon()
 
 func show_modes() -> void:
@@ -324,6 +359,7 @@ func dispose_world() -> void:
  enemies.clear()
  bullets.clear()
  effects.clear()
+ damage_numbers.clear()
  sparks.clear()
  pickups.clear()
  room_pickups = []
@@ -331,7 +367,7 @@ func dispose_world() -> void:
  props.clear()
  if is_instance_valid(boss_panel): boss_panel.hide()
 
-func start_game(keep_progress: bool = false) -> void:
+func start_game(keep_progress: bool = false, checkpoint: Dictionary={}) -> void:
  if keep_progress: Soundscape.play_effect("door")
  backdrop.hide()
  var carried_ability: Dictionary = player.ability_snapshot() if keep_progress and is_instance_valid(player) else {}
@@ -357,6 +393,7 @@ func start_game(keep_progress: bool = false) -> void:
  chamber.biome = layout.floor_index if dungeon_mode else 0
  if dungeon_mode: chamber.blueprint=RoomBlueprint.create(dungeon_seed,layout.floor_index,layout.current,layout.rooms[layout.current].kind)
  world.add_child(chamber)
+ build_entry_markers()
  player = PLAYER.instantiate()
  if carried != null: player.stats = carried
  else: player.stats = CharacterCatalog.initial_stats(selected_character)
@@ -377,11 +414,13 @@ func start_game(keep_progress: bool = false) -> void:
  player.health_changed.connect(update_health)
  player.damaged.connect(func():
   Soundscape.play_effect("hurt")
+  queue_checkpoint()
   if is_instance_valid(bonds): bonds.note_damage(player.latest_hit_source)
   if dungeon_mode: layout.rooms[layout.current].damaged=true
   player.relics.effects.event("hurt",player,self))
  player.died.connect(func(): finish(false))
  world.add_child(player)
+ if not checkpoint.is_empty(): RunSnapshot.player_into(self,checkpoint)
  bonds=BondsArena.new()
  bonds.game=self
  world.add_child(bonds)
@@ -389,7 +428,7 @@ func start_game(keep_progress: bool = false) -> void:
  bonds.antidote_time=float(player.character_state.antidote_time)
  if dungeon_mode:
   RoomContent.prepare(layout,player.relics.owned,progress.data.journal.artifacts)
-  populate_room()
+  if checkpoint.is_empty(): populate_room()
  elif trial_kind!="":
   spawn_trial_stage()
  elif expedition:
@@ -417,7 +456,7 @@ func start_game(keep_progress: bool = false) -> void:
   floor_label.text = "P%d/3 · %s" % [layout.floor_index+1,FloorLayout.BIOMES[layout.floor_index]]
   floor_label.show()
   navigation.show()
-  reward_room()
+  if checkpoint.is_empty(): reward_room()
  if dungeon_mode:
   room_pickups = layout.rooms[layout.current].get("pickups",[])
   layout.rooms[layout.current].pickups = room_pickups
@@ -439,7 +478,29 @@ func start_game(keep_progress: bool = false) -> void:
   if not carried_ability.is_empty():
    if not layout.rooms[layout.current].get("bond_visited",false): NineBonds.new_room(player)
   layout.rooms[layout.current].bond_visited=true
+ if not checkpoint.is_empty(): RunSnapshot.actors_into(self,checkpoint)
+ if dungeon_mode and checkpoint.is_empty() and not entry_transition.is_empty():
+  player.position=RoomTransition.safe_spawn(self,entry_transition.spawn)
+  player.facing=entry_transition.facing
+  entry_transition.spawn=player.position
+  player.immunity=maxf(player.immunity,0.65)
+  door_cooldown=0.8
+  controls.release_all()
+  fade_room_entry()
  observe_journal_room()
+ queue_checkpoint()
+
+func fade_room_entry() -> void:
+ if not is_instance_valid(transition_veil):
+  transition_veil=ColorRect.new()
+  transition_veil.mouse_filter=Control.MOUSE_FILTER_IGNORE
+  transition_veil.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+  transition_veil.color=Color("071521")
+  ui.add_child(transition_veil)
+ if transition_tween and transition_tween.is_valid(): transition_tween.kill()
+ transition_veil.modulate.a=0.55
+ transition_tween=create_tween()
+ transition_tween.tween_property(transition_veil,"modulate:a",0.0,0.24)
 
 func observe_journal_room() -> void:
  journal_queued=false
@@ -534,6 +595,10 @@ func _physics_process(delta: float) -> void:
  sync_control_state()
  controls.queue_redraw()
  door_cooldown=maxf(0,door_cooldown-delta)
+ if dungeon_mode: door_open_amount=move_toward(door_open_amount,1.0 if layout.rooms[layout.current].cleared else 0.0,delta*4)
+ for i in range(damage_numbers.size()-1,-1,-1):
+  damage_numbers[i].life-=delta
+  if damage_numbers[i].life<=0: damage_numbers.remove_at(i)
  hud.refresh_stats(player.stats,delta)
  position_notice()
  update_relic_ui(delta)
@@ -617,16 +682,16 @@ func on_enemy_defeated(enemy: AbyssEnemy, point: Vector2, _reward: int) -> void:
   room_pickups.append(reward)
   spawn_pickup(reward)
  if dungeon_mode and not enemy.weak:
-  record_progress("enemy",str(enemy.get_instance_id()))
+  record_progress("enemy",str(enemy.get_meta("run_uid",enemy.get_instance_id())))
   if enemy is TideWarden:
    var elemental:=player.relics.has("fire") or player.relics.has("ice") or player.relics.has("electric")
    record_progress("boss","guardian",{"elemental":elemental,"boss_id":enemy.definition.id})
    player.add_determination(25)
   elif enemy.rank=="elite":
-   record_progress("elite",str(enemy.get_instance_id()))
+   record_progress("elite",str(enemy.get_meta("run_uid",enemy.get_instance_id())))
    player.add_determination(8)
   elif enemy.rank=="miniboss":
-   record_progress("miniboss",str(enemy.get_instance_id()))
+   record_progress("miniboss",str(enemy.get_meta("run_uid",enemy.get_instance_id())))
    player.add_determination(12)
  if not enemy is TideWarden:
   var amount:=Economy.enemy_coin(loot_rng,enemy.kind,enemy.weak,enemy.rank in ["elite","miniboss"])
@@ -637,6 +702,7 @@ func on_enemy_defeated(enemy: AbyssEnemy, point: Vector2, _reward: int) -> void:
  if Settings.values.quality > 0 and effects.size() < 16:
   effects.append({"point": point, "life": 0.45, "kind":enemy.kind})
  update_counts()
+ queue_checkpoint()
  if enemies.is_empty() and state == "playing":
   # Defer so damage and projectile cleanup can finish safely.
   clear_wave.call_deferred()
@@ -659,9 +725,13 @@ func draw_effects() -> void:
     continue
    var point := door_point(neighbor)
    var open: bool = layout.rooms[layout.current].cleared
-   effect_layer.draw_texture_rect(DOOR_ART,Rect2(point-Vector2(20,30),Vector2(40,50)),false,Color.WHITE if open else Color(0.7,0.5,0.6))
+   var width:=lerpf(40,28,door_open_amount)
+   effect_layer.draw_texture_rect(DOOR_ART,Rect2(point-Vector2(width*0.5,30),Vector2(width,50)),false,Color.WHITE if open else Color(0.7,0.5,0.6))
    if layout.rooms[neighbor].get("locked",false): effect_layer.draw_texture_rect(RelicPickup.KEY,Rect2(point-Vector2(10,10),Vector2(20,20)),false)
    if not open: effect_layer.draw_line(point-Vector2(15,0),point+Vector2(15,0),Color("ba8b8e"),4)
+ for number in damage_numbers:
+  var at: Vector2=number.point+Vector2(-10,-28-(0.55-number.life)*24)
+  effect_layer.draw_string(ThemeDB.fallback_font,at,"%.1f" % number.value,HORIZONTAL_ALIGNMENT_LEFT,-1,14,Color(1,0.86,0.64,number.life/0.55))
  for effect in effects:
   var t: float = 1.0 - effect.life / 0.45
   if effect.has("kind"):
@@ -681,6 +751,7 @@ func set_world_active(active: bool) -> void:
 
 func pause_game() -> void:
  if state != "playing": return
+ save_now()
  state = "paused"
  set_world_active(false)
  var box := menu("Mareas en calma", "Semilla %d · Piso %d/3" % [dungeon_seed,layout.floor_index+1] if dungeon_mode else "Partida en pausa")
@@ -702,6 +773,9 @@ func finish(won: bool) -> void:
  if won and dungeon_mode and layout.floor_index==2 and layout.boss_defeated():
   record_progress("floor","completed",{"character":selected_character})
   record_progress("ending","main")
+ if dungeon_mode:
+  RunSave.invalidate()
+  RunSave.flush()
  state = "victory" if won else "defeat"
  boss_panel.hide()
  player.process_mode = Node.PROCESS_MODE_ALWAYS
@@ -724,6 +798,7 @@ func show_options(previous: String) -> void:
  quality.add_theme_font_size_override("font_size", 20)
  quality.item_selected.connect(func(value: int):
   Settings.values.quality = value
+  Settings.schedule_save()
   if is_instance_valid(chamber):
    chamber.quality = value
    chamber.queue_redraw())
@@ -732,7 +807,7 @@ func show_options(previous: String) -> void:
  var fps_toggle := CheckButton.new()
  fps_toggle.text = "Diagnóstico FPS"
  fps_toggle.button_pressed = Settings.values.get("diagnostics",false)
- fps_toggle.toggled.connect(func(value: bool): Settings.values.diagnostics = value)
+ fps_toggle.toggled.connect(func(value: bool): Settings.values.diagnostics = value; Settings.schedule_save())
  box.add_child(fps_toggle)
  box.add_child(button("Música y efectos",show_audio_options))
  if previous == "menu":
@@ -767,7 +842,7 @@ func add_slider(box: VBoxContainer, text: String, key: String, low: float, high:
  slider.step = 0.05
  slider.value = Settings.values[key]
  slider.custom_minimum_size = Vector2(360, 32)
- slider.value_changed.connect(func(value: float): Settings.values[key] = value)
+ slider.value_changed.connect(func(value: float): Settings.values[key] = value; Settings.schedule_save())
  box.add_child(slider)
 
 func show_audio_options() -> void:
@@ -786,6 +861,7 @@ func show_audio_options() -> void:
   slider.custom_minimum_size=Vector2(490,48)
   slider.value_changed.connect(func(value: float):
    Settings.values[key]=value
+   Settings.schedule_save()
    caption.text="%s · %d%%" % [entry[0],roundi(value*100)]
    Soundscape.apply_settings())
   box.add_child(slider)
@@ -800,6 +876,12 @@ func show_audio_options() -> void:
   show_options(options_return)))
 
 func _process(_delta: float) -> void:
+ if is_instance_valid(save_icon):
+  save_icon_age=maxf(0,save_icon_age-_delta)
+  save_icon.visible=RunSave.writing or save_icon_age>0
+ if dungeon_mode and state=="playing":
+  autosave_age+=_delta
+  if autosave_age>=5.0: autosave_age=0; queue_checkpoint()
  if state=="closing": return
  # The director compares IDs before loading. No file I/O or tree searches per frame.
  var held:=is_instance_valid(world) and state in ["paused","inventory","doors","shop","options","control_options","control_preview","audio_options","diary","bond_puzzle","bond_analysis"]
@@ -812,10 +894,15 @@ func _notification(what: int) -> void:
  if what == NOTIFICATION_APPLICATION_FOCUS_OUT or what == NOTIFICATION_APPLICATION_PAUSED:
   if is_instance_valid(character_audio): character_audio.stop(); character_audio.stream=null
   if is_instance_valid(controls): controls.release_all()
+  save_now(true)
+  Settings.save_settings()
   pause_game()
+ if what == NOTIFICATION_WM_CLOSE_REQUEST:
+  save_now(true)
+  Settings.save_settings()
  if what == NOTIFICATION_WM_GO_BACK_REQUEST:
   if state == "menu" and panel is AnimatedMainMenu: panel.skip_intro()
-  elif state in ["modes","credits","character_selection","progress_backup"]: show_main_menu()
+  elif state in ["modes","credits","character_selection","progress_backup","replace_run"]: show_main_menu()
   elif state=="seed": show_modes()
   elif state=="control_options": show_options(controls_return)
   elif state=="control_preview": show_control_options(controls_return)
@@ -832,7 +919,7 @@ func _unhandled_key_input(event: InputEvent) -> void:
  if event is InputEventKey and event.pressed and not event.echo and event.physical_keycode == KEY_ESCAPE:
   if state == "playing": pause_game()
   elif state == "paused": resume_game()
-  elif state in ["character_selection","progress_backup"]: show_main_menu()
+  elif state in ["character_selection","progress_backup","replace_run"]: show_main_menu()
   elif state=="control_options": show_options(controls_return)
   elif state=="control_preview": show_control_options(controls_return)
   elif state=="audio_options": show_options(options_return)
@@ -886,8 +973,11 @@ func spawn_enemy(kind_id: int, point: Vector2, weak: bool = false, rank: String=
  enemy.rank=rank if rank in ["normal","elite","miniboss"] else "normal"
  enemy.weak = weak
  enemy.once = weak
+ enemy.set_meta("run_uid",next_enemy_uid)
+ next_enemy_uid+=1
  enemy.position = safe_point(point)
  enemy.target = player
+ enemy.hurt.connect(func(amount: float): show_damage(enemy.position,amount))
  enemy.peers = enemies
  enemy.shot.connect(func(origin: Vector2, direction: Vector2):
   NineBonds.observed(player,enemy)
@@ -976,6 +1066,7 @@ func clear_wave() -> void:
    if layout.rooms[layout.current].kind in ["special","secret","treasure","shop"]: CharacterRules.special_room(player,layout.floor_index)
    reward_room()
    dungeon_map.queue_redraw()
+   queue_checkpoint()
   return
  if expedition and wave < 4:
   wave += 1
@@ -1001,11 +1092,14 @@ func start_dungeon(chosen_seed: int = -1) -> bool:
  if not progress.begin_run():
   show_main_menu()
   return false
+ run_serial=int(progress.data.serial)
+ next_enemy_uid=1
  trial_kind=""
  lab_mode=false
  dungeon_mode = true
  expedition = false
  dungeon_seed = (int(randi()) & 2147483647) if chosen_seed<0 else chosen_seed
+ entry_transition={}
  layout.generate(dungeon_seed,0,true)
  start_game()
  return true
@@ -1074,9 +1168,14 @@ func travel_to(neighbor: int) -> void:
    show_notice("Necesitas una llave",RelicPickup.KEY)
    transitioning=false
    return
+ var crossing:=RoomTransition.record(layout,neighbor)
+ if crossing.is_empty():
+  transitioning=false
+  return
  if not layout.enter(neighbor):
   transitioning=false
   return
+ entry_transition=crossing
  if layout.rooms[neighbor].kind=="secret": record_progress("secret","discovered")
  start_game(true)
  if layout.rooms[neighbor].cleared and layout.rooms[neighbor].kind in ["secret","treasure","special","shop"]: CharacterRules.special_room(player,layout.floor_index)
@@ -1109,7 +1208,11 @@ func descend() -> void:
   state = "playing"
   finish(true)
   return
+ if not save_now(true):
+  show_notice("No se pudo guardar antes de descender. Inténtalo de nuevo",preload("res://assets/ui/stats.svg"))
+  return
  record_progress("floor","completed",{"character":selected_character})
+ entry_transition={}
  layout.generate(dungeon_seed,layout.floor_index+1,true)
  start_game(true)
 
@@ -1146,8 +1249,10 @@ func spawn_pickup(data: Dictionary) -> RelicPickup:
  pickup.quality = Settings.values.quality
  pickup.accept_claim=collect_relic
  pickup.unlock_requested.connect(unlock_chest)
- pickup.opened.connect(func(): Soundscape.play_effect("chest"))
- pickup.claimed.connect(func(item: RelicPickup): Soundscape.play_effect("buy" if item.data.get("paid",false) else "coin" if item.data.get("reward_kind","")=="coins" else "relic"))
+ pickup.opened.connect(func(): Soundscape.play_effect("chest"); queue_checkpoint())
+ pickup.claimed.connect(func(item: RelicPickup):
+  Soundscape.play_effect("buy" if item.data.get("paid",false) else "coin" if item.data.get("reward_kind","")=="coins" else "relic")
+  queue_checkpoint())
  world.add_child(pickup)
  pickups.append(pickup)
  return pickup
@@ -1332,6 +1437,7 @@ func build_room_features() -> void:
 func activate_prop(prop: RoomProp) -> void:
  if state!="playing" or not is_instance_valid(prop) or prop.get_parent()!=world or not props.has(prop) or not prop.data.get("used",false) or prop.data.get("activation_handled",false): return
  prop.data.activation_handled=true
+ queue_checkpoint()
  match prop.data.kind:
   "switch":
    layout.reveal_secret()
@@ -1394,10 +1500,15 @@ func spawn_guardian(variant: int=-1) -> void:
  if state!="playing" or enemies.size()>=MAX_ENEMIES: return
  var guardian: TideWarden=GUARDIAN.instantiate()
  guardian.floor_level=layout.floor_index if variant<0 else clampi(variant,0,2)
+ guardian.set_meta("run_uid",next_enemy_uid)
+ next_enemy_uid+=1
  guardian.position=Vector2(480,180)
  guardian.target=player
+ guardian.hurt.connect(func(amount: float): show_damage(guardian.position,amount))
  guardian.peers=enemies
- guardian.shot.connect(spawn_enemy_bullet)
+ guardian.shot.connect(func(origin: Vector2, direction: Vector2):
+  NineBonds.observed(player,guardian)
+  spawn_enemy_bullet(origin,direction))
  guardian.summon.connect(func(id: int, location: Vector2, small: bool): spawn_enemy(id,location,small))
  guardian.hazard.connect(spawn_hazard)
  guardian.defeated.connect(func(point: Vector2, reward: int): on_enemy_defeated(guardian,point,reward))
@@ -1549,7 +1660,7 @@ func record_progress(event: String, suffix: String, payload: Dictionary={}) -> b
  var token: String="%d:%d:%s" % [layout.floor_index,layout.current,suffix]
  # Floor completion has one token per floor, regardless of the exit room.
  if event=="floor": token="floor:%d" % layout.floor_index
- return progress.record(event,token,payload)
+ return progress.record(event,"run:%d:" % run_serial+token,payload)
 
 func use_character_ability() -> bool:
  if state!="playing" or not is_instance_valid(player): return false
@@ -1558,6 +1669,7 @@ func use_character_ability() -> bool:
   return false
  if not player.activate_ability(): return false
  player.relics.effects.event("ability",player,self)
+ queue_checkpoint()
  character_audio.stop()
  character_audio.stream=CharacterSounds.ability_sound(player.character_id)
  character_audio.play()
@@ -1580,21 +1692,21 @@ func use_character_ability() -> bool:
 
 func show_progress_backup() -> void:
  state="progress_backup"
- var box:=menu("Recuerdos del abismo","Copia tus desbloqueos antes de reinstalar. No incluye una partida en curso.")
+ var box:=menu("Recuerdos del abismo","Copia AOT5: desbloqueos y expedición actual. Acepta códigos anteriores.")
  var field:=TextEdit.new()
  field.custom_minimum_size=Vector2(610,135)
  field.wrap_mode=TextEdit.LINE_WRAPPING_BOUNDARY
- field.text=progress.export_code()
+ field.text=SaveBundle.export_code(progress,RunSave)
  field.add_theme_font_size_override("font_size",14)
  box.add_child(field)
  var message:=label("",14)
  message.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
  box.add_child(message)
  box.add_child(button("Copiar código",func():
-  DisplayServer.clipboard_set(progress.export_code())
+  DisplayServer.clipboard_set(SaveBundle.export_code(progress,RunSave))
   message.text="Código copiado. Guárdalo en tus notas fuera del juego."))
  box.add_child(button("Restaurar código del cuadro",func():
-  message.text="Recuerdos restaurados; se conservan los logros actuales." if progress.import_code(field.text) else "Código inválido o no se pudo guardar. No se ha reemplazado el progreso."))
+  message.text="Recuerdos y expedición restaurados; se conservan los logros actuales." if SaveBundle.import_code(field.text,progress,RunSave) else "Código inválido o no se pudo guardar. No se ha reemplazado el progreso."))
  box.add_child(button("Volver",func(): show_options("menu")))
 
 func _exit_tree() -> void:
@@ -1616,7 +1728,9 @@ func spawn_rupture() -> void:
 
 func use_active_item() -> bool:
  if state!="playing" or not is_instance_valid(player) or not player.active: return false
- if player.relics.effects.activate(player,self): return true
+ if player.relics.effects.activate(player,self):
+  queue_checkpoint()
+  return true
  if not player.relics.effects.active_id.is_empty(): show_notice("Objeto agotado en esta partida" if player.relics.effects.active_exhausted() else "No se puede usar ahora",RelicCatalog.icon(player.relics.effects.active_id))
  return false
 
@@ -1624,6 +1738,7 @@ func use_shader_awaken() -> bool:
  if state!="playing" or not is_instance_valid(player) or not player.active or player.character_id!="shader" or player.determination<100 or player.awakened>0: return false
  player.determination=0
  player.awakened=8.0
+ queue_checkpoint()
  CharacterRules.update_shader(player)
  character_audio.stop()
  character_audio.stream=CharacterSounds.unlock_sound()
@@ -1844,3 +1959,76 @@ func show_bond_analysis() -> void:
     player.character_state.observed[id]=3
    else: info_label.text="No se pudo guardar el análisis"))
  box.add_child(button("Volver",resume_game))
+
+
+func queue_checkpoint() -> void:
+ if checkpoint_queued or restoring_run or not dungeon_mode or not is_instance_valid(player) or not player.active or state in ["victory","defeat","closing"]: return
+ checkpoint_queued=true
+ commit_checkpoint.call_deferred()
+
+func commit_checkpoint() -> void:
+ checkpoint_queued=false
+ save_now()
+
+func save_now(wait_for_disk: bool=false) -> bool:
+ if restoring_run or not dungeon_mode or not is_instance_valid(player) or not player.active or state in ["victory","defeat","closing"]: return false
+ var success:=RunSave.submit(RunSnapshot.capture(self))
+ if success:
+  save_icon.text="◇ Guardando…"
+  save_icon_age=1
+ if wait_for_disk: success=RunSave.flush()==OK and success
+ return success
+
+func continue_run() -> bool:
+ RunSave.flush()
+ var checkpoint: Dictionary=RunSave.cached.duplicate(true)
+ if not RunSnapshot.valid(checkpoint) or not checkpoint.get("active",false):
+  show_notice("No hay una expedición compatible",preload("res://assets/ui/stats.svg"))
+  return false
+ restoring_run=true
+ trial_kind=""
+ lab_mode=false
+ expedition=false
+ dungeon_mode=true
+ selected_character=checkpoint.character
+ run_serial=int(checkpoint.run_serial)
+ next_enemy_uid=int(checkpoint.next_enemy)
+ dungeon_seed=int(checkpoint.seed)
+ layout.generate(dungeon_seed,int(checkpoint.floor),true)
+ layout.rooms.assign(checkpoint.rooms)
+ layout.current=int(checkpoint.room)
+ entry_transition=checkpoint.entry.duplicate(true)
+ for key in checkpoint.events:
+  if progress.data.events.size()<4096: progress.data.events[key]=true
+ start_game(false,checkpoint)
+ coins=int(checkpoint.coins)
+ keys=int(checkpoint.keys)
+ update_counts()
+ player.position=RoomTransition.safe_spawn(self,player.position)
+ player.immunity=maxf(player.immunity,0.65)
+ fade_room_entry()
+ # Paused resume lets the player orient themselves; no free healing or resets.
+ door_cooldown=0.8
+ controls.release_all()
+ restoring_run=false
+ state="playing"
+ pause_game()
+ show_notice("Expedición restaurada · continúa cuando estés listo",preload("res://assets/ui/stats.svg"))
+ return true
+
+
+func build_entry_markers() -> void:
+ if not dungeon_mode: return
+ var origin: int=layout.current
+ for neighbor in layout.rooms[origin].links:
+  layout.current=int(neighbor)
+  var data:=RoomTransition.record(layout,origin)
+  layout.current=origin
+  var marker:=Marker2D.new()
+  marker.name="Entry_%d_%d" % [data.entry.x,data.entry.y]
+  marker.position=data.spawn
+  marker.set_meta("door_id",data.door)
+  chamber.add_child(marker)
+
+func show_damage(point: Vector2, amount: float) -> void:
+ if amount>0 and damage_numbers.size()<(8 if Settings.values.quality==0 else 16): damage_numbers.append({"point":point,"value":amount,"life":0.55})

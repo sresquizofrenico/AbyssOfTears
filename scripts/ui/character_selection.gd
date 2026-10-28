@@ -4,7 +4,7 @@ extends PanelContainer
 signal trial_requested
 signal begin_requested(id: String)
 signal back_requested
-var entries: Array = CharacterCatalog.DATA.duplicate(true)
+var entries: Array = CharacterPresentation.entries()
 var index := 0
 var character: MenuCharacter
 var heading: Label

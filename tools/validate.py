@@ -12,12 +12,17 @@ GODOT = os.environ.get('GODOT', 'godot')
 ERROR = re.compile(r'SCRIPT ERROR:|(?:^|\n)ERROR:|Parse Error:|TEST FAILED:|Failed to load', re.I)
 
 def run(args, env):
-    result = subprocess.run([GODOT, '--headless', '--path', str(ROOT), *args],
-                            text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                            env=env, timeout=180)
-    print(result.stdout, flush=True)
-    if result.returncode or ERROR.search(result.stdout):
-        raise SystemExit(f'Godot validation failed: {args} (exit {result.returncode})')
+    # Each suite models a fresh installation. Persistent expedition checkpoints
+    # must not leak from another suite and silently change its main menu.
+    with tempfile.TemporaryDirectory(prefix='abyss-suite-') as suite_dir:
+        isolated = dict(env, XDG_DATA_HOME=suite_dir, XDG_CONFIG_HOME=suite_dir,
+                        XDG_CACHE_HOME=suite_dir)
+        result = subprocess.run([GODOT, '--headless', '--path', str(ROOT), *args],
+                                text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                                env=isolated, timeout=180)
+        print(result.stdout, flush=True)
+        if result.returncode or ERROR.search(result.stdout):
+            raise SystemExit(f'Godot validation failed: {args} (exit {result.returncode})')
 
 with tempfile.TemporaryDirectory(prefix='abyss-tests-') as user_dir:
     env = dict(os.environ, XDG_DATA_HOME=user_dir, XDG_CONFIG_HOME=user_dir,
@@ -56,5 +61,9 @@ with tempfile.TemporaryDirectory(prefix='abyss-tests-') as user_dir:
     run(['--script', 'res://tests/archaeology_tests.gd'], env)
     run(['--script', 'res://tests/nine_bonds_tests.gd'], env)
     run(['--script', 'res://tests/bond_edge_tests.gd'], env)
+    run(['--script', 'res://tests/checkpoint_tests.gd'], env)
+    run(['--script', 'res://tests/durability_tests.gd'], env)
+    run(['--script', 'res://tests/presentation_tests.gd'], env)
+    run(['--script', 'res://tests/presentation_tests.gd', '--', '--private-reference'], env)
 subprocess.run([sys.executable, '-m', 'unittest', 'discover', '-s', 'tests', '-p', 'test_public_release.py'], cwd=ROOT, check=True)
 print('All project validations passed.')
